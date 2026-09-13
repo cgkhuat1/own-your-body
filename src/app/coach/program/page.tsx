@@ -31,8 +31,9 @@ export default function ProgramBuilder() {
                 workout_exercises (
                     id, exercise_id, custom_name, group_code, order_index,
                     target_sets, target_reps, target_rpe,
+                    exercises (name),
                     workout_logs (
-                        set_number, weight, reps, rpe
+                        id, set_number, weight, reps, rpe, created_at
                     )
                 )
             )
@@ -62,7 +63,7 @@ export default function ProgramBuilder() {
                 masterExercises.set(key, {
                   key,
                   exercise_id: ex.exercise_id,
-                  custom_name: ex.custom_name || "Bài tập",
+                  custom_name: ex.custom_name || ex.exercises?.name || "Bài tập",
                   group_code: ex.group_code,
                   order_index: ex.order_index,
                   weeks: {} // Lưu w_ex theo week_number
@@ -210,7 +211,15 @@ export default function ProgramBuilder() {
                   );
                 }
 
-                const logs = wEx.workout_logs || [];
+                const rawLogs = wEx.workout_logs || [];
+                
+                // Lọc bỏ log trùng lặp (nếu khách bấm nộp bài nhiều lần), giữ lại log mới nhất cho mỗi set
+                const uniqueLogsMap = new Map();
+                rawLogs.sort((a:any, b:any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                       .forEach((l:any) => {
+                          if (!uniqueLogsMap.has(l.set_number)) uniqueLogsMap.set(l.set_number, l);
+                       });
+                const uniqueLogs = Array.from(uniqueLogsMap.values()).sort((a:any, b:any) => a.set_number - b.set_number);
                 
                 return (
                   <div key={weekNum} className="p-4 border-r border-brand-line flex flex-col gap-2">
@@ -241,12 +250,12 @@ export default function ProgramBuilder() {
                     </div>
 
                     {/* Actual Logs */}
-                    {logs.length > 0 ? (
+                    {uniqueLogs.length > 0 ? (
                       <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5 flex items-center gap-1">✅ Thực tế tập</p>
                         <div className="space-y-1">
-                          {logs.sort((a:any, b:any) => a.set_number - b.set_number).map((l: any) => (
-                            <div key={l.set_number} className="flex justify-between items-center text-[11px] font-black text-emerald-900 bg-emerald-100/50 px-2 py-1 rounded">
+                          {uniqueLogs.map((l: any) => (
+                            <div key={l.id} className="flex justify-between items-center text-[11px] font-black text-emerald-900 bg-emerald-100/50 px-2 py-1 rounded">
                               <span className="text-emerald-700 font-semibold w-4">#{l.set_number}</span>
                               <span>{l.weight}kg x {l.reps}</span>
                               <span className="text-emerald-600 text-[10px]">@{l.rpe || '?'}</span>
