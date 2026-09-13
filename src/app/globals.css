@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --color-brand-paper: #FAF8F3;
+  --color-brand-moss: #2E4630;
+  --color-brand-mossDeep: #1C2E20;
+  --color-brand-sage: #A8B99E;
+  --color-brand-sand: #DCD0B4;
+  --color-brand-line: #DEDACC;
+  --color-brand-warn: #B5654A;
+  --font-sans: 'Work Sans', sans-serif;
+}
+
+body {
+  background-color: var(--color-brand-paper);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix input overflow */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}

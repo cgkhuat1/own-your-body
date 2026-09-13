@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Workout Tracker</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            paper: '#FAF8F3',
+                            moss: '#2E4630',
+                            mossDeep: '#1C2E20',
+                            sage: '#A8B99E',
+                            sand: '#DCD0B4',
+                            line: '#DEDACC',
+                            warn: '#B5654A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Work Sans"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { 
+            background-color: #FAF8F3;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-brand-moss">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const todayWorkout = {
+            id: 'w1',
+            day: 'Ngày 1 - Thân Trên',
+            exercises: [
+                {
+                    id: 'e1',
+                    name: 'Barbell Bench Press',
+                    youtubeId: 'rT7DgCr-3pg',
+                    lastWeek: { weight: 60, reps: 8, rpe: 8, sets: 3 },
+                    sets: [{ id: 's1', weight: '', reps: '', rpe: '' }, { id: 's2', weight: '', reps: '', rpe: '' }, { id: 's3', weight: '', reps: '', rpe: '' }]
+                },
+                {
+                    id: 'e2',
+                    name: 'Incline Dumbbell Press',
+                    youtubeId: '8iPEnn-ltC8',
+                    lastWeek: { weight: 22.5, reps: 10, rpe: 7.5, sets: 3 },
+                    sets: [{ id: 's1', weight: '', reps: '', rpe: '' }, { id: 's2', weight: '', reps: '', rpe: '' }]
+                }
+            ]
+        };
+
+        function App() {
+            const [workout, setWorkout] = useState(todayWorkout);
+            const [activeVideo, setActiveVideo] = useState(null);
+
+            useEffect(() => {
+                lucide.createIcons();
+            }, [workout, activeVideo]);
+
+            const handleInputChange = (exerciseId, setId, field, value) => {
+                const updated = { ...workout };
+                const ex = updated.exercises.find(e => e.id === exerciseId);
+                const s = ex.sets.find(s => s.id === setId);
+                s[field] = value;
+                setWorkout(updated);
+            };
+
+            const addSet = (exerciseId) => {
+                const updated = { ...workout };
+                const ex = updated.exercises.find(e => e.id === exerciseId);
+                // Tạo ID duy nhất cho set mới
+                const newSetId = 's' + Date.now();
+                ex.sets.push({ id: newSetId, weight: '', reps: '', rpe: '' });
+                setWorkout(updated);
+            };
+
+            const removeSet = (exerciseId, setId) => {
+                const updated = { ...workout };
+                const ex = updated.exercises.find(e => e.id === exerciseId);
+                // Chỉ cho phép xoá nếu còn nhiều hơn 1 set
+                if (ex.sets.length > 1) {
+                    ex.sets = ex.sets.filter(s => s.id !== setId);
+                    setWorkout(updated);
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-brand-paper min-h-screen relative shadow-2xl">
+                    <div className="bg-brand-mossDeep text-brand-sage p-4 sticky top-0 z-10 flex justify-between items-center shadow-md">
+                        <div>
+                            <h1 className="text-xl font-bold text-white">Lịch Tập Tuần 2</h1>
+                            <p className="text-sm opacity-90">{workout.day}</p>
+                        </div>
+                        <div className="w-10 h-10 bg-brand-moss rounded-full flex items-center justify-center font-bold text-white border border-brand-sage/30">
+                            PT
+                        </div>
+                    </div>
+
+                    <div className="p-4 pb-28 space-y-6">
+                        {workout.exercises.map((ex, exIndex) => (
+                            <div key={ex.id} className="bg-white rounded-xl border border-brand-line p-4 shadow-sm">
+                                
+                                <div className="flex justify-between items-start mb-4">
+                                    <h2 className="text-lg font-bold text-brand-moss">
+                                        {exIndex + 1}. {ex.name}
+                                    </h2>
+                                    <button 
+                                        onClick={() => setActiveVideo(ex.youtubeId)}
+                                        className="text-brand-warn bg-brand-sand/30 p-2 rounded-full hover:bg-brand-sand/60 flex items-center justify-center shrink-0 transition"
+                                    >
+                                        <i data-lucide="youtube" className="w-5 h-5"></i>
+                                    </button>
+                                </div>
+
+                                <div className="bg-brand-sand text-brand-mossDeep text-xs px-3 py-2 rounded-lg mb-4 flex items-center font-semibold">
+                                    <i data-lucide="history" className="w-4 h-4 mr-1.5 opacity-70"></i>
+                                    Tuần trước: {ex.lastWeek.weight}kg x {ex.lastWeek.reps} reps @ RPE {ex.lastWeek.rpe}
+                                </div>
+
+                                {/* Header Cột (thêm padding cho cột xoá) */}
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-[1.5rem_1fr_1fr_1fr_1.5rem] gap-1.5 text-[10px] font-bold text-brand-moss/60 px-1 uppercase tracking-wider">
+                                        <div className="text-center">Set</div>
+                                        <div className="text-center">Tạ</div>
+                                        <div className="text-center">Reps</div>
+                                        <div className="text-center">RPE</div>
+                                        <div></div>
+                                    </div>
+                                    
+                                    {ex.sets.map((set, i) => (
+                                        <div key={set.id} className="grid grid-cols-[1.5rem_1fr_1fr_1fr_1.5rem] gap-1.5 items-center bg-brand-paper/50 p-2 rounded-lg border border-brand-line/50">
+                                            <div className="text-center font-bold text-brand-moss/40 text-sm">{i + 1}</div>
+                                            
+                                            <input 
+                                                type="number" inputMode="decimal" placeholder="-"
+                                                className="w-full min-w-0 bg-white border border-brand-line rounded-lg py-2 text-center text-base font-bold text-brand-moss focus:outline-none focus:ring-2 focus:ring-brand-moss focus:border-transparent transition-all"
+                                                value={set.weight}
+                                                onChange={(e) => handleInputChange(ex.id, set.id, 'weight', e.target.value)}
+                                            />
+                                            
+                                            <input 
+                                                type="number" inputMode="numeric" placeholder="-"
+                                                className="w-full min-w-0 bg-white border border-brand-line rounded-lg py-2 text-center text-base font-bold text-brand-moss focus:outline-none focus:ring-2 focus:ring-brand-moss focus:border-transparent transition-all"
+                                                value={set.reps}
+                                                onChange={(e) => handleInputChange(ex.id, set.id, 'reps', e.target.value)}
+                                            />
+
+                                            <input 
+                                                type="number" inputMode="decimal" placeholder="-"
+                                                className="w-full min-w-0 bg-white border border-brand-line rounded-lg py-2 text-center text-base font-bold text-brand-warn focus:outline-none focus:ring-2 focus:ring-brand-moss focus:border-transparent transition-all"
+                                                value={set.rpe}
+                                                onChange={(e) => handleInputChange(ex.id, set.id, 'rpe', e.target.value)}
+                                            />
+
+                                            {/* Nút Xoá Set */}
+                                            <div className="flex justify-center">
+                                                <button 
+                                                    onClick={() => removeSet(ex.id, set.id)}
+                                                    disabled={ex.sets.length <= 1}
+                                                    className={`p-1 rounded-md transition ${ex.sets.length <= 1 ? 'opacity-20 cursor-not-allowed' : 'text-brand-warn/60 hover:text-brand-warn hover:bg-brand-warn/10'}`}
+                                                >
+                                                    <i data-lucide="x" className="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button 
+                                    onClick={() => addSet(ex.id)}
+                                    className="mt-4 w-full py-2.5 border-2 border-dashed border-brand-line text-brand-moss/60 rounded-lg text-sm font-semibold hover:bg-brand-sand/20 hover:text-brand-moss transition flex items-center justify-center"
+                                >
+                                    <i data-lucide="plus" className="w-4 h-4 mr-1"></i>
+                                    Thêm Set
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-brand-paper border-t border-brand-line p-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-10">
+                        <button 
+                            className="w-full bg-brand-moss text-white font-bold text-lg py-3.5 rounded-xl hover:bg-brand-mossDeep transition shadow-md flex items-center justify-center"
+                            onClick={() => alert('Đã lưu buổi tập thành công!')}
+                        >
+                            <i data-lucide="check-circle" className="w-5 h-5 mr-2"></i>
+                            Lưu Buổi Tập
+                        </button>
+                    </div>
+
+                    {activeVideo && (
+                        <div className="fixed inset-0 bg-brand-mossDeep/95 z-50 flex flex-col max-w-md mx-auto backdrop-blur-sm">
+                            <div className="flex justify-end p-4">
+                                <button 
+                                    onClick={() => setActiveVideo(null)}
+                                    className="text-brand-paper bg-white/10 rounded-full p-2 hover:bg-white/20 transition"
+                                >
+                                    <i data-lucide="x" className="w-6 h-6"></i>
+                                </button>
+                            </div>
+                            <div className="flex-1 flex items-center justify-center w-full px-4">
+                                <div className="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-brand-line/20">
+                                    <iframe 
+                                        width="100%" height="100%" 
+                                        src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&modestbranding=1&rel=0`} 
+                                        title="YouTube video" frameBorder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen
+                                    ></iframe>
+                                </div>
+                            </div>
+                            <div className="p-8 text-center text-brand-sage text-sm font-medium">
+                                Bấm dấu X để đóng video
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+"use client";
+import { useState, useEffect } from "react";
+import { ArrowLeft, PlayCircle, Check, Plus, Trash2, Clock, X, Target, Link as LinkIcon, TimerReset, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+export default function WorkoutExecution() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [workoutData, setWorkoutData] = useState<any>(null);
+  const [exercises, setExercises] = useState<any[]>([]);
+  
+  const [showVideo, setShowVideo] = useState<string | null>(null);
+  const [errorSetId, setErrorSetId] = useState<string | null>(null);
+  const [restTime, setRestTime] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Hẹn giờ đếm tổng thời gian buổi tập
+  const [workoutDuration, setWorkoutDuration] = useState(0);
+
+  useEffect(() => {
+    // Tự động tắt Toast thông báo sau 3 giây
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  useEffect(() => {
+    // Đếm giờ tổng
+    const durationInterval = setInterval(() => setWorkoutDuration(prev => prev + 1), 1000);
+    return () => clearInterval(durationInterval);
+  }, []);
+
+  useEffect(() => {
+    // Đếm lùi giờ nghỉ
+    let restInterval: NodeJS.Timeout;
+    if (restTime !== null && restTime > 0) {
+      restInterval = setInterval(() => setRestTime(prev => prev! - 1), 1000);
+    } else if (restTime === 0) {
+      setRestTime(null);
+    }
+    return () => clearInterval(restInterval);
+  }, [restTime]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Lấy dữ liệu thật từ DB
+  useEffect(() => {
+    const fetchWorkout = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const workoutId = urlParams.get('id');
+      if (!workoutId) {
+        window.location.href = "/";
+        return;
+      }
+
+      // 1. Lấy thông tin Buổi tập
+      const { data: workout } = await supabase
+        .from('workouts')
+        .select('id, name, week_number, is_completed')
+        .eq('id', workoutId)
+        .single();
+      
+      setWorkoutData(workout);
+
+      // 2. Lấy Bài tập của buổi này
+      const { data: wExercises } = await supabase
+        .from('workout_exercises')
+        .select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, exercises(name, youtube_id)')
+        .eq('workout_id', workoutId)
+        .order('order_index', { ascending: true });
+
+      if (wExercises) {
+        // Lấy lịch sử tạ đã lưu nếu khách đã từng ấn nộp bài trước đó
+        const wExIds = wExercises.map(ex => ex.id);
+        const { data: logs } = await supabase
+          .from('workout_logs')
+          .select('*')
+          .in('workout_exercise_id', wExIds);
+
+        // Biến đổi thành State cho UI
+        const exState = wExercises.map(ex => {
+          const name = ex.custom_name || ex.exercises?.name || "Bài tập";
+          const sets = [];
+          const exLogs = logs?.filter(l => l.workout_exercise_id === ex.id) || [];
+          
+          // Xác định số set cần hiển thị (Nếu trong log có nhiều set hơn target thì render nhiều hơn)
+          const numSets = Math.max(ex.target_sets || 3, exLogs.length);
+          
+          for (let i = 1; i <= numSets; i++) {
+            const log = exLogs.find(l => l.set_number === i);
+            sets.push({
+              id: `${ex.id}-${i}`,
+              set_number: i,
+              target: `${ex.target_reps} reps @${ex.target_rpe}`,
+              weight: log && log.weight ? String(log.weight) : "",
+              reps: log && log.reps ? String(log.reps) : "",
+              rpe: log && log.rpe ? String(log.rpe) : "",
+              completed: !!log // Nếu có log cũ tức là set này đã được tick
+            });
+          }
+          return {
+            w_ex_id: ex.id,
+            group_code: ex.group_code || String(ex.order_index),
+            name: name,
+            youtube_id: ex.exercises?.youtube_id,
+            sets: sets
+          };
+        });
+        setExercises(exState);
+      }
+      setLoading(false);
+    };
+    fetchWorkout();
+  }, []);
+
+  const calculateRestTimeByRPE = (rpeVal: number) => {
+    if (rpeVal >= 9) return 240;
+    if (rpeVal >= 8) return 180;
+    return 60;
+  };
+
+  const updateSet = (exId: string, setId: string, field: string, value: string) => {
+    setExercises(exercises.map(ex => {
+      if (ex.w_ex_id !== exId) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map((s: any) => s.id === setId ? { ...s, [field]: value } : s)
+      };
+    }));
+    if (errorSetId === setId) setErrorSetId(null);
+  };
+
+  const toggleComplete = (exId: string, setId: string) => {
+    let nextRestTime = 0;
+    let showSupersetToast = false;
+    
+    // Tìm thông tin bài hiện tại và bài tiếp theo để check Superset
+    const exIndex = exercises.findIndex(e => e.w_ex_id === exId);
+    const currentEx = exercises[exIndex];
+    const nextEx = exercises[exIndex + 1];
+    
+    const isSuperset = String(currentEx.group_code).match(/[a-zA-Z]/i);
+    const currentGroupNum = parseInt(currentEx.group_code);
+    const nextGroupNum = nextEx ? parseInt(nextEx.group_code) : null;
+    const isLinkedToNext = isSuperset && currentGroupNum === nextGroupNum;
+
+    const newExercises = exercises.map(ex => {
+      if (ex.w_ex_id !== exId) return ex;
+      
+      const newSets = ex.sets.map((s: any) => {
+        if (s.id !== setId) return s;
+        if (!s.completed && (!s.weight || !s.reps)) {
+          setErrorSetId(setId);
+          return s; // Failed validation
+        }
+        if (!s.completed) {
+          setErrorSetId(null);
+          
+          if (isLinkedToNext) {
+            // Không tính giờ nghỉ chính, báo hiệu chuyển bài
+            showSupersetToast = true;
+            nextRestTime = 0;
+          } else {
+            // Tính giờ nghỉ dựa trên RPE khách hàng vừa nhập (ưu tiên RPE thực tế)
+            const actualRPE = parseFloat(s.rpe);
+            const targetRPE = parseFloat(s.target.split('@')[1]); 
+            const rpeToUse = !isNaN(actualRPE) ? actualRPE : (!isNaN(targetRPE) ? targetRPE : 7);
+            
+            nextRestTime = calculateRestTimeByRPE(rpeToUse);
+          }
+        }
+        return { ...s, completed: !s.completed };
+      });
+      return { ...ex, sets: newSets };
+    });
+
+    setExercises(newExercises);
+    
+    if (showSupersetToast) {
+      setToastMessage("🔥 Hít thở 15s rồi qua bài tiếp theo luôn nhé!");
+      setRestTime(null);
+    } else if (nextRestTime > 0 && !errorSetId) {
+      setRestTime(nextRestTime);
+    }
+  };
+
+  const addSet = (exId: string) => {
+    setExercises(exercises.map(ex => {
+      if (ex.w_ex_id !== exId) return ex;
+      const newNum = ex.sets.length + 1;
+      const newSet = {
+        id: `${exId}-${newNum}-${Date.now()}`,
+        set_number: newNum,
+        target: "Tùy chọn",
+        weight: "", reps: "", rpe: "", completed: false
+      };
+      return { ...ex, sets: [...ex.sets, newSet] };
+    }));
+  };
+
+  const removeSet = (exId: string) => {
+    setExercises(exercises.map(ex => {
+      if (ex.w_ex_id !== exId) return ex;
+      if (ex.sets.length <= 1) {
+        alert("Phải có ít nhất 1 set!");
+        return ex;
+      }
+      return { ...ex, sets: ex.sets.slice(0, -1) };
+    }));
+  };
+
+  // Nộp buổi tập lên Supabase
+  const finishWorkout = async () => {
+    setSaving(true);
+    try {
+      const logsToInsert: any[] = [];
+      exercises.forEach(ex => {
+        ex.sets.forEach((set: any) => {
+          if (set.completed) {
+            logsToInsert.push({
+              workout_exercise_id: ex.w_ex_id,
+              set_number: set.set_number,
+              weight: parseFloat(set.weight) || 0,
+              reps: parseInt(set.reps) || 0,
+              rpe: parseFloat(set.rpe) || null
+            });
+          }
+        });
+      });
+
+      // Xóa log cũ của buổi tập này (phòng trường hợp khách nộp lại bài)
+      const wExIds = exercises.map(ex => ex.w_ex_id);
+      await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+
+      // Lưu log mới
+      if (logsToInsert.length > 0) {
+        await supabase.from('workout_logs').insert(logsToInsert);
+      }
+
+      await supabase.from('workouts')
+        .update({ is_completed: true, completed_at: new Date().toISOString() })
+        .eq('id', workoutData.id);
+
+      window.location.href = "/";
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi khi lưu, vui lòng thử lại!");
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex flex-col items-center justify-center bg-brand-paper text-brand-moss"><Loader2 className="animate-spin mb-4" size={40} /> Đang tải bài tập...</div>;
+  }
+
+  return (
+    <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-32">
+      {/* Header */}
+      <div className="bg-brand-mossDeep text-white p-5 rounded-b-2xl shadow-md sticky top-0 z-20">
+        <div className="flex items-center justify-between mb-2">
+          <a href="/" className="text-brand-sage hover:text-white transition-colors">
+            <ArrowLeft size={24} />
+          </a>
+          <div className="flex items-center space-x-2 bg-brand-moss px-3 py-1.5 rounded-full border border-brand-sage/20">
+            <Clock size={16} className="text-brand-sand" />
+            <span className="text-sm font-bold font-mono text-brand-sand tracking-widest">{formatTime(workoutDuration)}</span>
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold mt-2">{workoutData?.name || "Buổi Tập"}</h1>
+        <p className="text-brand-sage text-sm mt-1">Tuần {workoutData?.week_number}</p>
+      </div>
+
+      <div className="p-4 space-y-6 mt-2 relative">
+        {exercises.map((ex, exIndex) => {
+          const isSuperset = String(ex.group_code).match(/[a-zA-Z]/i);
+          const currentGroupNum = parseInt(ex.group_code);
+          const nextGroupNum = exercises[exIndex + 1] ? parseInt(exercises[exIndex + 1].group_code) : null;
+          const isLinkedToNext = isSuperset && currentGroupNum === nextGroupNum;
+          
+          return (
+            <div key={ex.w_ex_id} className="relative">
+              {/* Vẽ đường line nối Superset nếu bài tiếp theo cùng group */}
+              {isLinkedToNext && (
+                <div className="absolute left-[22px] top-12 bottom-[-40px] w-1 bg-brand-sand rounded-full z-0"></div>
+              )}
+
+              <div className="bg-white rounded-2xl shadow-sm border border-brand-line overflow-hidden relative z-10 mb-6">
+                <div className="p-4 bg-brand-moss/5 border-b border-brand-line flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-brand-sand text-brand-moss font-black w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-brand-sand/50">
+                      {ex.group_code}
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-brand-moss leading-tight">{ex.name}</h2>
+                      {isSuperset && (
+                        <span className="text-[10px] font-bold text-brand-sand bg-brand-moss px-2 py-0.5 rounded-md mt-1 inline-flex items-center gap-1">
+                          <LinkIcon size={10}/> Superset
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {ex.youtube_id && (
+                    <button 
+                      onClick={() => setShowVideo(ex.youtube_id)}
+                      className="text-brand-warn bg-brand-warn/10 p-2.5 rounded-full hover:bg-brand-warn hover:text-white transition-colors"
+                    >
+                      <PlayCircle size={22} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-3 bg-brand-paper/20">
+                  <div className="flex items-center text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider px-2 mb-2">
+                    <div className="flex-1 text-center">Tạ (kg)</div>
+                    <div className="flex-1 text-center">Rep</div>
+                    <div className="flex-1 text-center">RPE</div>
+                    <div className="w-[45px]"></div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {ex.sets.map((set: any) => {
+                      const isError = errorSetId === set.id;
+                      return (
+                        <div key={set.id} className={`flex flex-col p-3 rounded-xl border shadow-sm transition-all ${
+                          set.completed ? "bg-emerald-50 border-emerald-200" : isError ? "bg-red-50/80 border-red-300" : "bg-white border-brand-line"
+                        }`}>
+                          <div className="mb-3 px-1">
+                            <span className={`text-sm font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
+                              Set {set.set_number}:
+                            </span>
+                            <span className={`text-sm font-bold ml-1.5 ${set.completed ? "text-emerald-600/90" : "text-brand-moss/70"}`}>
+                              {set.target}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <input type="number" placeholder="kg" disabled={set.completed} value={set.weight} onChange={(e) => updateSet(ex.w_ex_id, set.id, "weight", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : isError && !set.weight ? "bg-red-100" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="rep" disabled={set.completed} value={set.reps} onChange={(e) => updateSet(ex.w_ex_id, set.id, "reps", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : isError && !set.reps ? "bg-red-100" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="rpe" disabled={set.completed} value={set.rpe} onChange={(e) => updateSet(ex.w_ex_id, set.id, "rpe", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : "bg-brand-paper/50"}`} />
+                            <div className="w-[45px] flex justify-end">
+                              <button onClick={() => toggleComplete(ex.w_ex_id, set.id)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${set.completed ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/40" : "bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md"}`}>
+                                <Check size={24} strokeWidth={set.completed ? 3 : 2.5} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {errorSetId && ex.sets.find((s:any) => s.id === errorSetId) && (
+                    <div className="mt-3 text-center text-xs font-bold text-red-500 bg-red-50 py-2 rounded-lg border border-red-100">
+                      ⚠️ Cần nhập số Tạ và Rep để hoàn thành Set!
+                    </div>
+                  )}
+
+                  <div className="flex justify-between mt-4 pt-4 border-t border-brand-line border-dashed">
+                     <button onClick={() => removeSet(ex.w_ex_id)} className="text-xs font-bold text-brand-moss/40 hover:text-red-500 flex items-center gap-1 transition-colors">
+                      <Trash2 size={14} /> Xóa set cuối
+                    </button>
+                    <button onClick={() => addSet(ex.w_ex_id)} className="text-xs font-bold text-brand-sand hover:text-brand-moss flex items-center gap-1 transition-colors bg-brand-sand/10 px-4 py-2 rounded-lg">
+                      <Plus size={14} /> Thêm Set
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-brand-mossDeep text-brand-sand px-6 py-3 rounded-full shadow-2xl z-50 border border-brand-sand/30 animate-bounce">
+          <span className="text-sm font-bold whitespace-nowrap">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Floating Rest Timer */}
+      {restTime !== null && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-brand-mossDeep text-brand-sand px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-40 border border-brand-sand/30 animate-bounce">
+          <TimerReset size={20} className="animate-spin-slow" />
+          <div className="font-mono text-xl font-black">{formatTime(restTime)}</div>
+          <button onClick={() => setRestTime(null)} className="ml-2 text-white/50 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Button Nộp Bài */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent pb-8 z-30">
+        <button 
+          onClick={finishWorkout}
+          disabled={saving}
+          className="w-full max-w-md mx-auto bg-brand-moss text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-brand-moss/30 hover:bg-brand-mossDeep transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+        >
+           {saving ? <Loader2 className="animate-spin" size={24} /> : <Check size={24} />} 
+           {saving ? "Đang lưu..." : "Hoàn Thành Buổi Tập"}
+        </button>
+      </div>
+
+      {/* Modal Video YouTube */}
+      {showVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-brand-mossDeep rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+            <div className="flex justify-between items-center p-4 border-b border-white/10">
+              <h3 className="text-white font-bold">Hướng dẫn Kỹ thuật</h3>
+              <button onClick={() => setShowVideo(null)} className="text-brand-sage hover:text-white bg-white/10 rounded-full p-1 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="aspect-video bg-black flex items-center justify-center relative">
+               <iframe 
+                  width="100%" 
+                  height="100%" 
+                  src={`https://www.youtube.com/embed/${showVideo}?autoplay=1`} 
+                  title="YouTube video player" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
