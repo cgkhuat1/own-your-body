@@ -21,3 +21,27 @@
 - Cần tạo giao diện dạng Grid/Bảng tính (Spreadsheet) để HLV có thể nhìn tổng quan 4 tuần của Block.
 - Cho phép HLV sửa đổi Progressive Overload (Tạ, Rep, RPE mục tiêu) cho từng bài tập.
 - Hiển thị so sánh: Tạ/Rep mục tiêu vs Tạ/Rep khách hàng thực tế đã log (để HLV biết đường điều chỉnh tuần sau).
+
+## 5. Roadmap hoàn thiện Dự án (Các bước còn lại)
+Dự án đã hoàn thành ~60% (Core flow: Client xem lịch, tập luyện, log tạ; Coach xem dashboard tổng quan). Dưới đây là 5 bước để Release bản Production:
+
+**Bước 1: Màn hình Tạo Giáo Án cho HLV (Coach Program Builder) - *Việc ngay tiếp theo***
+- Xây dựng Giao diện Spreadsheet (Bảng tính 4 tuần) để Coach thiết kế Overload (Tạ, Rep, RPE).
+- So sánh Thực tế (Actual đã tập) vs Mục tiêu (Target) để Coach điều chỉnh thông số tuần kế tiếp.
+- Lưu đồng bộ các cập nhật vào bảng `workout_exercises`.
+
+**Bước 2: Quản lý Kho bài tập & Giáo án mẫu (Templates)**
+- Kho bài tập (Exercise Library): CRUD danh sách bài tập kèm link Youtube.
+- Giáo án mẫu (Program Templates): Tạo sẵn các block 4 tuần chuẩn và Assign (gán/clone) nhanh cho khách hàng mới.
+
+**Bước 3: Biểu đồ Tiến độ & Phân tích (Analytics)**
+- Vẽ biểu đồ tăng tiến Volume/1RM theo thời gian cho Khách hàng.
+- Báo cáo cảnh báo (chững tạ, bỏ tập) hiển thị trên Dashboard của HLV.
+
+**Bước 4: Bảo mật Database (RLS) & Tối ưu UX/UI**
+- Bật và cấu hình Supabase Row Level Security (RLS) (Khách chỉ xem/sửa data của mình, HLV xem/sửa data của khách thuộc quyền quản lý).
+- Tối ưu Loading Skeletons, Error handling.
+
+**Bước 5: Triển khai (Deployment) & PWA**
+- Deploy Next.js lên Vercel.
+- Cấu hình PWA (Progressive Web App) để khách hàng có thể "Add to Home Screen" trên iOS/Android như một App Native.
