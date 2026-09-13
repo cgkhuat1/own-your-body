@@ -33,7 +33,7 @@ export default function ProgramBuilder() {
                     target_sets, target_reps, target_rpe,
                     exercises (name),
                     workout_logs (
-                        id, set_number, weight, reps, rpe, created_at
+                        id, set_number, weight, reps, rpe
                     )
                 )
             )
@@ -213,12 +213,11 @@ export default function ProgramBuilder() {
 
                 const rawLogs = wEx.workout_logs || [];
                 
-                // Lọc bỏ log trùng lặp (nếu khách bấm nộp bài nhiều lần), giữ lại log mới nhất cho mỗi set
+                // Lọc bỏ log trùng lặp (nếu có), ưu tiên giữ log nằm cuối mảng (thường là insert sau cùng)
                 const uniqueLogsMap = new Map();
-                rawLogs.sort((a:any, b:any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                       .forEach((l:any) => {
-                          if (!uniqueLogsMap.has(l.set_number)) uniqueLogsMap.set(l.set_number, l);
-                       });
+                rawLogs.forEach((l:any) => {
+                  uniqueLogsMap.set(l.set_number, l);
+                });
                 const uniqueLogs = Array.from(uniqueLogsMap.values()).sort((a:any, b:any) => a.set_number - b.set_number);
                 
                 return (
