@@ -169,7 +169,7 @@ export default function ProgramBuilder() {
       </header>
 
       {/* Day Tabs */}
-      <div className="px-6 py-4 flex gap-3 border-b border-brand-line bg-white sticky top-[73px] z-10 shadow-sm">
+      <div className="px-6 py-4 flex gap-3 border-b border-brand-line bg-white sticky top-[73px] z-30 shadow-sm">
         {days.map(d => (
           <button
             key={d.dayIndex}
@@ -182,10 +182,10 @@ export default function ProgramBuilder() {
       </div>
 
       {/* Spreadsheet Matrix */}
-      <main className="flex-1 overflow-x-auto">
-        <div className="min-w-[1200px] pb-20">
+      <main className="flex-1 overflow-x-auto relative z-0">
+        <div className="min-w-[1200px] pb-20 relative">
           {/* Header Row */}
-          <div className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-[137px] z-10 shadow-md">
+          <div className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-[137px] z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập</div>
             {[1,2,3,4].map(w => (
               <div key={w} className="p-4 border-r border-brand-sage/20 text-center">Tuần {w}</div>
