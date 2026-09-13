@@ -147,8 +147,8 @@ export default function ProgramBuilder() {
   const activeDayData = days.find(d => d.dayIndex === activeDay);
 
   return (
-    <div className="min-h-screen bg-brand-paper/50 flex flex-col">
-      <header className="bg-white border-b border-brand-line px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+    <div className="h-screen overflow-hidden bg-brand-paper/50 flex flex-col">
+      <header className="bg-white border-b border-brand-line px-6 py-4 flex items-center justify-between z-40 relative shadow-sm">
         <div className="flex items-center gap-4">
           <button onClick={() => window.history.back()} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">
             <ArrowLeft size={20} />
@@ -169,7 +169,7 @@ export default function ProgramBuilder() {
       </header>
 
       {/* Day Tabs */}
-      <div className="px-6 py-4 flex gap-3 border-b border-brand-line bg-white sticky top-[73px] z-30 shadow-sm">
+      <div className="px-6 py-4 flex gap-3 border-b border-brand-line bg-white shadow-sm z-30 relative">
         {days.map(d => (
           <button
             key={d.dayIndex}
@@ -181,11 +181,11 @@ export default function ProgramBuilder() {
         ))}
       </div>
 
-      {/* Spreadsheet Matrix */}
-      <main className="flex-1 overflow-x-auto relative z-0">
-        <div className="min-w-[1200px] pb-20 relative">
+      {/* Spreadsheet Matrix (Scrollable Area) */}
+      <main className="flex-1 overflow-auto bg-brand-paper/50 relative z-0">
+        <div className="min-w-[1200px] min-h-full pb-20">
           {/* Header Row */}
-          <div className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-[137px] z-20 shadow-md">
+          <div className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập</div>
             {[1,2,3,4].map(w => (
               <div key={w} className="p-4 border-r border-brand-sage/20 text-center">Tuần {w}</div>
