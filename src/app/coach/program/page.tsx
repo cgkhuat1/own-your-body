@@ -38,12 +38,16 @@ function renumberUnits(units: any[]) {
 
   for (const unit of units) {
     if (unit.type === 'single') {
-      unit.exercises[0] = { ...unit.exercises[0], group_code: String(counter) };
-      allExercises.push(unit.exercises[0]);
+      const ex = { ...unit.exercises[0], group_code: String(counter) };
+      if (ex.base_ex) ex.base_ex.group_code = String(counter);
+      unit.exercises[0] = ex;
+      allExercises.push(ex);
     } else {
-      unit.exercises.forEach((ex: any, i: number) => {
-        unit.exercises[i] = { ...ex, group_code: `${counter}${letters[i]}` };
-        allExercises.push(unit.exercises[i]);
+      unit.exercises.forEach((exOld: any, i: number) => {
+        const ex = { ...exOld, group_code: `${counter}${letters[i]}` };
+        if (ex.base_ex) ex.base_ex.group_code = `${counter}${letters[i]}`;
+        unit.exercises[i] = ex;
+        allExercises.push(ex);
       });
     }
     counter++;
@@ -400,6 +404,7 @@ export default function ProgramBuilder() {
     });
     await Promise.all(updatePromises);
     showToast("Đã sắp xếp lại thứ tự bài tập");
+    await fetchData();
   };
 
   // === TẠO PHASE KẾ TIẾP (SAO CHÉP BLOCK) ===
