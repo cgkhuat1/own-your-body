@@ -131,6 +131,11 @@ export default function ClientDashboard() {
     weeks: weeksArray
   } : null;
 
+  const activeWeekData = programData?.weeks.find((w: any) => w.id === activeWeek);
+  const completedThisWeek = activeWeekData?.workouts.filter((w: any) => w.status === 'perfect' || w.status === 'partial').length || 0;
+  const totalThisWeek = activeWeekData?.workouts.length || 0;
+  const compliance = totalThisWeek > 0 ? Math.round((completedThisWeek / totalThisWeek) * 100) : 0;
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-brand-paper font-bold text-brand-moss">Đang tải dữ liệu...</div>;
   }
@@ -175,10 +180,10 @@ export default function ClientDashboard() {
                 <Flame size={16} />
                 <span className="font-bold text-xs uppercase tracking-wider">Chuỗi tập luyện</span>
               </div>
-              <p className="text-white text-sm">Tuân thủ: <span className="font-bold">100%</span> (Tuần này)</p>
+              <p className="text-white text-sm">Tuân thủ: <span className="font-bold">{compliance}%</span> (Tuần này)</p>
             </div>
             <div className="w-10 h-10 bg-brand-sand rounded-full flex items-center justify-center">
-              <span className="text-brand-mossDeep font-black text-lg">3</span>
+              <span className="text-brand-mossDeep font-black text-lg">{completedThisWeek}</span>
             </div>
           </div>
         </div>
