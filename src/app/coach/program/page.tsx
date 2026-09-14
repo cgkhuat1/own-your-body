@@ -315,9 +315,29 @@ export default function ProgramBuilder() {
 
   // === XÓA BÀI TẬP (xóa cả cụm nếu là superset) ===
   const handleDeleteExercise = async (ex: any) => {
+    // 1. Xóa trong DB
     const weekExIds = Object.values(ex.weeks).map((w: any) => w.id);
     await Promise.all(weekExIds.map(id => supabase.from('workout_logs').delete().eq('workout_exercise_id', id)));
     await Promise.all(weekExIds.map(id => supabase.from('workout_exercises').delete().eq('id', id)));
+
+    // 2. Tính toán lại thứ tự (Auto-renumber) cho các bài còn lại
+    const currentDay = days.find(d => d.dayIndex === activeDay);
+    if (currentDay) {
+      const remainingExercises = currentDay.exercises.filter((e: any) => e.key !== ex.key);
+      const units = groupIntoDragUnits(remainingExercises);
+      const { allExercises } = renumberUnits(units);
+
+      const updatePromises: Promise<any>[] = [];
+      allExercises.forEach((e: any, i: number) => {
+        Object.values(e.weeks).forEach((wEx: any) => {
+          updatePromises.push(
+            supabase.from('workout_exercises').update({ order_index: i + 1, group_code: e.group_code }).eq('id', wEx.id)
+          );
+        });
+      });
+      await Promise.all(updatePromises);
+    }
+
     showToast(`Đã xóa "${ex.custom_name}"`);
     await fetchData();
   };
