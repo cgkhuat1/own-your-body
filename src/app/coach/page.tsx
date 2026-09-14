@@ -71,47 +71,56 @@ export default function PTDashboard() {
         if (allClients.length > 0) setNewProgramClientId(allClients[0].id);
       }
 
-      // Lấy danh sách Học viên qua bảng Programs
+      // Lấy danh sách Học viên thông qua các chương trình (Gom nhóm 1 profile/khách)
       const { data: programs } = await supabase.from('programs').select(`
-        id, name,
-        client:users!client_id (id, full_name, email),
-        blocks (
-          workouts (id, week_number, is_completed)
-        )
-      `).eq('pt_id', session.user.id);
+        id, name, client_id,
+        client:users!client_id(id, full_name, email),
+        blocks ( workouts ( id, is_completed ) )
+      `).eq('pt_id', session.user.id).order('created_at', { ascending: false });
 
       if (programs) {
-        const processedClients = programs.map((prog: any) => {
-          let totalWorkouts = 0;
-          let completedWorkouts = 0;
-          let currentWeek = 1;
-
-          const block = prog.blocks?.[0];
-          if (block && block.workouts) {
-            totalWorkouts = block.workouts.length;
-            completedWorkouts = block.workouts.filter((w: any) => w.is_completed).length;
+        // Gom nhóm theo client_id
+        const clientMap = new Map();
+        
+        programs.forEach(prog => {
+          if (!prog.client) return;
+          if (!clientMap.has(prog.client_id)) {
+            // Lấy program mới nhất làm đại diện tính stats
+            let completedWorkouts = 0;
+            let totalWorkouts = 0;
             
-            const pendingWorkouts = block.workouts.filter((w: any) => !w.is_completed).sort((a: any, b: any) => a.week_number - b.week_number);
-            if (pendingWorkouts.length > 0) currentWeek = pendingWorkouts[0].week_number;
+            prog.blocks?.forEach((b: any) => {
+              b.workouts?.forEach((w: any) => {
+                totalWorkouts++;
+                if (w.is_completed) completedWorkouts++;
+              });
+            });
+
+            const compliance = totalWorkouts === 0 ? 0 : Math.round((completedWorkouts / totalWorkouts) * 100);
+            const status = compliance >= 80 ? "excellent" : compliance < 30 ? "warning" : "good";
+            const badgeText = compliance >= 80 ? "Phong độ cao" : compliance < 30 ? "Cần nhắc nhở" : "Ổn định";
+
+            clientMap.set(prog.client_id, {
+              id: prog.client.id,
+              programId: prog.id,
+              name: prog.client.full_name || "Học viên",
+              email: prog.client.email,
+              program: prog.name || "Chương trình tập",
+              latestProgramName: prog.name,
+              totalPrograms: 1, // Đếm số phase
+              weekStats: `${completedWorkouts}/${totalWorkouts || 4}`,
+              monthStats: `${completedWorkouts}/${totalWorkouts || 16}`,
+              status: status,
+              badgeText: badgeText
+            });
+          } else {
+            // Nếu đã có, chỉ tăng biến đếm số Phase
+            const existing = clientMap.get(prog.client_id);
+            existing.totalPrograms += 1;
           }
-
-          const compliance = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
-          const status = compliance >= 80 ? "excellent" : compliance < 30 ? "warning" : "good";
-          const badgeText = compliance >= 80 ? "Phong độ cao" : compliance < 30 ? "Cần nhắc nhở" : "Ổn định";
-
-          return {
-            id: prog.client?.id || prog.id,
-            programId: prog.id,
-            name: prog.client?.full_name || "Học viên",
-            program: prog.name || "Chương trình tập",
-            currentWeek: currentWeek,
-            weekStats: `${completedWorkouts}/${totalWorkouts || 4}`,
-            monthStats: `${completedWorkouts}/${totalWorkouts || 16}`,
-            status: status,
-            badgeText: badgeText
-          };
         });
-        setClients(processedClients);
+
+        setClients(Array.from(clientMap.values()));
       }
       setLoading(false);
     };
@@ -217,18 +226,17 @@ export default function PTDashboard() {
               </div>
               
               <h3 className="text-xl font-bold text-brand-moss">{client.name}</h3>
-              <p className="text-sm font-medium text-brand-moss/60 mt-1 mb-4">{client.program} • Tuần {client.currentWeek}/4</p>
+              <p className="text-sm font-medium text-brand-moss/60 mt-1 mb-4 flex items-center gap-1.5">
+                <BookOpen size={14} /> Có {client.totalPrograms} Giáo án (Phases)
+              </p>
               
-              {/* Box Thống kê chi tiết Tuần & Tháng */}
-              <div className="flex items-center gap-4 bg-brand-paper/50 rounded-xl p-3 mb-5 border border-brand-line/50">
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1">Tuần này</p>
-                  <p className="font-bold text-brand-moss text-lg">{client.weekStats} <span className="text-xs font-normal opacity-70">buổi</span></p>
-                </div>
-                <div className="w-px h-8 bg-brand-line"></div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1">Cả Khóa</p>
-                  <p className="font-bold text-brand-moss text-lg">{client.monthStats} <span className="text-xs font-normal opacity-70">buổi</span></p>
+              {/* Box Thống kê chi tiết Phase gần nhất */}
+              <div className="bg-brand-paper/50 rounded-xl p-3 mb-5 border border-brand-line/50">
+                <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1 truncate">Đang tập: {client.latestProgramName}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="flex-1">
+                    <p className="font-bold text-brand-moss text-lg">{client.monthStats} <span className="text-xs font-normal opacity-70">buổi</span></p>
+                  </div>
                 </div>
               </div>
 
@@ -240,7 +248,7 @@ export default function PTDashboard() {
                   Tiến độ
                 </button>
                 <button 
-                  onClick={() => window.location.href = `/coach/program?clientId=${client.id}&programId=${client.programId}`}
+                  onClick={() => window.location.href = `/coach/program?clientId=${client.id}`}
                   className="text-center py-2.5 text-sm font-bold text-white bg-brand-moss hover:bg-brand-mossDeep rounded-xl transition-colors shadow-md flex items-center justify-center gap-1 group"
                 >
                   Giáo án

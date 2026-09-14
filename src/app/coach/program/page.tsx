@@ -58,11 +58,15 @@ function renumberUnits(units: any[]) {
 export default function ProgramBuilder() {
   const searchParams = useSearchParams();
   const clientId = searchParams.get('clientId');
-  const programId = searchParams.get('programId');
+  // Không còn bắt buộc phải có programId từ URL
+  const initialProgramId = searchParams.get('programId');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [phases, setPhases] = useState<any[]>([]);
+  const [activeProgramId, setActiveProgramId] = useState<string | null>(initialProgramId);
   const [programInfo, setProgramInfo] = useState<any>(null);
+  const [clientInfo, setClientInfo] = useState<any>(null);
   
   // Quản lý Block
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -109,18 +113,39 @@ export default function ProgramBuilder() {
   };
 
   const fetchData = useCallback(async () => {
-    if (!clientId || !programId) return;
+    if (!clientId) return;
+
+    // Lấy thông tin user (khách hàng)
+    const { data: user } = await supabase.from('users').select('id, full_name, email').eq('id', clientId).single();
+    if (user) setClientInfo(user);
+
+    // Lấy toàn bộ các Phases (programs) của khách hàng này
+    const { data: allPrograms } = await supabase.from('programs')
+      .select('id, name, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true });
+    
+    setPhases(allPrograms || []);
+
+    const targetProgramId = activeProgramId || (allPrograms && allPrograms.length > 0 ? allPrograms[0].id : null);
+    if (!targetProgramId) {
+      setLoading(false);
+      return; // Khách chưa có phase nào
+    }
+    
+    if (activeProgramId !== targetProgramId) {
+      setActiveProgramId(targetProgramId);
+    }
 
     const { data: program } = await supabase.from('programs').select(`
       id, name,
-      client:users!client_id (id, full_name, email),
       blocks (
           id, name, order_index,
           workouts (
               id, name, week_number, order_index, is_completed,
               workout_exercises (
                   id, exercise_id, custom_name, group_code, order_index,
-                  target_sets, target_reps, target_rpe,
+                  target_sets, target_reps, target_rpe, rest_time, notes,
                   exercises (id, name),
                   workout_logs (
                       id, set_number, weight, reps, rpe
@@ -128,15 +153,17 @@ export default function ProgramBuilder() {
               )
           )
       )
-    `).eq('id', programId).single();
+    `).eq('id', targetProgramId).single();
 
-    if (program && program.blocks.length > 0) {
+    if (program && program.blocks && program.blocks.length > 0) {
       // Sort blocks
       program.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
       setProgramInfo(program);
       
-      const currentBlockId = activeBlockId || program.blocks[0].id;
-      if (!activeBlockId) setActiveBlockId(currentBlockId);
+      // Nếu activeBlockId cũ không nằm trong program này, reset lại
+      const blockExists = activeBlockId && program.blocks.find((b: any) => b.id === activeBlockId);
+      const currentBlockId = blockExists ? activeBlockId : program.blocks[0].id;
+      if (activeBlockId !== currentBlockId) setActiveBlockId(currentBlockId);
 
       const block = program.blocks.find((b: any) => b.id === currentBlockId);
       const allWorkouts = block?.workouts || [];
@@ -504,8 +531,34 @@ export default function ProgramBuilder() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-brand-moss">Giáo án: {programInfo?.client?.full_name}</h1>
-            <div className="flex items-center gap-2 mt-1">
+            <h1 className="text-xl font-bold text-brand-moss mb-4">Hồ sơ: {clientInfo?.full_name || "Đang tải..."}</h1>
+            
+            {/* --- PHASE TABS --- */}
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-brand-line/50 overflow-x-auto w-full">
+              {phases.map((p: any) => {
+                const isActivePhase = activeProgramId === p.id;
+                return (
+                  <button 
+                    key={p.id}
+                    onClick={() => { setActiveProgramId(p.id); setActiveBlockId(null); }}
+                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${isActivePhase ? 'bg-brand-mossDeep text-white shadow-md' : 'bg-white text-brand-moss/60 hover:bg-brand-paper border border-brand-line'}`}
+                  >
+                    {p.name}
+                  </button>
+                );
+              })}
+              
+              <button 
+                onClick={() => window.location.href = `/coach`}
+                className="text-sm font-bold px-4 py-2 rounded-xl bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors border border-brand-sand/30 whitespace-nowrap ml-2"
+                title="Về trang chủ để tạo Phase mới"
+              >
+                <Plus size={14}/> Thêm Phase Mới
+              </button>
+            </div>
+
+            {/* --- BLOCK TABS --- */}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               {sortedBlocks.map((b: any) => {
                 const isActive = activeBlockId === b.id;
                 if (isActive && editingBlockName) {
