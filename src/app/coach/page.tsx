@@ -103,7 +103,7 @@ export default function PTDashboard() {
             <Users size={20} />
             <span>Khách hàng</span>
           </a>
-          <a href="#" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
+          <a href="/coach/templates" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
             <BookOpen size={20} />
             <span>Giáo án mẫu</span>
           </a>
