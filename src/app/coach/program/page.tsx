@@ -130,8 +130,16 @@ export default function ProgramBuilder() {
     }).select('id').single();
 
     if (!error && newProg) {
+      // Tự động tạo Block 1 cho Phase mới
+      const { data: newBlock } = await supabase.from('blocks').insert({
+        program_id: newProg.id,
+        name: 'Block 1',
+        order_index: 1
+      }).select('id').single();
+
       showToast("Tạo Phase mới thành công!");
       setActiveProgramId(newProg.id);
+      if (newBlock) setActiveBlockId(newBlock.id);
       setIsAddPhaseModalOpen(false);
       setNewPhaseName("");
     } else {
