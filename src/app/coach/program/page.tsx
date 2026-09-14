@@ -191,15 +191,19 @@ export default function ProgramBuilder() {
       )
     `).eq('id', targetProgramId).single();
 
-    if (program && program.blocks && program.blocks.length > 0) {
-      // Sort blocks
-      program.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
+    if (program) {
+      if (program.blocks) {
+        program.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
+      } else {
+        program.blocks = [];
+      }
       setProgramInfo(program);
       
-      // Nếu activeBlockId cũ không nằm trong program này, reset lại
-      const blockExists = activeBlockId && program.blocks.find((b: any) => b.id === activeBlockId);
-      const currentBlockId = blockExists ? activeBlockId : program.blocks[0].id;
-      if (activeBlockId !== currentBlockId) setActiveBlockId(currentBlockId);
+      if (program.blocks.length > 0) {
+        // Nếu activeBlockId cũ không nằm trong program này, reset lại
+        const blockExists = activeBlockId && program.blocks.find((b: any) => b.id === activeBlockId);
+        const currentBlockId = blockExists ? activeBlockId : program.blocks[0].id;
+        if (activeBlockId !== currentBlockId) setActiveBlockId(currentBlockId);
 
       const block = program.blocks.find((b: any) => b.id === currentBlockId);
       const allWorkouts = block?.workouts || [];
@@ -262,7 +266,11 @@ export default function ProgramBuilder() {
       if (newDays.length > 0 && !newDays.find(d => d.dayIndex === activeDay)) {
         setActiveDay(newDays[0].dayIndex);
       }
+    } else {
+      setActiveBlockId(null);
+      setDays([]);
     }
+  }
     setLoading(false);
   }, [clientId, activeProgramId, activeBlockId, activeDay]);
 
