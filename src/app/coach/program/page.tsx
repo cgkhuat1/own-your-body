@@ -181,7 +181,7 @@ export default function ProgramBuilder() {
               id, name, week_number, order_index, is_completed,
               workout_exercises (
                   id, exercise_id, custom_name, group_code, order_index,
-                  target_sets, target_reps, target_rpe, rest_time, notes,
+                  target_sets, target_reps, target_rpe,
                   exercises (id, name),
                   workout_logs (
                       id, set_number, weight, reps, rpe
@@ -590,7 +590,6 @@ export default function ProgramBuilder() {
           <div>
             <h1 className="text-xl font-bold text-brand-moss mb-4">
               Hồ sơ: {clientInfo?.full_name || "Đang tải..."} 
-              <span className="text-xs text-red-500 ml-2">(Debug: blocks={programInfo?.blocks?.length || 0})</span>
             </h1>
             
             {/* --- PHASE TABS --- */}
@@ -615,12 +614,6 @@ export default function ProgramBuilder() {
               >
                 <Plus size={14}/> Thêm Phase Mới
               </button>
-            </div>
-            
-            {/* DEBUG INFO */}
-            <div className="p-2 bg-red-100 text-red-800 text-xs rounded mb-2 overflow-auto max-h-32">
-              DEBUG BLOCKS: {JSON.stringify(programInfo?.blocks)} <br/>
-              DEBUG ERROR: {JSON.stringify(programInfo?._error)}
             </div>
 
             {/* --- BLOCK TABS --- */}
