@@ -228,7 +228,7 @@ export default function ProgramBuilder() {
       }
     }
     setLoading(false);
-  }, [clientId, programId, activeBlockId, activeDay]);
+  }, [clientId, activeProgramId, activeBlockId, activeDay]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
