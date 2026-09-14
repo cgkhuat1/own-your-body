@@ -112,6 +112,34 @@ export default function ProgramBuilder() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Add Phase state
+  const [isAddPhaseModalOpen, setIsAddPhaseModalOpen] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState("");
+  const [savingPhase, setSavingPhase] = useState(false);
+
+  const handleCreatePhase = async () => {
+    if (!newPhaseName.trim()) return;
+    setSavingPhase(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const { data: newProg, error } = await supabase.from('programs').insert({
+      client_id: clientId,
+      pt_id: session?.user?.id,
+      name: newPhaseName.trim(),
+      start_date: new Date().toISOString().split('T')[0]
+    }).select('id').single();
+
+    if (!error && newProg) {
+      showToast("Tạo Phase mới thành công!");
+      setActiveProgramId(newProg.id);
+      setIsAddPhaseModalOpen(false);
+      setNewPhaseName("");
+    } else {
+      showToast("Lỗi khi tạo Phase", "error");
+    }
+    setSavingPhase(false);
+  };
+
   const fetchData = useCallback(async () => {
     if (!clientId) return;
 
@@ -383,7 +411,11 @@ export default function ProgramBuilder() {
   };
 
   const handleAddDay = async () => {
-    if (!newDayName.trim() || !activeBlockId) return;
+    if (!activeBlockId) {
+      showToast("Vui lòng tạo Block trước khi thêm Buổi tập!", "error");
+      return;
+    }
+    if (!newDayName.trim()) return;
     setAddingExercise(true);
     const maxDayIndex = days.reduce((max, d) => Math.max(max, d.dayIndex), 0);
     const newDayIndex = maxDayIndex + 1;
@@ -477,8 +509,8 @@ export default function ProgramBuilder() {
     if (!programInfo) return;
     setSaving(true);
     try {
-      const sourceBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
-      const maxOrder = Math.max(...programInfo.blocks.map((b: any) => b.order_index));
+      const sourceBlock = activeBlockId ? programInfo.blocks?.find((b: any) => b.id === activeBlockId) : null;
+      const maxOrder = (programInfo.blocks && programInfo.blocks.length > 0) ? Math.max(...programInfo.blocks.map((b: any) => b.order_index)) : 0;
       const newOrder = maxOrder + 1;
       const newBlockName = `Block ${newOrder}`;
 
@@ -490,27 +522,29 @@ export default function ProgramBuilder() {
       if (!newBlock) throw new Error("Không tạo được Block");
 
       // 2. Clone Workouts & Workout_Exercises
-      const sourceWorkouts = sourceBlock.workouts || [];
-      for (const w of sourceWorkouts) {
-        const { data: clonedWorkout } = await supabase.from('workouts').insert({
-          block_id: newBlock.id, name: w.name, week_number: w.week_number, order_index: w.order_index, is_completed: false
-        }).select('id').single();
+      if (sourceBlock) {
+        const sourceWorkouts = sourceBlock.workouts || [];
+        for (const w of sourceWorkouts) {
+          const { data: clonedWorkout } = await supabase.from('workouts').insert({
+            block_id: newBlock.id, name: w.name, week_number: w.week_number, order_index: w.order_index, is_completed: false
+          }).select('id').single();
 
-        const wExs = w.workout_exercises || [];
-        for (const wex of wExs) {
-          await supabase.from('workout_exercises').insert({
-            workout_id: clonedWorkout.id, exercise_id: wex.exercise_id, custom_name: wex.custom_name,
-            group_code: wex.group_code, order_index: wex.order_index,
-            target_sets: wex.target_sets, target_reps: wex.target_reps, target_rpe: wex.target_rpe
-          });
+          const wExs = w.workout_exercises || [];
+          for (const wex of wExs) {
+            await supabase.from('workout_exercises').insert({
+              workout_id: clonedWorkout.id, exercise_id: wex.exercise_id, custom_name: wex.custom_name,
+              group_code: wex.group_code, order_index: wex.order_index,
+              target_sets: wex.target_sets, target_reps: wex.target_reps, target_rpe: wex.target_rpe
+            });
+          }
         }
       }
 
-      showToast(`Đã sao chép thành công ${newBlockName}!`);
+      showToast(`Đã tạo thành công ${newBlockName}!`);
       setActiveBlockId(newBlock.id);
       await fetchData();
     } catch (e) {
-      showToast("Có lỗi xảy ra khi sao chép", "error");
+      showToast("Có lỗi xảy ra khi tạo Block", "error");
     } finally {
       setSaving(false);
     }
@@ -549,9 +583,9 @@ export default function ProgramBuilder() {
               })}
               
               <button 
-                onClick={() => window.location.href = `/coach`}
+                onClick={() => setIsAddPhaseModalOpen(true)}
                 className="text-sm font-bold px-4 py-2 rounded-xl bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors border border-brand-sand/30 whitespace-nowrap ml-2"
-                title="Về trang chủ để tạo Phase mới"
+                title="Tạo thêm 1 Phase mới cho học viên này"
               >
                 <Plus size={14}/> Thêm Phase Mới
               </button>
@@ -920,6 +954,36 @@ export default function ProgramBuilder() {
               <button onClick={() => setShowDeleteBlock(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
               <button onClick={handleDeleteBlock} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
                 {saving ? "Đang xóa..." : "Xóa vĩnh viễn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddPhaseModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsAddPhaseModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-line">
+              <h2 className="text-lg font-bold text-brand-moss">Tạo Phase Mới</h2>
+              <button onClick={() => setIsAddPhaseModalOpen(false)} className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">Tên Phase (VD: Phase 2 - Siết Mỡ) *</label>
+              <input 
+                type="text" 
+                value={newPhaseName} 
+                onChange={(e) => setNewPhaseName(e.target.value)}
+                placeholder="Nhập tên Phase..."
+                className="w-full px-4 py-3 border border-brand-line rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setIsAddPhaseModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
+              <button onClick={handleCreatePhase} disabled={savingPhase || !newPhaseName.trim()} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-moss text-white hover:bg-brand-mossDeep transition-colors disabled:opacity-50">
+                {savingPhase ? "Đang tạo..." : "Tạo Phase"}
               </button>
             </div>
           </div>
