@@ -124,7 +124,7 @@ export default function ProgramBuilder() {
     
     const { data: newProg, error } = await supabase.from('programs').insert({
       client_id: clientId,
-      pt_id: session?.user?.id,
+      coach_id: session?.user?.id,
       name: newPhaseName.trim(),
       start_date: new Date().toISOString().split('T')[0]
     }).select('id').single();

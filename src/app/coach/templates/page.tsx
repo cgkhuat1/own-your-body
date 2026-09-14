@@ -71,7 +71,7 @@ export default function ProgramTemplates() {
       const { data: newProg, error: progErr } = await supabase.from('programs').insert({
         name: newProgramName.trim(),
         client_id: selectedClientId,
-        pt_id: session.user.id,
+        coach_id: session.user.id,
         start_date: new Date().toISOString().split('T')[0]
       }).select('id').single();
       

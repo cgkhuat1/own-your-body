@@ -33,7 +33,7 @@ export default function PTDashboard() {
         id, name, client_id,
         client:users!client_id(id, full_name, email),
         blocks ( workouts ( id, is_completed ) )
-      `).eq('pt_id', session.user.id).order('created_at', { ascending: false });
+      `).eq('coach_id', session.user.id).order('created_at', { ascending: false });
 
       if (programs) {
         // Gom nhóm theo client_id
