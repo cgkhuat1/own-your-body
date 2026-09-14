@@ -190,7 +190,10 @@ export default function PTDashboard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-brand-line/50">
-                <button className="text-center py-2.5 text-sm font-bold text-brand-moss bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-xl transition-colors">
+                <button 
+                  onClick={() => window.location.href = `/coach/progress?clientId=${client.id}`}
+                  className="text-center py-2.5 text-sm font-bold text-brand-moss bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-xl transition-colors"
+                >
                   Tiến độ
                 </button>
                 <button 
