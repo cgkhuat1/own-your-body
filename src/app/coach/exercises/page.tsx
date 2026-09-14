@@ -15,6 +15,7 @@ export default function ExerciseLibrary() {
   const [editingEx, setEditingEx] = useState<any>(null);
   const [name, setName] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
+  const [exerciseToDelete, setExerciseToDelete] = useState<{id: string, name: string} | null>(null);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -77,10 +78,17 @@ export default function ExerciseLibrary() {
     fetchExercises();
   };
 
-  const handleDelete = async (id: string, exName: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa bài tập "${exName}"?\nLưu ý: Không thể xóa nếu bài tập đang được dùng trong giáo án.`)) return;
-    
-    const { error } = await supabase.from('exercises').delete().eq('id', id);
+  const confirmDelete = (id: string, exName: string) => {
+    setExerciseToDelete({ id, name: exName });
+  };
+
+  const executeDelete = async () => {
+    if (!exerciseToDelete) return;
+    setSaving(true);
+    const { error } = await supabase.from('exercises').delete().eq('id', exerciseToDelete.id);
+    setSaving(false);
+    setExerciseToDelete(null);
+
     if (error) {
       showToast("Lỗi: Bài tập đang được sử dụng ở giáo án nào đó.", "error");
     } else {
@@ -161,7 +169,7 @@ export default function ExerciseLibrary() {
                     <button onClick={() => openModal(ex)} className="flex-1 py-2 bg-brand-paper rounded-lg text-sm font-bold text-brand-moss/70 hover:bg-brand-sand hover:text-brand-mossDeep transition-colors flex items-center justify-center gap-1.5">
                       <Pencil size={14}/> Sửa
                     </button>
-                    <button onClick={() => handleDelete(ex.id, ex.name)} className="px-3 py-2 bg-red-50 rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                    <button onClick={() => confirmDelete(ex.id, ex.name)} className="px-3 py-2 bg-red-50 rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-colors">
                       <Trash2 size={16}/>
                     </button>
                   </div>
@@ -225,6 +233,35 @@ export default function ExerciseLibrary() {
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 {saving ? "Đang lưu..." : "Lưu Bài Tập"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {exerciseToDelete && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setExerciseToDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={28} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-bold text-brand-moss mb-2">Xóa bài tập?</h2>
+              <p className="text-sm text-brand-moss/60 leading-relaxed">
+                Bạn có chắc chắn muốn xóa bài tập <strong>"{exerciseToDelete.name}"</strong> khỏi thư viện?
+              </p>
+              <p className="text-xs text-red-500 font-semibold mt-3 italic bg-red-50 py-2 px-3 rounded-lg border border-red-100">
+                Lưu ý: Không thể xóa nếu bài tập này đang được sử dụng trong giáo án của bất kỳ học viên nào.
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setExerciseToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">
+                Hủy
+              </button>
+              <button onClick={executeDelete} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+                {saving ? "Đang xóa..." : "Xóa bài tập"}
               </button>
             </div>
           </div>
