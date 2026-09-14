@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Dumbbell, Pencil, Trash2, Video, X, Loader2, Play, ArrowLeft } from "lucide-react";
+import { Search, Plus, Dumbbell, Pencil, Trash2, Video, X, Loader2, Play, ArrowLeft, Save } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function ExerciseLibrary() {
