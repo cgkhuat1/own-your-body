@@ -74,10 +74,15 @@ export default function ProgramBuilder() {
   const [editBlockValue, setEditBlockValue] = useState("");
   const [showDeleteBlock, setShowDeleteBlock] = useState(false);
   
-  const [activeDay, setActiveDay] = useState(1);
+  const [activeDay, setActiveDay] = useState<number>(1);
   const [days, setDays] = useState<any[]>([]);
 
-  // Modal state
+  // Phase Actions
+  const [editingPhaseName, setEditingPhaseName] = useState(false);
+  const [editPhaseValue, setEditPhaseValue] = useState("");
+  const [showDeletePhase, setShowDeletePhase] = useState(false);
+
+  // Phase Add Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAddDay, setShowAddDay] = useState(false);
   const [showDeleteDay, setShowDeleteDay] = useState(false);
@@ -320,6 +325,59 @@ export default function ProgramBuilder() {
       supabase.from('workout_exercises').update({ target_sets: u.target_sets, target_reps: u.target_reps, target_rpe: u.target_rpe }).eq('id', u.id)
     ));
     showToast("Đã lưu giáo án thành công!");
+    setSaving(false);
+  };
+
+  const handleDeleteExerciseGroup = async (exKey: string) => {
+    setSaving(true);
+    const exGroup = activeDayData?.exercises.find((e: any) => e.key === exKey);
+    if (exGroup) {
+      const idsToDelete = Object.values(exGroup.weeks).map((w: any) => w.id);
+      if (idsToDelete.length > 0) {
+        await supabase.from('workout_exercises').delete().in('id', idsToDelete);
+        showToast("Đã xóa bài tập");
+        await fetchData();
+      }
+    }
+    setSaving(false);
+  };
+
+  const startEditPhaseName = () => {
+    const p = phases.find((p: any) => p.id === activeProgramId);
+    if (p) {
+      setEditPhaseValue(p.name);
+      setEditingPhaseName(true);
+    }
+  };
+
+  const savePhaseName = async () => {
+    setEditingPhaseName(false);
+    if (!editPhaseValue.trim() || !activeProgramId) return;
+    await supabase.from('programs').update({ name: editPhaseValue.trim() }).eq('id', activeProgramId);
+    setPhases((prev: any) => prev.map((p: any) => p.id === activeProgramId ? { ...p, name: editPhaseValue.trim() } : p));
+    if (programInfo && programInfo.id === activeProgramId) {
+       setProgramInfo({ ...programInfo, name: editPhaseValue.trim() });
+    }
+    showToast("Đã cập nhật tên Phase");
+  };
+
+  const handleDeletePhase = async () => {
+    if (!activeProgramId) return;
+    setSaving(true);
+    await supabase.from('programs').delete().eq('id', activeProgramId);
+    setShowDeletePhase(false);
+    showToast("Đã xóa Phase");
+    
+    const remainingPhases = phases.filter((p: any) => p.id !== activeProgramId);
+    setPhases(remainingPhases);
+    if (remainingPhases.length > 0) {
+      setActiveProgramId(remainingPhases[0].id);
+      setActiveBlockId(null);
+    } else {
+      setActiveProgramId(null);
+      setProgramInfo(null);
+      setDays([]);
+    }
     setSaving(false);
   };
 
@@ -592,24 +650,45 @@ export default function ProgramBuilder() {
               Hồ sơ: {clientInfo?.full_name || "Đang tải..."} 
             </h1>
             
-            {/* --- PHASE TABS --- */}
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-brand-line/50 overflow-x-auto w-full">
               {phases.map((p: any) => {
                 const isActivePhase = activeProgramId === p.id;
+                
+                if (isActivePhase && editingPhaseName) {
+                  return (
+                    <input 
+                      key={p.id}
+                      value={editPhaseValue}
+                      onChange={(e) => setEditPhaseValue(e.target.value)}
+                      onBlur={savePhaseName}
+                      onKeyDown={(e) => e.key === 'Enter' && savePhaseName()}
+                      autoFocus
+                      className="text-sm font-bold px-4 py-2 rounded-xl bg-white border-2 border-brand-moss outline-none w-40"
+                    />
+                  )
+                }
+
                 return (
-                  <button 
-                    key={p.id}
-                    onClick={() => { setActiveProgramId(p.id); setActiveBlockId(null); }}
-                    className={`text-sm font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${isActivePhase ? 'bg-brand-mossDeep text-white shadow-md' : 'bg-white text-brand-moss/60 hover:bg-brand-paper border border-brand-line'}`}
-                  >
-                    {p.name}
-                  </button>
+                  <div key={p.id} className="flex items-center gap-1">
+                    <button 
+                      onClick={() => { setActiveProgramId(p.id); setActiveBlockId(null); }}
+                      className={`text-sm font-bold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${isActivePhase ? 'bg-brand-mossDeep text-white shadow-md' : 'bg-white text-brand-moss/60 hover:bg-brand-paper border border-brand-line'}`}
+                    >
+                      {p.name}
+                    </button>
+                    {isActivePhase && (
+                      <div className="flex flex-col gap-1 ml-1">
+                        <button onClick={startEditPhaseName} className="p-1 text-brand-moss/60 hover:text-brand-moss bg-white rounded-md border border-brand-line shadow-sm" title="Sửa tên Phase"><Pencil size={10}/></button>
+                        <button onClick={() => setShowDeletePhase(true)} className="p-1 text-red-400 hover:text-red-600 bg-white rounded-md border border-brand-line shadow-sm" title="Xóa Phase"><Trash2 size={10}/></button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
               
               <button 
                 onClick={() => setIsAddPhaseModalOpen(true)}
-                className="text-sm font-bold px-4 py-2 rounded-xl bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors border border-brand-sand/30 whitespace-nowrap ml-2"
+                className="text-sm font-bold px-4 py-2 rounded-xl bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors border border-brand-sand/30 whitespace-nowrap ml-2 h-9"
                 title="Tạo thêm 1 Phase mới cho học viên này"
               >
                 <Plus size={14}/> Thêm Phase Mới
@@ -840,6 +919,30 @@ export default function ProgramBuilder() {
           </div>
         </div>
       </main>
+
+      {/* ===== MODAL: XÓA PHASE ===== */}
+      {showDeletePhase && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="p-6">
+              <div className="flex items-center gap-3 text-red-600 mb-2">
+                <AlertTriangle size={24} />
+                <h3 className="font-bold text-lg">Xóa Phase này?</h3>
+              </div>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                Hành động này sẽ xóa toàn bộ Phase, bao gồm tất cả các Block, Buổi tập, và Bài tập bên trong.
+                Dữ liệu sẽ <strong>không thể khôi phục</strong>.
+              </p>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end border-t border-gray-100">
+              <button onClick={() => setShowDeletePhase(false)} className="px-4 py-2 font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">Hủy</button>
+              <button onClick={handleDeletePhase} disabled={saving} className="px-4 py-2 font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors flex items-center gap-2">
+                {saving ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />} Xác nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODAL: THÊM / THAY THẾ BÀI TẬP ===== */}
       {showAddExercise && (
