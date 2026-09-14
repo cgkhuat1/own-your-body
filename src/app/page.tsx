@@ -6,8 +6,9 @@ import { supabase } from "@/lib/supabase";
 
 export default function ClientDashboard() {
   const [activeWeek, setActiveWeek] = useState(1);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [userName, setUserName] = useState("Bạn");
-  const [programData, setProgramData] = useState<any>(null);
+  const [programInfo, setProgramInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   // Load Dữ liệu từ Supabase thay vì Mock Data
@@ -26,7 +27,7 @@ export default function ClientDashboard() {
         .eq('id', session.user.id)
         .single();
       
-      if (user?.role === 'pt' || user?.role === 'coach') {
+      if (user?.role === 'coach' || user?.role === 'founder') {
         window.location.href = "/coach";
         return;
       }
@@ -55,55 +56,12 @@ export default function ClientDashboard() {
         .single();
 
       if (program) {
-        // Gom nhóm workouts theo tuần để dễ render UI
-        const currentBlock = program.blocks[0]; // Tạm lấy block đầu tiên
-        if (currentBlock) {
-          const weeksMap: any = {};
-          
-          // Sắp xếp Workouts theo order_index
-          const sortedWorkouts = currentBlock.workouts.sort((a: any, b: any) => a.order_index - b.order_index);
-
-          sortedWorkouts.forEach((w: any) => {
-            let totalTarget = 0;
-            let totalLogged = 0;
-            w.workout_exercises?.forEach((ex: any) => {
-               totalTarget += (ex.target_sets || 3);
-               totalLogged += (ex.workout_logs?.length || 0);
-            });
-
-            let status = "pending";
-            if (w.is_completed) {
-                if (totalLogged >= totalTarget && totalTarget > 0) {
-                    status = "perfect"; // 100% -> Gold
-                } else {
-                    status = "partial"; // Thiếu bài -> Green
-                }
-            }
-
-            if (!weeksMap[w.week_number]) {
-              weeksMap[w.week_number] = {
-                id: w.week_number,
-                name: `Tuần ${w.week_number}`,
-                workouts: []
-              };
-            }
-            weeksMap[w.week_number].workouts.push({
-              id: w.id,
-              name: w.name,
-              status: status
-            });
-          });
-
-          // Đảm bảo luôn có 4 tuần (nếu thiếu thì thêm rỗng)
-          for(let i=1; i<=4; i++) {
-             if(!weeksMap[i]) weeksMap[i] = { id: i, name: `Tuần ${i}`, workouts: [] };
+        if (program.blocks) {
+          program.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
+          setProgramInfo(program);
+          if (program.blocks.length > 0) {
+            setActiveBlockId(program.blocks[0].id);
           }
-
-          const processedData = {
-            title: currentBlock.name,
-            weeks: Object.values(weeksMap).sort((a: any, b: any) => a.id - b.id)
-          };
-          setProgramData(processedData);
         }
       }
       setLoading(false);
@@ -116,6 +74,62 @@ export default function ClientDashboard() {
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
+
+  // Tính toán data cho Block đang chọn
+  let activeBlockData = null;
+  let weeksArray: any[] = [];
+  
+  if (programInfo && activeBlockId) {
+    const activeBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
+    if (activeBlock) {
+      activeBlockData = activeBlock;
+      const weeksMap: any = {};
+      
+      const sortedWorkouts = [...(activeBlock.workouts || [])].sort((a: any, b: any) => a.order_index - b.order_index);
+
+      sortedWorkouts.forEach((w: any) => {
+        let totalTarget = 0;
+        let totalLogged = 0;
+        w.workout_exercises?.forEach((ex: any) => {
+           totalTarget += (ex.target_sets || 3);
+           totalLogged += (ex.workout_logs?.length || 0);
+        });
+
+        let status = "pending";
+        if (w.is_completed) {
+            if (totalLogged >= totalTarget && totalTarget > 0) {
+                status = "perfect"; // 100% -> Gold
+            } else {
+                status = "partial"; // Thiếu bài -> Green
+            }
+        }
+
+        if (!weeksMap[w.week_number]) {
+          weeksMap[w.week_number] = {
+            id: w.week_number,
+            name: `Tuần ${w.week_number}`,
+            workouts: []
+          };
+        }
+        weeksMap[w.week_number].workouts.push({
+          id: w.id,
+          name: w.name,
+          status: status
+        });
+      });
+
+      for(let i=1; i<=4; i++) {
+         if(!weeksMap[i]) weeksMap[i] = { id: i, name: `Tuần ${i}`, workouts: [] };
+      }
+      
+      weeksArray = Object.values(weeksMap).sort((a: any, b: any) => a.id - b.id);
+    }
+  }
+
+  const programData = activeBlockData ? {
+    title: activeBlockData.name,
+    weeks: weeksArray
+  } : null;
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-brand-paper font-bold text-brand-moss">Đang tải dữ liệu...</div>;
@@ -173,11 +187,30 @@ export default function ClientDashboard() {
       <div className="p-5">
         {programData ? (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-brand-moss font-black text-lg flex items-center space-x-2">
+            <div className="mb-4">
+              <h2 className="text-brand-moss font-black text-xl flex items-center space-x-2 mb-3">
                 <CalendarDays size={20} className="text-brand-sand" />
-                <span>{programData.title}</span>
+                <span>Phase: {programInfo?.name}</span>
               </h2>
+              
+              {/* Block Tabs */}
+              {programInfo?.blocks && programInfo.blocks.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {programInfo.blocks.map((b: any) => (
+                    <button
+                      key={b.id}
+                      onClick={() => { setActiveBlockId(b.id); setActiveWeek(1); }}
+                      className={`flex-shrink-0 px-4 py-1.5 rounded-lg font-bold text-sm transition-all border ${
+                        activeBlockId === b.id 
+                          ? "bg-brand-mossDeep text-white border-brand-mossDeep shadow-sm" 
+                          : "bg-white text-brand-moss/60 border-brand-line hover:bg-brand-paper"
+                      }`}
+                    >
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
