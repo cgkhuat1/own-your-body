@@ -1,11 +1,47 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Users, BookOpen, Dumbbell, Settings, Search, Plus, ArrowRight, LogOut, Loader2 } from "lucide-react";
+import { Users, BookOpen, Dumbbell, Settings, Search, Plus, ArrowRight, LogOut, Loader2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function PTDashboard() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<any[]>([]);
+
+  // Modal Add Program State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newProgramClientId, setNewProgramClientId] = useState("");
+  const [newProgramName, setNewProgramName] = useState("");
+  const [savingProgram, setSavingProgram] = useState(false);
+  const [allClientsList, setAllClientsList] = useState<any[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleCreateProgram = async () => {
+    setSavingProgram(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
+    const { data: newProg, error } = await supabase.from('programs').insert({
+      client_id: newProgramClientId,
+      pt_id: session.user.id,
+      name: newProgramName.trim(),
+      start_date: new Date().toISOString().split('T')[0]
+    }).select('id').single();
+
+    if (error) {
+      showToast("Lỗi khi tạo giáo án", "error");
+      setSavingProgram(false);
+    } else {
+      showToast("Tạo thành công! Đang chuyển hướng...");
+      setTimeout(() => {
+        window.location.href = `/coach/program?clientId=${newProgramClientId}&programId=${newProg.id}`;
+      }, 1000);
+    }
+  };
 
   // Bảo vệ Route và lấy dữ liệu thật từ Supabase
   useEffect(() => {
@@ -26,6 +62,13 @@ export default function PTDashboard() {
       if (userData?.role !== 'pt' && userData?.role !== 'coach') {
         window.location.href = "/";
         return;
+      }
+
+      // Fetch all clients for the modal dropdown
+      const { data: allClients } = await supabase.from('users').select('id, full_name, email').eq('role', 'client').order('full_name');
+      if (allClients) {
+        setAllClientsList(allClients);
+        if (allClients.length > 0) setNewProgramClientId(allClients[0].id);
       }
 
       // Lấy danh sách Học viên qua bảng Programs
@@ -132,9 +175,9 @@ export default function PTDashboard() {
             <h1 className="text-2xl md:text-3xl font-bold text-brand-moss">Quản lý Khách hàng</h1>
             <p className="text-sm text-brand-moss/60 mt-1">Theo dõi tiến độ và tỷ lệ tuân thủ của học viên</p>
           </div>
-          <button className="bg-brand-sand text-brand-mossDeep px-6 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-[#ebd8b7] transition-all shadow-md">
+          <button onClick={() => setIsAddModalOpen(true)} className="bg-brand-sand text-brand-mossDeep px-6 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-[#ebd8b7] transition-all shadow-md">
             <Plus size={20} />
-            <span>Thêm Khách hàng</span>
+            <span>Thêm Giáo án mới</span>
           </button>
         </header>
 
@@ -208,6 +251,67 @@ export default function PTDashboard() {
           ))}
         </div>
       </main>
+
+      {/* Modal Add Program */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsAddModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-line">
+              <h2 className="text-lg font-bold text-brand-moss">Khởi tạo Giáo án mới</h2>
+              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">1. Chọn học viên *</label>
+                <select 
+                  value={newProgramClientId}
+                  onChange={(e) => setNewProgramClientId(e.target.value)}
+                  className="w-full px-4 py-3 border border-brand-line rounded-xl text-sm font-bold text-brand-moss focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none bg-white"
+                >
+                  <option value="" disabled>-- Chọn từ danh sách --</option>
+                  {allClientsList.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.full_name} ({c.email})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-brand-moss/50 mt-1 italic">
+                  * Nếu khách chưa có tên, vui lòng yêu cầu khách tự Đăng ký tài khoản trên app trước.
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">2. Tên giáo án / Hợp đồng *</label>
+                <input 
+                  type="text" 
+                  value={newProgramName} 
+                  onChange={(e) => setNewProgramName(e.target.value)}
+                  placeholder="VD: Renew Phase 2 - Tăng cơ"
+                  className="w-full px-4 py-3 border border-brand-line rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-line bg-brand-paper/30">
+              <button 
+                onClick={handleCreateProgram} 
+                disabled={!newProgramClientId || !newProgramName.trim() || savingProgram}
+                className="w-full bg-brand-moss text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-mossDeep transition-colors disabled:opacity-40"
+              >
+                {savingProgram ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                {savingProgram ? "Đang tạo..." : "Tạo Giáo án"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-2xl font-bold text-sm shadow-2xl animate-[slideUp_0.3s_ease-out] ${
+          toast.type === 'success' ? 'bg-brand-mossDeep text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
