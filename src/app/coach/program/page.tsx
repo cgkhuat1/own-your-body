@@ -197,8 +197,12 @@ export default function ProgramBuilder() {
     `).eq('id', targetProgramId).neq('name', `dummy-${Date.now()}`).single();
 
     if (fetchErr) {
-      console.error(fetchErr);
-      setProgramInfo({ blocks: [], _error: fetchErr });
+      console.error("fetchData error:", fetchErr);
+      showToast(`Lỗi tải dữ liệu: ${fetchErr.message}`, "error");
+      // Không clear sạch programInfo để tránh crash UI nếu lỗi mạng tạm thời
+      if (!programInfo) {
+        setProgramInfo({ blocks: [], _error: fetchErr });
+      }
       setLoading(false);
       return;
     }
@@ -600,23 +604,35 @@ export default function ProgramBuilder() {
         program_id: programInfo.id, name: newBlockName, order_index: newOrder
       }).select('id').single();
 
-      if (!newBlock) throw new Error("Không tạo được Block");
+      if (blockErr || !newBlock) {
+        console.error("Block Insert Error:", blockErr);
+        throw new Error(blockErr?.message || "Không tạo được Block");
+      }
 
       // 2. Clone Workouts & Workout_Exercises
       if (sourceBlock) {
         const sourceWorkouts = sourceBlock.workouts || [];
         for (const w of sourceWorkouts) {
-          const { data: clonedWorkout } = await supabase.from('workouts').insert({
+          const { data: clonedWorkout, error: wErr } = await supabase.from('workouts').insert({
             block_id: newBlock.id, name: w.name, week_number: w.week_number, order_index: w.order_index, is_completed: false
           }).select('id').single();
 
+          if (wErr || !clonedWorkout) {
+             console.error("Workout Insert Error:", wErr);
+             throw new Error(wErr?.message || "Không tạo được Workout");
+          }
+
           const wExs = w.workout_exercises || [];
           for (const wex of wExs) {
-            await supabase.from('workout_exercises').insert({
+            const { error: wexErr } = await supabase.from('workout_exercises').insert({
               workout_id: clonedWorkout.id, exercise_id: wex.exercise_id, custom_name: wex.custom_name,
               group_code: wex.group_code, order_index: wex.order_index,
               target_sets: wex.target_sets, target_reps: wex.target_reps, target_rpe: wex.target_rpe
             });
+            if (wexErr) {
+               console.error("Workout Exercise Insert Error:", wexErr);
+               throw new Error(wexErr?.message || "Không tạo được bài tập");
+            }
           }
         }
       }
@@ -624,8 +640,9 @@ export default function ProgramBuilder() {
       showToast(`Đã tạo thành công ${newBlockName}!`);
       setActiveBlockId(newBlock.id);
       await fetchData();
-    } catch (e) {
-      showToast("Có lỗi xảy ra khi tạo Block", "error");
+    } catch (e: any) {
+      console.error("handleCloneBlock caught error:", e);
+      showToast(e.message || "Có lỗi xảy ra khi tạo Block", "error");
     } finally {
       setSaving(false);
     }
