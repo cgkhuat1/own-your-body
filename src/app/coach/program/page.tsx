@@ -140,24 +140,43 @@ export default function ProgramBuilder() {
         const dayWorkouts = allWorkouts.filter((w: any) => w.order_index === dayIndex);
         const masterExercises = new Map();
         
+        // Pass 1: Gom nhóm theo order_index
         dayWorkouts.forEach((w: any) => {
           w.workout_exercises?.forEach((ex: any) => {
-            // Group by order_index instead of exercise_id to keep structural rows intact
             const key = String(ex.order_index);
             if (!masterExercises.has(key)) {
               masterExercises.set(key, {
                 key,
                 order_index: ex.order_index,
                 group_code: ex.group_code,
-                base_ex: ex, // Store the first encountered ex as the base reference
-                weeks: {}
+                weeks: {},
+                all_ex: []
               });
             }
             masterExercises.get(key).weeks[w.week_number] = ex;
+            masterExercises.get(key).all_ex.push(ex);
           });
         });
 
-        const exercisesArray = Array.from(masterExercises.values()).sort((a, b) => {
+        // Pass 2: Xác định base_ex bằng cách tìm bài tập xuất hiện nhiều nhất (Majority vote)
+        Array.from(masterExercises.values()).forEach((group: any) => {
+          const freqMap = new Map();
+          let maxFreq = 0;
+          let bestBaseEx = group.all_ex[0]; // Mặc định lấy cái đầu tiên
+
+          for (const ex of group.all_ex) {
+            const exId = ex.exercise_id;
+            const count = (freqMap.get(exId) || 0) + 1;
+            freqMap.set(exId, count);
+            if (count > maxFreq) {
+              maxFreq = count;
+              bestBaseEx = ex;
+            }
+          }
+          group.base_ex = bestBaseEx;
+        });
+
+        const exercisesArray = Array.from(masterExercises.values()).sort((a: any, b: any) => {
            return (a.order_index ?? 99) - (b.order_index ?? 99);
         });
 
