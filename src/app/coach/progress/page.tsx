@@ -69,13 +69,18 @@ export default function ClientProgress() {
                       exMap.set(exId, { id: exId, name: exName });
                     }
 
-                    // Tính Max 1RM của cả buổi
+                    // Tính Max 1RM của cả buổi (Chỉ tính cho Squat, Deadlift, Bench Press)
                     let max1RM = 0;
+                    const exNameLower = exName.toLowerCase();
+                    const isBig3 = ['squat', 'deadlift', 'bench press', 'benchpress'].some(kw => exNameLower.includes(kw));
+
                     const sortedSets = logs.sort((a: any, b: any) => a.set_number - b.set_number);
-                    sortedSets.forEach((l: any) => {
-                      const rm = estimate1RM(l.weight, l.reps);
-                      if (rm > max1RM) max1RM = rm;
-                    });
+                    if (isBig3) {
+                      sortedSets.forEach((l: any) => {
+                        const rm = estimate1RM(l.weight, l.reps);
+                        if (rm > max1RM) max1RM = rm;
+                      });
+                    }
 
                     flatLogs.push({
                       exId,
