@@ -64,8 +64,11 @@ export default function ProgramBuilder() {
   const [saving, setSaving] = useState(false);
   const [programInfo, setProgramInfo] = useState<any>(null);
   
-  // Quản lý Block (Phase)
+  // Quản lý Block
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [editingBlockName, setEditingBlockName] = useState(false);
+  const [editBlockValue, setEditBlockValue] = useState("");
+  const [showDeleteBlock, setShowDeleteBlock] = useState(false);
   
   const [activeDay, setActiveDay] = useState(1);
   const [days, setDays] = useState<any[]>([]);
@@ -242,6 +245,41 @@ export default function ProgramBuilder() {
     setSaving(false);
   };
 
+  const startEditBlockName = () => {
+    const currentBlock = programInfo?.blocks?.find((b: any) => b.id === activeBlockId);
+    if (currentBlock) {
+      setEditBlockValue(currentBlock.name);
+      setEditingBlockName(true);
+    }
+  };
+
+  const saveBlockName = async () => {
+    if (!editBlockValue.trim() || !activeBlockId) { setEditingBlockName(false); return; }
+    await supabase.from('blocks').update({ name: editBlockValue.trim() }).eq('id', activeBlockId);
+    setEditingBlockName(false);
+    showToast(`Đã đổi tên thành "${editBlockValue.trim()}"`);
+    await fetchData();
+  };
+
+  const handleDeleteBlock = async () => {
+    if (!activeBlockId) return;
+    setSaving(true);
+    // Xóa block (Cascade sẽ tự động xóa workout, workout_exercises, workout_logs ở Database)
+    await supabase.from('blocks').delete().eq('id', activeBlockId);
+    setShowDeleteBlock(false);
+    setSaving(false);
+    
+    // Đổi active block sang block khác
+    const remainingBlocks = programInfo?.blocks?.filter((b: any) => b.id !== activeBlockId) || [];
+    if (remainingBlocks.length > 0) {
+      setActiveBlockId(remainingBlocks[0].id);
+    } else {
+      setActiveBlockId(null);
+    }
+    showToast(`Đã xóa Block`);
+    await fetchData();
+  };
+
   const startEditDayName = () => {
     const currentDay = days.find(d => d.dayIndex === activeDay);
     if (currentDay) { setEditDayValue(currentDay.name); setEditingDayName(true); }
@@ -415,11 +453,11 @@ export default function ProgramBuilder() {
       const sourceBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
       const maxOrder = Math.max(...programInfo.blocks.map((b: any) => b.order_index));
       const newOrder = maxOrder + 1;
-      const newBlockName = `Phase ${newOrder}`;
+      const newBlockName = `Block ${newOrder}`;
 
       // 1. Tạo Block mới
-      const { data: newBlock } = await supabase.from('blocks').insert({
-        program_id: programId, name: newBlockName, order_index: newOrder
+      const { data: newBlock, error: blockErr } = await supabase.from('blocks').insert({
+        program_id: programInfo.id, name: newBlockName, order_index: newOrder
       }).select('id').single();
 
       if (!newBlock) throw new Error("Không tạo được Block");
@@ -468,17 +506,54 @@ export default function ProgramBuilder() {
           <div>
             <h1 className="text-xl font-bold text-brand-moss">Giáo án: {programInfo?.client?.full_name}</h1>
             <div className="flex items-center gap-2 mt-1">
-              {sortedBlocks.map((b: any) => (
+              {sortedBlocks.map((b: any) => {
+                const isActive = activeBlockId === b.id;
+                if (isActive && editingBlockName) {
+                  return (
+                    <input 
+                      key={b.id}
+                      type="text" 
+                      value={editBlockValue} 
+                      onChange={(e) => setEditBlockValue(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && saveBlockName()} 
+                      onBlur={saveBlockName}
+                      className="text-xs font-bold px-3 py-1 bg-white text-brand-mossDeep rounded-full focus:ring-2 focus:ring-brand-sand outline-none w-32 border border-brand-sand/50 shadow-inner" 
+                      autoFocus 
+                    />
+                  );
+                }
+                return (
+                  <button 
+                    key={b.id} 
+                    onClick={() => {
+                      if (isActive) {
+                        startEditBlockName();
+                      } else {
+                        setActiveBlockId(b.id); 
+                        setActiveDay(1);
+                      }
+                    }}
+                    className={`text-xs font-bold px-3 py-1 rounded-full transition-all flex items-center gap-1 group ${isActive ? 'bg-brand-moss text-white shadow-sm' : 'bg-brand-paper text-brand-moss/60 hover:bg-brand-sand/40'}`}
+                  >
+                    {b.name}
+                    {isActive && <Pencil size={10} className="opacity-40 group-hover:opacity-100" />}
+                  </button>
+                );
+              })}
+              
+              {/* Show trash icon next to the active block if there's more than 1 block */}
+              {sortedBlocks.length > 1 && !editingBlockName && (
                 <button 
-                  key={b.id} 
-                  onClick={() => { setActiveBlockId(b.id); setActiveDay(1); }}
-                  className={`text-xs font-bold px-3 py-1 rounded-full transition-colors ${activeBlockId === b.id ? 'bg-brand-moss text-white shadow-sm' : 'bg-brand-paper text-brand-moss/60 hover:bg-brand-sand/40'}`}
+                  onClick={() => setShowDeleteBlock(true)} 
+                  className="p-1 text-brand-moss/40 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                  title="Xóa Block hiện tại"
                 >
-                  {b.name}
+                  <Trash2 size={12} />
                 </button>
-              ))}
-              <button onClick={handleCloneBlock} disabled={saving} className="text-xs font-bold px-3 py-1 rounded-full bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors">
-                <Copy size={12}/> Tạo Phase tiếp
+              )}
+
+              <button onClick={handleCloneBlock} disabled={saving} className="text-xs font-bold px-3 py-1 rounded-full bg-brand-sand/20 text-brand-moss/60 hover:bg-brand-sand/40 flex items-center gap-1 transition-colors ml-1 border border-brand-sand/30">
+                <Copy size={12}/> Tạo Block tiếp
               </button>
             </div>
           </div>
@@ -772,6 +847,26 @@ export default function ProgramBuilder() {
               <button onClick={() => setShowDeleteDay(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
               <button onClick={handleDeleteDay} disabled={addingExercise} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
                 {addingExercise ? "Đang xóa..." : "Xóa luôn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteBlock && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteBlock(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4"><AlertTriangle size={28} className="text-red-500" /></div>
+              <h2 className="text-lg font-bold text-brand-moss mb-2">Xóa toàn bộ Block này?</h2>
+              <p className="text-sm text-brand-moss/60 leading-relaxed">
+                Tất cả các buổi tập, bài tập và mục tiêu trong Block này sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác!
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setShowDeleteBlock(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
+              <button onClick={handleDeleteBlock} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+                {saving ? "Đang xóa..." : "Xóa vĩnh viễn"}
               </button>
             </div>
           </div>
