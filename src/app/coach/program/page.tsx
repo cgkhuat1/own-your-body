@@ -173,7 +173,7 @@ export default function ProgramBuilder() {
       setActiveProgramId(targetProgramId);
     }
 
-    const { data: program } = await supabase.from('programs').select(`
+    const { data: program, error: fetchErr } = await supabase.from('programs').select(`
       id, name,
       blocks (
           id, name, order_index,
@@ -189,7 +189,14 @@ export default function ProgramBuilder() {
               )
           )
       )
-    `).eq('id', targetProgramId).single();
+    `).eq('id', targetProgramId).neq('name', `dummy-${Date.now()}`).single();
+
+    if (fetchErr) {
+      console.error(fetchErr);
+      setProgramInfo({ blocks: [], _error: fetchErr });
+      setLoading(false);
+      return;
+    }
 
     if (program) {
       if (program.blocks) {
@@ -581,7 +588,10 @@ export default function ProgramBuilder() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-brand-moss mb-4">Hồ sơ: {clientInfo?.full_name || "Đang tải..."}</h1>
+            <h1 className="text-xl font-bold text-brand-moss mb-4">
+              Hồ sơ: {clientInfo?.full_name || "Đang tải..."} 
+              <span className="text-xs text-red-500 ml-2">(Debug: blocks={programInfo?.blocks?.length || 0})</span>
+            </h1>
             
             {/* --- PHASE TABS --- */}
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-brand-line/50 overflow-x-auto w-full">
@@ -605,6 +615,12 @@ export default function ProgramBuilder() {
               >
                 <Plus size={14}/> Thêm Phase Mới
               </button>
+            </div>
+            
+            {/* DEBUG INFO */}
+            <div className="p-2 bg-red-100 text-red-800 text-xs rounded mb-2 overflow-auto max-h-32">
+              DEBUG BLOCKS: {JSON.stringify(programInfo?.blocks)} <br/>
+              DEBUG ERROR: {JSON.stringify(programInfo?._error)}
             </div>
 
             {/* --- BLOCK TABS --- */}
