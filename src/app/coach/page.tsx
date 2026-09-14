@@ -99,7 +99,7 @@ export default function PTDashboard() {
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
-          <a href="#" className="flex items-center space-x-3 bg-brand-moss text-white px-4 py-3 rounded-xl font-bold shadow-md">
+          <a href="/coach" className="flex items-center space-x-3 bg-brand-moss text-white px-4 py-3 rounded-xl font-bold shadow-md">
             <Users size={20} />
             <span>Khách hàng</span>
           </a>
@@ -107,7 +107,7 @@ export default function PTDashboard() {
             <BookOpen size={20} />
             <span>Giáo án mẫu</span>
           </a>
-          <a href="#" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
+          <a href="/coach/exercises" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
             <Dumbbell size={20} />
             <span>Kho bài tập</span>
           </a>

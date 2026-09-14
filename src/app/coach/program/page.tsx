@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Save, Plus, Loader2, Trash2, X, Search, Dumbbell } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ArrowLeft, Save, Plus, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
@@ -20,6 +20,7 @@ export default function ProgramBuilder() {
   // Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAddDay, setShowAddDay] = useState(false);
+  const [showDeleteDay, setShowDeleteDay] = useState(false);
   const [exerciseLibrary, setExerciseLibrary] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
@@ -29,6 +30,11 @@ export default function ProgramBuilder() {
   const [newRpe, setNewRpe] = useState("8");
   const [newDayName, setNewDayName] = useState("");
   const [addingExercise, setAddingExercise] = useState(false);
+
+  // Drag state
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -92,11 +98,9 @@ export default function ProgramBuilder() {
         });
 
         const exercisesArray = Array.from(masterExercises.values()).sort((a, b) => {
-           const getNum = (str: string) => parseInt(String(str).replace(/\D/g, '')) || 99;
-           const getSuffix = (str: string) => String(str).replace(/\d/g, '') || '';
-           const numDiff = getNum(a.group_code) - getNum(b.group_code);
-           if (numDiff !== 0) return numDiff;
-           return getSuffix(a.group_code).localeCompare(getSuffix(b.group_code));
+           const aIdx = a.order_index ?? 99;
+           const bIdx = b.order_index ?? 99;
+           return aIdx - bIdx;
         });
 
         return {
@@ -117,7 +121,6 @@ export default function ProgramBuilder() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch exercise library khi mở modal
   useEffect(() => {
     if (showAddExercise) {
       supabase.from('exercises').select('*').order('name').then(({ data }) => {
@@ -179,13 +182,10 @@ export default function ProgramBuilder() {
     const currentDay = days.find(d => d.dayIndex === activeDay);
     if (!currentDay) return;
 
-    // Tìm order_index lớn nhất của bài tập hiện tại trong buổi này
     const maxOrder = currentDay.exercises.reduce((max: number, ex: any) => Math.max(max, ex.order_index || 0), 0);
 
-    // Đảm bảo có workout cho cả 4 tuần
     for (let week = 1; week <= 4; week++) {
       if (!currentDay.workoutIds[week]) {
-        // Tạo workout mới cho tuần thiếu
         const { data: newWorkout } = await supabase.from('workouts').insert({
           block_id: blockId,
           name: currentDay.name,
@@ -199,7 +199,6 @@ export default function ProgramBuilder() {
         }
       }
 
-      // Insert workout_exercise cho tuần này
       await supabase.from('workout_exercises').insert({
         workout_id: currentDay.workoutIds[week],
         exercise_id: selectedExercise.id,
@@ -211,7 +210,6 @@ export default function ProgramBuilder() {
       });
     }
 
-    // Reset form & reload
     setShowAddExercise(false);
     setSelectedExercise(null);
     setNewGroupCode("");
@@ -233,7 +231,6 @@ export default function ProgramBuilder() {
     const maxDayIndex = days.reduce((max, d) => Math.max(max, d.dayIndex), 0);
     const newDayIndex = maxDayIndex + 1;
 
-    // Tạo 4 workout (1 cho mỗi tuần)
     for (let week = 1; week <= 4; week++) {
       await supabase.from('workouts').insert({
         block_id: blockId,
@@ -253,23 +250,116 @@ export default function ProgramBuilder() {
     await fetchData();
   };
 
+  // === XÓA BUỔI TẬP ===
+  const handleDeleteDay = async () => {
+    const currentDay = days.find(d => d.dayIndex === activeDay);
+    if (!currentDay) return;
+    setAddingExercise(true);
+
+    // Lấy tất cả workout IDs thuộc buổi này
+    const workoutIds = Object.values(currentDay.workoutIds) as string[];
+
+    // Lấy tất cả workout_exercise IDs
+    const { data: wExs } = await supabase
+      .from('workout_exercises')
+      .select('id')
+      .in('workout_id', workoutIds);
+    
+    const wExIds = (wExs || []).map((w: any) => w.id);
+
+    if (wExIds.length > 0) {
+      // Xóa logs
+      await Promise.all(wExIds.map(id =>
+        supabase.from('workout_logs').delete().eq('workout_exercise_id', id)
+      ));
+      // Xóa workout_exercises
+      await Promise.all(wExIds.map(id =>
+        supabase.from('workout_exercises').delete().eq('id', id)
+      ));
+    }
+
+    // Xóa workouts
+    await Promise.all(workoutIds.map(id =>
+      supabase.from('workouts').delete().eq('id', id)
+    ));
+
+    setShowDeleteDay(false);
+    setAddingExercise(false);
+    
+    // Chuyển sang tab khác
+    const remaining = days.filter(d => d.dayIndex !== activeDay);
+    if (remaining.length > 0) setActiveDay(remaining[0].dayIndex);
+    
+    showToast(`Đã xóa buổi "${currentDay.name}"`);
+    await fetchData();
+  };
+
   // === XÓA BÀI TẬP ===
   const handleDeleteExercise = async (ex: any) => {
-    // Xóa workout_exercises ở tất cả các tuần
     const weekExIds = Object.values(ex.weeks).map((w: any) => w.id);
     
-    // Xóa logs trước (foreign key)
     await Promise.all(weekExIds.map(id =>
       supabase.from('workout_logs').delete().eq('workout_exercise_id', id)
     ));
     
-    // Xóa workout_exercises
     await Promise.all(weekExIds.map(id =>
       supabase.from('workout_exercises').delete().eq('id', id)
     ));
 
     showToast(`Đã xóa "${ex.custom_name}"`);
     await fetchData();
+  };
+
+  // === KÉO THẢ SẮP XẾP ===
+  const handleDragStart = (index: number) => {
+    dragItem.current = index;
+    setDragIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    dragOverItem.current = index;
+  };
+
+  const handleDragEnd = async () => {
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+      setDragIndex(null);
+      return;
+    }
+
+    const currentDay = days.find(d => d.dayIndex === activeDay);
+    if (!currentDay) return;
+
+    // Sắp xếp lại mảng exercises trong state
+    const newExercises = [...currentDay.exercises];
+    const draggedItem = newExercises.splice(dragItem.current, 1)[0];
+    newExercises.splice(dragOverItem.current, 0, draggedItem);
+
+    // Cập nhật order_index cho từng bài
+    const updatedExercises = newExercises.map((ex: any, i: number) => ({
+      ...ex,
+      order_index: i + 1
+    }));
+
+    // Cập nhật state ngay để UI phản hồi tức thì
+    setDays(prevDays => prevDays.map(day => {
+      if (day.dayIndex !== activeDay) return day;
+      return { ...day, exercises: updatedExercises };
+    }));
+
+    setDragIndex(null);
+    dragItem.current = null;
+    dragOverItem.current = null;
+
+    // Cập nhật order_index vào DB cho tất cả các tuần
+    const updatePromises: Promise<any>[] = [];
+    updatedExercises.forEach((ex: any, i: number) => {
+      Object.values(ex.weeks).forEach((wEx: any) => {
+        updatePromises.push(
+          supabase.from('workout_exercises').update({ order_index: i + 1 }).eq('id', wEx.id)
+        );
+      });
+    });
+    await Promise.all(updatePromises);
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-brand-paper"><Loader2 className="animate-spin text-brand-moss" size={32} /></div>;
@@ -307,7 +397,7 @@ export default function ProgramBuilder() {
           <button
             key={d.dayIndex}
             onClick={() => setActiveDay(d.dayIndex)}
-            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all ${activeDay === d.dayIndex ? 'bg-brand-sand text-brand-mossDeep shadow-md' : 'bg-brand-paper/50 text-brand-moss/60 hover:bg-brand-paper'}`}
+            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all relative ${activeDay === d.dayIndex ? 'bg-brand-sand text-brand-mossDeep shadow-md' : 'bg-brand-paper/50 text-brand-moss/60 hover:bg-brand-paper'}`}
           >
             {d.name}
           </button>
@@ -318,20 +408,30 @@ export default function ProgramBuilder() {
         >
           <Plus size={14} /> Thêm Buổi
         </button>
+
+        {/* Nút xóa buổi (chỉ hiện khi có > 1 buổi) */}
+        {days.length > 1 && (
+          <button
+            onClick={() => setShowDeleteDay(true)}
+            className="ml-auto px-3 py-2 rounded-lg text-xs font-bold text-red-400 hover:text-red-600 hover:bg-red-50 transition-all flex items-center gap-1.5"
+          >
+            <Trash2 size={13} /> Xóa buổi này
+          </button>
+        )}
       </div>
 
       {/* Spreadsheet Matrix (Scrollable Area) */}
       <main className="flex-1 overflow-auto bg-brand-paper/50 relative z-0">
         <div className="min-w-[1200px] min-h-full pb-20">
           {/* Header Row */}
-          <div className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
+          <div className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập</div>
             {[1,2,3,4].map(w => (
               <div key={w} className="p-4 border-r border-brand-sage/20 text-center">Tuần {w}</div>
             ))}
           </div>
 
-          {/* Exercise Rows */}
+          {/* Empty State */}
           {activeDayData?.exercises.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-brand-moss/40">
               <Dumbbell size={48} className="mb-4 opacity-30" />
@@ -340,16 +440,33 @@ export default function ProgramBuilder() {
             </div>
           )}
 
-          {activeDayData?.exercises.map((ex: any) => (
-            <div key={ex.key} className="grid grid-cols-[250px_1fr_1fr_1fr_1fr] min-w-[1200px] border-b border-brand-line group hover:bg-brand-paper/20 transition-colors">
+          {/* Exercise Rows (Draggable) */}
+          {activeDayData?.exercises.map((ex: any, exIndex: number) => (
+            <div 
+              key={ex.key} 
+              draggable
+              onDragStart={() => handleDragStart(exIndex)}
+              onDragEnter={() => handleDragEnter(exIndex)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => e.preventDefault()}
+              className={`grid grid-cols-[280px_1fr_1fr_1fr_1fr] min-w-[1200px] border-b border-brand-line group transition-all cursor-grab active:cursor-grabbing ${
+                dragIndex === exIndex 
+                  ? 'opacity-40 bg-brand-sand/20' 
+                  : 'hover:bg-brand-paper/20'
+              }`}
+            >
               {/* Cột Tên bài tập */}
-              <div className="p-4 border-r border-brand-line bg-brand-paper/40 flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-brand-moss">{ex.group_code ? `${ex.group_code}. ` : ''}{ex.custom_name}</p>
+              <div className="p-4 border-r border-brand-line bg-brand-paper/40 flex items-center gap-2">
+                {/* Drag Handle */}
+                <div className="text-brand-moss/20 group-hover:text-brand-moss/50 transition-colors flex-shrink-0">
+                  <GripVertical size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-brand-moss truncate">{ex.group_code ? `${ex.group_code}. ` : ''}{ex.custom_name}</p>
                 </div>
                 <button 
                   onClick={() => handleDeleteExercise(ex)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-all flex-shrink-0"
                   title="Xóa bài tập"
                 >
                   <Trash2 size={14} />
@@ -369,9 +486,7 @@ export default function ProgramBuilder() {
 
                 const rawLogs = wEx.workout_logs || [];
                 const uniqueLogsMap = new Map();
-                rawLogs.forEach((l:any) => {
-                  uniqueLogsMap.set(l.set_number, l);
-                });
+                rawLogs.forEach((l:any) => { uniqueLogsMap.set(l.set_number, l); });
                 const uniqueLogs = Array.from(uniqueLogsMap.values()).sort((a:any, b:any) => a.set_number - b.set_number);
                 
                 return (
@@ -444,7 +559,6 @@ export default function ProgramBuilder() {
       {showAddExercise && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-brand-line">
               <h2 className="text-lg font-bold text-brand-moss">Thêm bài tập</h2>
               <button onClick={() => setShowAddExercise(false)} className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors">
@@ -494,14 +608,14 @@ export default function ProgramBuilder() {
                 <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">2. Mã nhóm (Group Code)</label>
                 <input
                   type="text"
-                  placeholder="VD: 1, 2A, 2B, 3A..."
+                  placeholder="VD: 1, 1A, 1B, 2A..."
                   value={newGroupCode}
                   onChange={(e) => setNewGroupCode(e.target.value)}
                   className="w-full px-4 py-2.5 border border-brand-line rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
                 />
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <span className="text-[10px] font-bold text-brand-moss/40 uppercase mr-1 self-center">Gợi ý:</span>
-                  {['1', '2', '3', '2A', '2B', '3A', '3B', '3C'].map(code => (
+                  {['1', '2', '3', '1A', '1B', '2A', '2B', '3A', '3B', '3C'].map(code => (
                     <button 
                       key={code}
                       onClick={() => setNewGroupCode(code)}
@@ -516,7 +630,7 @@ export default function ProgramBuilder() {
                   ))}
                 </div>
                 <p className="text-[10px] text-brand-moss/40 mt-2 leading-relaxed">
-                  Số đơn (1, 2, 3) = bài riêng lẻ. Số + chữ (2A, 2B) = Superset. Ba chữ cái (3A, 3B, 3C) = Tri-set.
+                  Số đơn (1, 2, 3) = bài riêng lẻ • Số + chữ cùng số (1A + 1B) = Superset • Ba chữ (2A + 2B + 2C) = Tri-set
                 </p>
               </div>
 
@@ -526,38 +640,25 @@ export default function ProgramBuilder() {
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-semibold text-brand-moss/40 mb-0.5 block">Sets</label>
-                    <input
-                      type="text"
-                      value={newSets}
-                      onChange={(e) => setNewSets(e.target.value)}
-                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
-                    />
+                    <input type="text" value={newSets} onChange={(e) => setNewSets(e.target.value)}
+                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" />
                   </div>
                   <span className="text-brand-moss/30 font-bold mt-4">×</span>
                   <div className="flex-1">
                     <label className="text-[10px] font-semibold text-brand-moss/40 mb-0.5 block">Reps</label>
-                    <input
-                      type="text"
-                      value={newReps}
-                      onChange={(e) => setNewReps(e.target.value)}
-                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
-                    />
+                    <input type="text" value={newReps} onChange={(e) => setNewReps(e.target.value)}
+                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" />
                   </div>
                   <span className="text-brand-moss/30 font-bold mt-4">@</span>
                   <div className="flex-1">
                     <label className="text-[10px] font-semibold text-brand-moss/40 mb-0.5 block">RPE</label>
-                    <input
-                      type="text"
-                      value={newRpe}
-                      onChange={(e) => setNewRpe(e.target.value)}
-                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none"
-                    />
+                    <input type="text" value={newRpe} onChange={(e) => setNewRpe(e.target.value)}
+                      className="w-full px-3 py-2 border border-brand-line rounded-lg text-sm font-bold text-center focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-brand-line bg-brand-paper/30">
               <button
                 onClick={handleAddExercise}
@@ -620,12 +721,42 @@ export default function ProgramBuilder() {
         </div>
       )}
 
+      {/* ===== MODAL: XÁC NHẬN XÓA BUỔI ===== */}
+      {showDeleteDay && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteDay(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={28} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-bold text-brand-moss mb-2">Xóa buổi tập?</h2>
+              <p className="text-sm text-brand-moss/60 leading-relaxed">
+                Toàn bộ <strong>{activeDayData?.exercises.length || 0} bài tập</strong> và dữ liệu tập luyện trong <strong>{activeDayData?.name}</strong> sẽ bị xóa vĩnh viễn.
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowDeleteDay(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteDay}
+                disabled={addingExercise}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {addingExercise ? "Đang xóa..." : "Xóa luôn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== TOAST ===== */}
       {toast && (
         <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-2xl font-bold text-sm shadow-2xl animate-[slideUp_0.3s_ease-out] ${
-          toast.type === 'success' 
-            ? 'bg-brand-mossDeep text-white' 
-            : 'bg-red-600 text-white'
+          toast.type === 'success' ? 'bg-brand-mossDeep text-white' : 'bg-red-600 text-white'
         }`}>
           {toast.message}
         </div>
