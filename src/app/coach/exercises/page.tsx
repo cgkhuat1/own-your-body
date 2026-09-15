@@ -16,6 +16,9 @@ export default function ExerciseLibrary() {
   const [name, setName] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [exerciseToDelete, setExerciseToDelete] = useState<{id: string, name: string} | null>(null);
+  
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkText, setBulkText] = useState("");
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -49,9 +52,42 @@ export default function ExerciseLibrary() {
 
   const extractYoutubeId = (url: string) => {
     if (!url.trim()) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    return match ? match[1] : null;
+  };
+
+  const handleBulkSave = async () => {
+    if (!bulkText.trim()) return;
+    setSaving(true);
+    
+    const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l);
+    const exercisesToInsert = [];
+    
+    for (const line of lines) {
+      const httpIndex = line.indexOf('http');
+      if (httpIndex !== -1) {
+        const namePart = line.substring(0, httpIndex).replace(/[\-\,\:\s]+$/, '').trim();
+        const linkPart = line.substring(httpIndex).trim();
+        const ytId = extractYoutubeId(linkPart);
+        if (namePart) exercisesToInsert.push({ name: namePart, youtube_id: ytId });
+      } else {
+        exercisesToInsert.push({ name: line, youtube_id: null });
+      }
+    }
+
+    if (exercisesToInsert.length > 0) {
+      const { error } = await supabase.from('exercises').insert(exercisesToInsert);
+      if (!error) {
+         showToast(`Đã thêm ${exercisesToInsert.length} bài tập!`);
+         setShowBulkModal(false);
+         setBulkText("");
+         await fetchExercises();
+      } else {
+         showToast("Có lỗi xảy ra khi thêm", "error");
+      }
+    }
+    setSaving(false);
   };
 
   const handleSave = async () => {
@@ -114,9 +150,14 @@ export default function ExerciseLibrary() {
               <p className="text-brand-moss/60 text-sm font-semibold mt-1">Quản lý danh sách bài tập và video hướng dẫn</p>
             </div>
           </div>
-          <button onClick={() => openModal()} className="bg-brand-moss text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-mossDeep transition-colors shadow-md">
-            <Plus size={18} /> Thêm bài tập
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowBulkModal(true)} className="bg-brand-sand/20 text-brand-moss border border-brand-sand/50 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-sand/40 transition-colors shadow-sm">
+              <Plus size={18} /> Thêm Hàng Loạt
+            </button>
+            <button onClick={() => openModal()} className="bg-brand-moss text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-mossDeep transition-colors shadow-md">
+              <Plus size={18} /> Thêm 1 Bài
+            </button>
+          </div>
         </div>
       </header>
 
@@ -186,6 +227,41 @@ export default function ExerciseLibrary() {
           </div>
         )}
       </main>
+
+      {/* Modal Bulk Import */}
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-line">
+              <h2 className="text-lg font-bold text-brand-moss">Thêm Hàng Loạt Bài Tập</h2>
+              <button onClick={() => setShowBulkModal(false)} className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 flex-1 overflow-y-auto">
+              <p className="text-sm text-brand-moss/70 mb-4 font-semibold">
+                Mỗi bài tập nằm trên 1 dòng. Có thể dán kèm link YouTube theo định dạng:<br/>
+                <span className="text-brand-moss bg-brand-sand/20 px-2 py-1 rounded">Tên bài tập - https://youtube.com/watch?v=...</span>
+              </p>
+              <textarea 
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder={"Squat - https://youtu.be/...\nBench Press - https://youtube.com/shorts/..."}
+                className="w-full h-[40vh] p-4 border border-brand-line rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none whitespace-pre"
+              ></textarea>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-line bg-brand-paper/30 flex justify-end">
+              <button 
+                onClick={handleBulkSave} 
+                disabled={!bulkText.trim() || saving}
+                className="bg-brand-moss text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-mossDeep transition-colors disabled:opacity-40"
+              >
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Lưu Hàng Loạt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Add/Edit */}
       {isModalOpen && (
