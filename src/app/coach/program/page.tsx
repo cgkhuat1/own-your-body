@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic';
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, Save, Plus, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
@@ -56,7 +55,7 @@ function renumberUnits(units: any[]) {
   return { units, allExercises };
 }
 
-export default function ProgramBuilder() {
+function ProgramBuilderInner() {
   const searchParams = useSearchParams();
   const clientId = searchParams.get('clientId');
   // Không còn bắt buộc phải có programId từ URL
@@ -1143,4 +1142,9 @@ export default function ProgramBuilder() {
       )}
     </div>
   );
+}
+
+import { Suspense } from 'react';
+export default function ProgramBuilder() {
+  return <Suspense fallback={<div>Đang tải...</div>}><ProgramBuilderInner /></Suspense>;
 }

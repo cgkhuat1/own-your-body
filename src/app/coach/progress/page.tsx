@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic';
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -12,7 +11,7 @@ const estimate1RM = (weight: number, reps: number) => {
   return Math.round(weight * (1 + reps / 30));
 };
 
-export default function ClientProgress() {
+function ClientProgressInner() {
   const searchParams = useSearchParams();
   const clientId = searchParams.get('clientId');
 
@@ -267,4 +266,9 @@ export default function ClientProgress() {
       </main>
     </div>
   );
+}
+
+import { Suspense } from 'react';
+export default function ClientProgress() {
+  return <Suspense fallback={<div>Đang tải...</div>}><ClientProgressInner /></Suspense>;
 }
