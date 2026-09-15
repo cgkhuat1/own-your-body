@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ArrowLeft, Save, Plus, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
