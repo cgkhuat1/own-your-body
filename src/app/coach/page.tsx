@@ -186,7 +186,7 @@ export default function CoachDashboard() {
               
               <div className="flex justify-between items-start mb-4">
                 <div className="w-14 h-14 bg-brand-paper text-brand-moss rounded-full flex items-center justify-center font-black text-2xl border border-brand-line/50 uppercase">
-                  {client.name.split(" ").pop()?.charAt(0)}
+                  {String(client.name).split(" ").pop()?.charAt(0)}
                 </div>
                 
                 {/* Badge Trạng Thái */}
