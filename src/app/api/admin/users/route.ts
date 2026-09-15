@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     const updateData: any = {};
     if (role) updateData.role = role;
     if (assigned_coach_id) updateData.assigned_coach_id = assigned_coach_id;
+    if (full_name) updateData.full_name = full_name;
 
     if (Object.keys(updateData).length > 0) {
       const { error: updateError } = await supabaseAdmin
