@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus } from "lucide-react";
+import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus, Activity } from "lucide-react";
 import Link from "next/link";
 
 export default function CoachDashboard() {
