@@ -64,8 +64,8 @@ export default function CoachDashboard() {
         let badgeText = "Chưa có giáo án";
 
         if (latestProgram) {
-          latestProgram.blocks.forEach((block: any) => {
-            block.workouts.forEach((workout: any) => {
+          latestProgram.blocks?.forEach((block: any) => {
+            block.workouts?.forEach((workout: any) => {
               totalWorkouts++;
               if (workout.is_completed) completedWorkouts++;
             });
