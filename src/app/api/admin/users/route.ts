@@ -29,23 +29,19 @@ export async function POST(req: Request) {
 
     const userId = authData.user.id;
 
-    // 2. Update the role and assigned_coach_id in the public.users table
-    // (Note: The handle_new_user trigger already created the row with default 'client' role)
-    const updateData: any = {};
-    if (role) updateData.role = role;
-    if (assigned_coach_id) updateData.assigned_coach_id = assigned_coach_id;
-    if (full_name) updateData.full_name = full_name;
+    // 2. Force Insert/Upsert into public.users to bypass any broken triggers
+    const { error: upsertError } = await supabaseAdmin
+      .from('users')
+      .upsert({
+        id: userId,
+        email: email,
+        full_name: full_name,
+        role: role || 'client',
+        assigned_coach_id: assigned_coach_id || null
+      });
 
-    if (Object.keys(updateData).length > 0) {
-      const { error: updateError } = await supabaseAdmin
-        .from('users')
-        .update(updateData)
-        .eq('id', userId);
-
-      if (updateError) {
-        // Rollback? Too complex, just return error
-        return NextResponse.json({ error: 'Tạo tài khoản Auth thành công nhưng lỗi cập nhật Role: ' + updateError.message }, { status: 500 });
-      }
+    if (upsertError) {
+      return NextResponse.json({ error: 'Tạo Auth thành công nhưng lỗi Upsert public.users: ' + upsertError.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, user: authData.user });
