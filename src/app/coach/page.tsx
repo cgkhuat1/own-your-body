@@ -35,11 +35,11 @@ export default function CoachDashboard() {
     if (me) setCurrentUserRole(me.role);
 
     // Fetch all assigned clients
-    let query = supabase.from('users').select('id, full_name, email, role, assigned_coach_id').neq('id', session.user.id).eq('role', 'client');
+    let query = supabase.from('users').select('id, full_name, email, role, assigned_coach_id').neq('id', session.user.id);
     
     // Founders see all clients. Coaches see only theirs. 
     // RLS will naturally filter, but we explicitly filter just in case.
-    if (me?.role === 'coach') {
+    if (me?.role?.toLowerCase() === 'coach') {
       query = query.eq('assigned_coach_id', session.user.id);
     }
 
