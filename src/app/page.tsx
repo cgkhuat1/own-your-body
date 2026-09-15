@@ -218,7 +218,7 @@ export default function ClientDashboard() {
               )}
             </div>
 
-            <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex space-x-2 mb-6 overflow-x-auto p-2 -mx-2 scrollbar-hide">
               {programData.weeks.map((week: any) => (
                 <button
                   key={week.id}
