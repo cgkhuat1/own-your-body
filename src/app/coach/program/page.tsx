@@ -825,9 +825,9 @@ function ProgramBuilderInner() {
             <div key={unit.exercises.map((e: any) => e.key).join('-')} draggable onDragStart={() => handleDragStart(unitIndex)} onDragEnter={() => handleDragEnter(unitIndex)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()}
               className={`transition-all ${dragUnitIndex === unitIndex ? 'opacity-40 bg-brand-sand/20' : ''} ${unit.type === 'group' ? 'border-l-4 border-l-brand-sand' : ''}`}>
               {unit.exercises.map((ex: any, exInUnit: number) => (
-                <div key={ex.key} className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] min-w-[1200px] border-b border-brand-line group hover:bg-brand-paper/20 transition-colors cursor-grab active:cursor-grabbing">
+                <div key={ex.key} className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] min-w-[1200px] border-b border-brand-line group hover:bg-white/50 transition-colors cursor-grab active:cursor-grabbing">
                   {/* Cột Tên bài tập (Template Base) */}
-                  <div className="p-4 border-r border-brand-line bg-brand-paper/40 flex items-center gap-2">
+                  <div className="p-4 border-r border-brand-line bg-white/30 flex items-center gap-2">
                     {exInUnit === 0 && <div className="text-brand-moss/20 group-hover:text-brand-moss/50 transition-colors flex-shrink-0"><GripVertical size={16} /></div>}
                     {exInUnit > 0 && <div className="w-4 flex-shrink-0" />}
                     
@@ -857,7 +857,7 @@ function ProgramBuilderInner() {
                   {/* Cột Tuần 1 -> 4 */}
                   {[1, 2, 3, 4].map(weekNum => {
                     const wEx = ex.weeks[weekNum];
-                    if (!wEx) return <div key={weekNum} className="p-4 border-r border-brand-line bg-gray-50/50 flex items-center justify-center"><span className="text-xs text-gray-400">Trống</span></div>;
+                    if (!wEx) return <div key={weekNum} className="p-4 border-r border-brand-line bg-gray-50 flex items-center justify-center"><span className="text-xs text-gray-400">Trống</span></div>;
 
                     // Kiểm tra Override: Nếu bài tập thực tế ở Tuần này khác với Template gốc
                     const isOverridden = wEx.exercise_id !== ex.base_ex.exercise_id || wEx.custom_name !== ex.base_ex.custom_name;
@@ -915,7 +915,7 @@ function ProgramBuilderInner() {
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-gray-50/50 p-2.5 rounded-lg border border-gray-200 border-dashed text-gray-400">
+                          <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 border-dashed text-gray-400">
                             <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5">Thực tế tập</p>
                             <p className="text-xs italic font-medium">Chưa tập...</p>
                           </div>
