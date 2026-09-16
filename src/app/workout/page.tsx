@@ -67,11 +67,14 @@ export default function WorkoutExecution() {
       // 1. Lấy thông tin Buổi tập
       const { data: workout } = await supabase
         .from('workouts')
-        .select('id, name, week_number, is_completed')
+        .select('id, name, week_number, is_completed, rpe_score, joint_pain, notes')
         .eq('id', workoutId)
         .single();
       
       setWorkoutData(workout);
+      if (workout.rpe_score !== null) setRpeScore(workout.rpe_score);
+      if (workout.joint_pain) setJointPain(workout.joint_pain);
+      if (workout.notes) setWorkoutNotes(workout.notes);
 
       // 2. Lấy Bài tập của buổi này
       const { data: wExercises } = await supabase
