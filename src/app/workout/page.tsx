@@ -437,16 +437,16 @@ export default function WorkoutExecution() {
       
       {/* Modal Feedback (Đánh giá buổi tập) */}
       {showFeedback && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-brand-paper w-full rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom flex flex-col gap-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-brand-paper flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="w-full flex-1 p-6 flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)' }}>
             {/* Header */}
             <div className="text-center">
-              <h2 className="text-2xl font-black text-brand-mossDeep mb-1">Chúc mừng bạn đã hoàn thành! 🎉</h2>
+              <h2 className="text-2xl font-black text-brand-mossDeep mb-1 leading-tight text-balance">Chúc mừng bạn đã hoàn thành buổi tập! 🎉</h2>
               <p className="text-brand-moss/70 font-semibold text-sm">Bạn đã tập được {getCompletedSetsCount().completed}/{getCompletedSetsCount().total} Set hôm nay.</p>
             </div>
             
             <p className="text-sm font-medium text-brand-moss/80 text-center bg-white p-3 rounded-xl shadow-sm border border-brand-line">
-              Đánh giá mức độ nỗ lực giúp HLV theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tạ phù hợp cho tuần tới.
+              Bạn cảm thấy buổi tập hôm nay thế nào? Việc đánh giá sẽ giúp Coach theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tiến phù hợp cho tuần tới.
             </p>
 
             {/* Slider RPE */}
@@ -485,7 +485,7 @@ export default function WorkoutExecution() {
             {/* Khớp & Ghi chú */}
             <div className="space-y-4 pt-4 border-t border-brand-line border-dashed">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">Mức độ đau khớp (nếu có)</label>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">MỨC ĐỘ ĐAU/KHÓ CHỊU KHỚP (NẾU CÓ)</label>
                 <input 
                   type="text" 
                   value={jointPain} onChange={(e) => setJointPain(e.target.value)}
