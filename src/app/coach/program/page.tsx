@@ -154,7 +154,10 @@ function ProgramBuilderInner() {
   };
 
   const fetchData = useCallback(async () => {
-    if (!clientId) return;
+    if (!clientId) {
+      setLoading(false);
+      return;
+    }
 
     // Lấy thông tin user (khách hàng)
     const { data: user } = await supabase.from('users').select('id, full_name, email').eq('id', clientId).single();
