@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell } from "lucide-react";
+import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff } from "lucide-react";
 import Link from "next/link";
 
 export default function ClientProfileDetail() {
@@ -12,17 +12,21 @@ export default function ClientProfileDetail() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>({
     height: '',
     current_weight: '',
     target_weight: '',
+    dob: '',
     measurements: { chest: '', waist: '', hips: '', thigh: '' },
     injury_history: '',
     postural_issues: '',
     dietary_habits: '',
     notes: ''
   });
+  
   const [savedMessage, setSavedMessage] = useState('');
 
   useEffect(() => {
@@ -40,6 +44,7 @@ export default function ClientProfileDetail() {
     if (profileData) {
       setProfile({
         ...profileData,
+        dob: profileData.dob || '',
         measurements: profileData.measurements || { chest: '', waist: '', hips: '', thigh: '' }
       });
     }
@@ -49,12 +54,16 @@ export default function ClientProfileDetail() {
   const handleSave = async () => {
     setSaving(true);
     
-    // UPSERT profile
+    // Cập nhật tên trong bảng users
+    await supabase.from('users').update({ full_name: user.full_name }).eq('id', clientId);
+
+    // UPSERT profile trong bảng client_profiles
     const { error } = await supabase.from('client_profiles').upsert({
       id: clientId,
       height: profile.height || null,
       current_weight: profile.current_weight || null,
       target_weight: profile.target_weight || null,
+      dob: profile.dob || null,
       measurements: profile.measurements,
       injury_history: profile.injury_history,
       postural_issues: profile.postural_issues,
@@ -72,6 +81,29 @@ export default function ClientProfileDetail() {
     }
   };
 
+  const handleToggleActive = async () => {
+    if (!user) return;
+    
+    const newStatus = !user.is_active;
+    const confirmMessage = newStatus 
+      ? "Khôi phục tài khoản này? Khách hàng sẽ tiếp tục truy cập được lịch tập."
+      : "Đóng băng tài khoản này? Khách sẽ bị đẩy xuống cuối danh sách và bị chặn truy cập app.";
+      
+    if (!window.confirm(confirmMessage)) return;
+
+    setIsDeactivating(true);
+    const { error } = await supabase.from('users').update({ is_active: newStatus }).eq('id', clientId);
+    setIsDeactivating(false);
+
+    if (!error) {
+      setUser({ ...user, is_active: newStatus });
+      setSavedMessage(newStatus ? 'Đã khôi phục hoạt động!' : 'Đã đóng băng tài khoản!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } else {
+      alert("Lỗi cập nhật trạng thái: " + error.message);
+    }
+  };
+
   const handleMeasurementChange = (key: string, value: string) => {
     setProfile({
       ...profile,
@@ -83,45 +115,84 @@ export default function ClientProfileDetail() {
   if (!user) return <div className="p-8 text-center text-red-500">Không tìm thấy thông tin học viên.</div>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6 pb-24">
+    <div className={`p-6 max-w-3xl mx-auto space-y-6 pb-24 transition-all ${!user.is_active ? 'grayscale-[0.5]' : ''}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+          <button onClick={() => router.push('/coach')} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{user.full_name || "Học viên"}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              Hồ sơ học viên 
+              {!user.is_active && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-md uppercase tracking-wider">Đã đóng băng</span>}
+            </h1>
             <p className="text-gray-500 text-sm">{user.email}</p>
           </div>
         </div>
-        <Link 
-          href={`/coach/program?client=${clientId}`}
-          className="flex items-center justify-center gap-2 bg-brand-sand text-brand-sage px-4 py-2 rounded-xl font-medium border border-brand-sage/20 hover:bg-brand-sage/10 transition-colors"
-        >
-          <Dumbbell className="w-5 h-5" />
-          Mở Giáo Án
-        </Link>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleToggleActive}
+            disabled={isDeactivating}
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
+              user.is_active 
+                ? 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100' 
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
+            }`}
+          >
+            {isDeactivating ? <Loader2 className="w-5 h-5 animate-spin" /> : (user.is_active ? <PowerOff className="w-5 h-5" /> : <Power className="w-5 h-5" />)}
+            {user.is_active ? 'Đóng băng' : 'Khôi phục'}
+          </button>
+          
+          <Link 
+            href={`/coach/program?client=${clientId}`}
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
+              !user.is_active ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'bg-brand-sand text-brand-sage border-brand-sage/20 hover:bg-brand-sage/10'
+            }`}
+          >
+            <Dumbbell className="w-5 h-5" />
+            Giáo Án
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Chỉ số cơ thể */}
+        {/* Thông tin cơ bản */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-            <UserCircle className="w-5 h-5 text-brand-sage" /> Chỉ số cơ bản
+            <UserCircle className="w-5 h-5 text-brand-sage" /> Thông tin Hành chính
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Họ và Tên</label>
+            <input 
+              type="text" 
+              value={user.full_name || ''} 
+              onChange={e => setUser({...user, full_name: e.target.value})} 
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-medium text-gray-900" 
+              placeholder="Nhập tên học viên..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Ngày sinh</label>
+            <input 
+              type="date" 
+              value={profile.dob || ''} 
+              onChange={e => setProfile({...profile, dob: e.target.value})} 
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-medium text-gray-900" 
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Chiều cao (cm)</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Chiều cao (cm)</label>
               <input type="number" value={profile.height} onChange={e => setProfile({...profile, height: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Cân nặng (kg)</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Hiện tại (kg)</label>
               <input type="number" value={profile.current_weight} onChange={e => setProfile({...profile, current_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Mục tiêu cân nặng (kg)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Mục tiêu cân nặng (kg)</label>
             <input type="number" value={profile.target_weight} onChange={e => setProfile({...profile, target_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
           </div>
         </div>
@@ -133,19 +204,19 @@ export default function ClientProfileDetail() {
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Vòng Ngực</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Ngực</label>
               <input type="number" value={profile.measurements.chest} onChange={e => handleMeasurementChange('chest', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Vòng Eo</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Eo</label>
               <input type="number" value={profile.measurements.waist} onChange={e => handleMeasurementChange('waist', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Vòng Mông</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Mông</label>
               <input type="number" value={profile.measurements.hips} onChange={e => handleMeasurementChange('hips', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Vòng Đùi</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Đùi</label>
               <input type="number" value={profile.measurements.thigh} onChange={e => handleMeasurementChange('thigh', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
           </div>
@@ -159,7 +230,7 @@ export default function ClientProfileDetail() {
         </h2>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Lịch sử chấn thương / Bệnh lý</label>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Lịch sử chấn thương / Bệnh lý</label>
           <textarea 
             rows={3} 
             value={profile.injury_history} 
@@ -170,7 +241,7 @@ export default function ClientProfileDetail() {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phân tích tư thế (Posture)</label>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Phân tích tư thế (Posture)</label>
           <textarea 
             rows={3} 
             value={profile.postural_issues} 
@@ -181,7 +252,7 @@ export default function ClientProfileDetail() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Thói quen ăn uống / Sinh hoạt</label>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Thói quen ăn uống / Sinh hoạt</label>
           <textarea 
             rows={3} 
             value={profile.dietary_habits} 

@@ -10,6 +10,7 @@ export default function CoachDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('coach');
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -35,10 +36,8 @@ export default function CoachDashboard() {
     if (me) setCurrentUserRole(me.role);
 
     // Fetch all assigned clients
-    let query = supabase.from('users').select('id, full_name, email, role, assigned_coach_id').neq('id', session.user.id);
+    let query = supabase.from('users').select('id, full_name, email, role, assigned_coach_id, is_active').neq('id', session.user.id);
     
-    // Founders see all clients. Coaches see only theirs. 
-    // RLS will naturally filter, but we explicitly filter just in case.
     if (me?.role?.toLowerCase() === 'coach') {
       query = query.eq('assigned_coach_id', session.user.id);
     }
@@ -79,6 +78,7 @@ export default function CoachDashboard() {
           id: u.id,
           name: u.full_name || "Học viên",
           email: u.email,
+          isActive: u.is_active,
           totalPrograms,
           latestProgramName: latestProgram ? latestProgram.name : "Chưa có giáo án",
           weekStats: latestProgram ? `${completedWorkouts}/${totalWorkouts}` : "0/0",
@@ -125,6 +125,14 @@ export default function CoachDashboard() {
       setAdding(false);
     }
   };
+
+  // Lọc và sắp xếp: Đang hoạt động lên trước, Đóng băng xuống dưới
+  const filteredClients = clients
+    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (a.isActive === b.isActive) return 0;
+      return a.isActive ? -1 : 1;
+    });
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-brand-paper"><Loader2 className="animate-spin mr-2 text-brand-moss" size={24}/> <span className="font-bold text-brand-moss">Đang tải dữ liệu HLV...</span></div>;
@@ -175,27 +183,47 @@ export default function CoachDashboard() {
           </button>
         </header>
 
+        {/* Tìm kiếm */}
+        <div className="bg-white p-2 rounded-2xl shadow-sm border border-brand-line flex items-center mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-moss/40" size={20} />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm theo tên hoặc email học viên..." 
+              className="w-full pl-12 pr-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-brand-moss font-medium placeholder:font-normal"
+            />
+          </div>
+        </div>
+
         {/* Danh sách Khách hàng */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clients.length === 0 ? (
+          {filteredClients.length === 0 ? (
             <div className="col-span-full bg-white p-8 rounded-2xl border border-brand-line border-dashed text-center text-brand-moss/60">
-              Chưa có học viên nào. Bấm "Thêm Học Viên" để bắt đầu.
+              Không tìm thấy học viên nào.
             </div>
-          ) : clients.map(client => (
-            <div key={client.id} className="bg-white p-6 rounded-2xl shadow-sm border border-brand-line hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          ) : filteredClients.map(client => (
+            <div key={client.id} className={`bg-white p-6 rounded-2xl shadow-sm border border-brand-line hover:shadow-lg transition-all duration-300 ${!client.isActive ? 'opacity-70 grayscale hover:grayscale-0' : 'hover:-translate-y-1'}`}>
               
               <div className="flex justify-between items-start mb-4">
                 <div className="w-14 h-14 bg-brand-paper text-brand-moss rounded-full flex items-center justify-center font-black text-2xl border border-brand-line/50 uppercase">
-                  {String(client.name).split(" ").pop()?.charAt(0)}
+                  {client.name ? String(client.name).split(" ").pop()?.charAt(0) : "H"}
                 </div>
                 
                 {/* Badge Trạng Thái */}
-                <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm ${
-                  client.status === 'excellent' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
-                  client.status === 'warning' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }`}>
-                  {client.badgeText}
-                </div>
+                {!client.isActive ? (
+                  <div className="px-3 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm bg-gray-100 text-gray-500 border-gray-200">
+                    Đã ngưng tập
+                  </div>
+                ) : (
+                  <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm ${
+                    client.status === 'excellent' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                    client.status === 'warning' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}>
+                    {client.badgeText}
+                  </div>
+                )}
               </div>
               
               <h3 className="text-xl font-bold text-brand-moss">{client.name}</h3>
@@ -205,7 +233,9 @@ export default function CoachDashboard() {
               
               {/* Box Thống kê chi tiết Phase gần nhất */}
               <div className="bg-brand-paper/50 rounded-xl p-3 mb-5 border border-brand-line/50">
-                <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1 truncate">Đang tập: {client.latestProgramName}</p>
+                <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1 truncate">
+                  Đang tập: {client.latestProgramName}
+                </p>
                 <div className="flex items-center gap-4 mt-2">
                   <div className="flex-1">
                     <p className="font-bold text-brand-moss text-lg">{client.weekStats} <span className="text-xs font-normal opacity-70">buổi</span></p>
@@ -222,13 +252,13 @@ export default function CoachDashboard() {
                 </Link>
                 <Link 
                   href={`/coach/progress?clientId=${client.id}`}
-                  className="text-center py-2 text-xs font-bold text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-lg transition-colors flex flex-col items-center justify-center gap-1"
+                  className={`text-center py-2 text-xs font-bold rounded-lg transition-colors flex flex-col items-center justify-center gap-1 border ${!client.isActive ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border-brand-line'}`}
                 >
                   <Activity size={16} /> Tiến độ
                 </Link>
                 <Link 
                   href={`/coach/program?clientId=${client.id}`}
-                  className="text-center py-2 text-xs font-bold text-white bg-brand-moss hover:bg-brand-mossDeep rounded-lg transition-colors shadow-md flex flex-col items-center justify-center gap-1"
+                  className={`text-center py-2 text-xs font-bold rounded-lg transition-colors shadow-md flex flex-col items-center justify-center gap-1 ${!client.isActive ? 'bg-gray-300 text-gray-500 pointer-events-none' : 'text-white bg-brand-moss hover:bg-brand-mossDeep'}`}
                 >
                   <Dumbbell size={16} /> Giáo án
                 </Link>

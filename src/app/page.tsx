@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle } from "lucide-react";
+import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function ClientDashboard() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [userName, setUserName] = useState("Bạn");
+  const [isActive, setIsActive] = useState(true);
   const [programInfo, setProgramInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,33 +21,32 @@ export default function ClientDashboard() {
         return;
       }
 
-      // Lấy Tên hiển thị và Role
-      const { data: user } = await supabase
-        .from('users')
-        .select('full_name, role')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (user?.role === 'coach' || user?.role === 'founder') {
-        window.location.href = "/coach";
-        return;
+      // 1. Fetch User Data
+      const { data: user } = await supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single();
+      if (user) {
+        if (user.full_name) setUserName(user.full_name);
+        setIsActive(user.is_active !== false); // Default is true unless explicitly false
+        if (user.role === 'coach' || user.role === 'founder') {
+          window.location.href = "/coach";
+          return;
+        }
       }
 
-      if (user?.full_name) setUserName(user.full_name);
+      if (user?.is_active === false) {
+        setLoading(false);
+        return; // Dừng lại nếu tài khoản bị khóa
+      }
 
-      // Lấy Giáo án (Program) -> Giai đoạn (Blocks) -> Lịch tập (Workouts)
-      const { data: program } = await supabase
+      // 2. Fetch Latest Program
+      const { data: programs } = await supabase
         .from('programs')
         .select(`
           id, name,
           blocks (
             id, name, order_index,
-            workouts (
-              id, name, week_number, order_index, is_completed,
-              workout_exercises (
-                target_sets,
-                workout_logs (id)
-              )
+            weeks (
+              id, name, order_index,
+              workouts ( id, name, is_completed, order_index )
             )
           )
         `)
@@ -55,18 +55,43 @@ export default function ClientDashboard() {
         .limit(1)
         .single();
 
-      if (program) {
-        if (program.blocks) {
-          program.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
-          setProgramInfo(program);
-          if (program.blocks.length > 0) {
-            setActiveBlockId(program.blocks[0].id);
-          }
+      if (programs) {
+        // Sort blocks
+        const sortedBlocks = programs.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
+        
+        let initialBlockId = sortedBlocks[0]?.id;
+        
+        const formatWeeks = (block: any) => {
+          return block.weeks.sort((a: any, b: any) => a.order_index - b.order_index).map((w: any) => ({
+            id: w.id,
+            name: w.name,
+            workouts: w.workouts.sort((a: any, b: any) => a.order_index - b.order_index).map((wo: any) => ({
+              id: wo.id,
+              name: wo.name,
+              status: wo.is_completed ? 'perfect' : 'incomplete'
+            }))
+          }));
+        };
+
+        setProgramInfo({
+          id: programs.id,
+          name: programs.name,
+          blocks: sortedBlocks,
+          formatWeeks
+        });
+        
+        setActiveBlockId(initialBlockId);
+        
+        const firstBlock = sortedBlocks[0];
+        if (firstBlock && firstBlock.weeks.length > 0) {
+          const sortedWeeks = firstBlock.weeks.sort((a: any, b: any) => a.order_index - b.order_index);
+          setActiveWeek(sortedWeeks[0].id);
         }
       }
+
       setLoading(false);
     };
-    
+
     fetchRealData();
   }, []);
 
@@ -75,69 +100,47 @@ export default function ClientDashboard() {
     window.location.href = "/login";
   };
 
-  // Tính toán data cho Block đang chọn
-  let activeBlockData = null;
-  let weeksArray: any[] = [];
-  
+  if (loading) {
+    return <div className="min-h-screen bg-brand-paper flex items-center justify-center font-bold text-brand-moss">Đang tải dữ liệu...</div>;
+  }
+
+  // Màn hình vô hiệu hóa
+  if (!isActive) {
+    return (
+      <div className="min-h-screen bg-brand-paper flex items-center justify-center p-6 text-center">
+        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-brand-line">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock size={40} />
+          </div>
+          <h1 className="text-2xl font-black text-brand-moss mb-3">Tài khoản tạm khóa</h1>
+          <p className="text-brand-moss/70 leading-relaxed mb-8">
+            Gói Coaching của bạn đã kết thúc hoặc tài khoản đang bị tạm ngưng. Lịch tập đã được đưa vào Kho lưu trữ. Vui lòng liên hệ HLV để gia hạn và tiếp tục.
+          </p>
+          <button onClick={handleLogout} className="w-full py-4 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep transition-colors shadow-md">
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  let programData = null;
+  let completedThisWeek = 0;
+  let compliance = 0;
+
   if (programInfo && activeBlockId) {
     const activeBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
     if (activeBlock) {
-      activeBlockData = activeBlock;
-      const weeksMap: any = {};
+      const weeks = programInfo.formatWeeks(activeBlock);
+      programData = { weeks };
       
-      const sortedWorkouts = [...(activeBlock.workouts || [])].sort((a: any, b: any) => a.order_index - b.order_index);
-
-      sortedWorkouts.forEach((w: any) => {
-        let totalTarget = 0;
-        let totalLogged = 0;
-        w.workout_exercises?.forEach((ex: any) => {
-           totalTarget += (ex.target_sets || 3);
-           totalLogged += (ex.workout_logs?.length || 0);
-        });
-
-        let status = "pending";
-        if (w.is_completed) {
-            if (totalLogged >= totalTarget && totalTarget > 0) {
-                status = "perfect"; // 100% -> Gold
-            } else {
-                status = "partial"; // Thiếu bài -> Green
-            }
-        }
-
-        if (!weeksMap[w.week_number]) {
-          weeksMap[w.week_number] = {
-            id: w.week_number,
-            name: `Tuần ${w.week_number}`,
-            workouts: []
-          };
-        }
-        weeksMap[w.week_number].workouts.push({
-          id: w.id,
-          name: w.name,
-          status: status
-        });
-      });
-
-      for(let i=1; i<=4; i++) {
-         if(!weeksMap[i]) weeksMap[i] = { id: i, name: `Tuần ${i}`, workouts: [] };
+      const currentWeek = weeks.find((w: any) => w.id === activeWeek);
+      if (currentWeek) {
+        const total = currentWeek.workouts.length;
+        completedThisWeek = currentWeek.workouts.filter((w: any) => w.status === 'perfect').length;
+        compliance = total > 0 ? Math.round((completedThisWeek / total) * 100) : 0;
       }
-      
-      weeksArray = Object.values(weeksMap).sort((a: any, b: any) => a.id - b.id);
     }
-  }
-
-  const programData = activeBlockData ? {
-    title: activeBlockData.name,
-    weeks: weeksArray
-  } : null;
-
-  const activeWeekData = programData?.weeks.find((w: any) => w.id === activeWeek);
-  const completedThisWeek = activeWeekData?.workouts.filter((w: any) => w.status === 'perfect' || w.status === 'partial').length || 0;
-  const totalThisWeek = activeWeekData?.workouts.length || 0;
-  const compliance = totalThisWeek > 0 ? Math.round((completedThisWeek / totalThisWeek) * 100) : 0;
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-brand-paper font-bold text-brand-moss">Đang tải dữ liệu...</div>;
   }
 
   return (
@@ -157,19 +160,18 @@ export default function ClientDashboard() {
         </div>
         
         <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Chào {userName}!</h1>
-            <p className="text-sm opacity-90">Sẵn sàng cho buổi tập hôm nay chưa?</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-11 h-11 bg-brand-moss rounded-full flex items-center justify-center font-bold text-white border border-brand-sage/30 uppercase">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-full border-2 border-brand-sand bg-brand-paper flex items-center justify-center font-bold text-brand-moss text-lg shadow-sm">
               {userName.split(" ").pop()?.charAt(0)}
             </div>
-            <button 
-              onClick={handleLogout}
-              className="w-11 h-11 flex items-center justify-center text-brand-sand hover:bg-white/10 rounded-full transition-colors"
-              title="Đăng xuất"
-            >
+            <div>
+              <p className="text-brand-sand/70 text-xs uppercase tracking-wider font-bold mb-0.5">Học viên</p>
+              <h1 className="text-2xl font-bold text-white">Chào {userName}!</h1>
+            </div>
+          </div>
+          
+          <div>
+            <button onClick={handleLogout} className="p-2 bg-white/10 rounded-full text-brand-sand hover:bg-white/20 transition-all border border-brand-sand/20">
               <LogOut size={18} />
             </button>
           </div>
