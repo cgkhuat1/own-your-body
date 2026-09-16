@@ -44,10 +44,7 @@ export default function ClientDashboard() {
           id, name,
           blocks (
             id, name, order_index,
-            weeks (
-              id, name, order_index,
-              workouts ( id, name, is_completed, order_index )
-            )
+            workouts ( id, name, week_number, is_completed, order_index )
           )
         `)
         .eq('client_id', session.user.id)
@@ -63,15 +60,35 @@ export default function ClientDashboard() {
         let initialBlockId = sortedBlocks[0]?.id;
         
         const formatWeeks = (block: any) => {
-          return block.weeks.sort((a: any, b: any) => a.order_index - b.order_index).map((w: any) => ({
-            id: w.id,
-            name: w.name,
-            workouts: w.workouts.sort((a: any, b: any) => a.order_index - b.order_index).map((wo: any) => ({
-              id: wo.id,
-              name: wo.name,
-              status: wo.is_completed ? 'perfect' : 'incomplete'
-            }))
-          }));
+          // Group workouts by week_number
+          const weeksMap = new Map();
+          
+          if (block.workouts && Array.isArray(block.workouts)) {
+            block.workouts.forEach((wo: any) => {
+              const wn = wo.week_number || 1;
+              if (!weeksMap.has(wn)) {
+                weeksMap.set(wn, {
+                  id: wn,
+                  name: `Tuần ${wn}`,
+                  workouts: []
+                });
+              }
+              weeksMap.get(wn).workouts.push({
+                id: wo.id,
+                name: wo.name,
+                order_index: wo.order_index,
+                status: wo.is_completed ? 'perfect' : 'incomplete'
+              });
+            });
+          }
+
+          // Convert to array and sort
+          return Array.from(weeksMap.values())
+            .sort((a, b) => a.id - b.id)
+            .map(w => {
+              w.workouts.sort((a: any, b: any) => a.order_index - b.order_index);
+              return w;
+            });
         };
 
         setProgramInfo({
