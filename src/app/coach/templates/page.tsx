@@ -140,7 +140,7 @@ export default function ProgramTemplates() {
   );
 
   return (
-    <div className="min-h-screen bg-brand-paper/50 pb-20">
+    <div className="min-h-screen bg-brand-paper pb-20">
       <header className="bg-white border-b border-brand-line px-6 py-6 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">

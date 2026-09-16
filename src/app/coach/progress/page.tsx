@@ -128,7 +128,7 @@ function ClientProgressInner() {
   const selectedExName = exercisesList.find(e => e.id === selectedExId)?.name || "Chọn bài tập";
 
   return (
-    <div className="min-h-screen bg-brand-paper/50 pb-20">
+    <div className="min-h-screen bg-brand-paper pb-20">
       <header className="bg-white border-b border-brand-line px-6 py-6 sticky top-0 z-30 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <button onClick={() => window.location.href = '/coach'} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">

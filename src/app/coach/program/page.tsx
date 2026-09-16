@@ -656,7 +656,7 @@ function ProgramBuilderInner() {
   const sortedBlocks = programInfo?.blocks?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
 
   return (
-    <div className="h-screen overflow-hidden bg-brand-paper/50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-brand-paper flex flex-col">
       <header className="bg-white border-b border-brand-line px-6 py-4 flex items-center justify-between z-40 relative shadow-sm">
         <div className="flex items-center gap-4">
           <button onClick={() => window.history.back()} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">
@@ -806,7 +806,7 @@ function ProgramBuilderInner() {
       </div>
 
       {/* Spreadsheet */}
-      <main className="flex-1 overflow-auto bg-brand-paper/50 relative z-0">
+      <main className="flex-1 overflow-auto bg-brand-paper relative z-0">
         <div className="min-w-[1200px] min-h-full pb-20">
           <div className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập (Template)</div>
