@@ -161,7 +161,7 @@ export default function ClientProfileDetail() {
         {/* Thông tin cơ bản */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-            <UserCircle className="w-5 h-5 text-brand-sage" /> Thông tin Hành chính
+            <UserCircle className="w-5 h-5 text-brand-sage" /> Thông tin
           </h2>
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Họ và Tên</label>
