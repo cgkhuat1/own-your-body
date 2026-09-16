@@ -145,7 +145,7 @@ export default function ClientProfileDetail() {
           </button>
           
           <Link 
-            href={`/coach/program?client=${clientId}`}
+            href={`/coach/program?clientId=${clientId}`}
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
               !user.is_active ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'bg-brand-sand text-brand-sage border-brand-sage/20 hover:bg-brand-sage/10'
             }`}
