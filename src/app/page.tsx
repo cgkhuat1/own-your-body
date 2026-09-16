@@ -101,9 +101,11 @@ export default function ClientDashboard() {
         setActiveBlockId(initialBlockId);
         
         const firstBlock = sortedBlocks[0];
-        if (firstBlock && firstBlock.weeks.length > 0) {
-          const sortedWeeks = firstBlock.weeks.sort((a: any, b: any) => a.order_index - b.order_index);
-          setActiveWeek(sortedWeeks[0].id);
+        if (firstBlock) {
+          const weeksArray = formatWeeks(firstBlock);
+          if (weeksArray.length > 0) {
+            setActiveWeek(weeksArray[0].id);
+          }
         }
       }
 
