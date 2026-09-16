@@ -20,7 +20,7 @@ export default function ClientProfileDetail() {
     current_weight: '',
     target_weight: '',
     dob: '',
-    measurements: { chest: '', waist: '', hips: '', thigh: '' },
+    measurements: { chest: '', waist: '', belly: '', hips: '', thigh: '', arm: '' },
     injury_history: '',
     postural_issues: '',
     dietary_habits: '',
@@ -193,8 +193,8 @@ export default function ClientProfileDetail() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Mục tiêu cân nặng (kg)</label>
-            <input type="number" value={profile.target_weight} onChange={e => setProfile({...profile, target_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Mục tiêu</label>
+            <input type="text" value={profile.target_weight} onChange={e => setProfile({...profile, target_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
           </div>
         </div>
 
