@@ -183,7 +183,7 @@ function ProgramBuilderInner() {
       blocks (
           id, name, order_index,
           workouts (
-              id, name, week_number, order_index, is_completed,
+              id, name, week_number, order_index, is_completed, rpe_score, joint_pain, notes,
               workout_exercises (
                   id, exercise_id, custom_name, group_code, order_index,
                   target_sets, target_reps, target_rpe,
@@ -229,6 +229,16 @@ function ProgramBuilderInner() {
       const newDays = dayIndices.map((dayIndex: number) => {
         const dayWorkouts = allWorkouts.filter((w: any) => w.order_index === dayIndex);
         const masterExercises = new Map();
+        const feedbackByWeek = {};
+        dayWorkouts.forEach((w: any) => {
+          if (w.rpe_score || w.joint_pain || w.notes) {
+            feedbackByWeek[w.week_number] = {
+              rpe: w.rpe_score,
+              jointPain: w.joint_pain,
+              notes: w.notes
+            };
+          }
+        });
         
         // Pass 1: Gom nhóm theo order_index
         dayWorkouts.forEach((w: any) => {
@@ -810,7 +820,33 @@ function ProgramBuilderInner() {
         <div className="min-w-[1200px] min-h-full pb-20">
           <div className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập (Template)</div>
-            {[1,2,3,4].map(w => (<div key={w} className="p-4 border-r border-brand-sage/20 text-center">Tuần {w}</div>))}
+            {[1,2,3,4].map(w => {
+              const activeDayData = days.find(d => d.dayIndex === activeDay);
+              const fb = activeDayData?.feedbackByWeek?.[w];
+              return (
+                <div key={w} className="p-4 border-r border-brand-sage/20 flex flex-col items-center justify-center gap-1 relative group cursor-default">
+                  <span>Tuần {w}</span>
+                  {fb && (
+                    <div className="flex items-center gap-1 text-xs text-brand-sand cursor-help" title="Có Feedback">
+                       <MessageSquareText size={14} /> 
+                       <span style={{color: fb.rpe <= 6 ? '#9ca3af' : fb.rpe <= 8 ? '#4ade80' : fb.rpe === 9 ? '#fde047' : '#f87171'}}>
+                         RPE: {fb.rpe}
+                       </span>
+                    </div>
+                  )}
+                  {fb && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-white text-brand-moss p-4 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-left font-normal border border-brand-line">
+                      <div className="font-bold text-sm mb-2 pb-2 border-b border-brand-line">Feedback Tuần {w}</div>
+                      <div className="space-y-2 text-xs">
+                        <p><strong>Nỗ lực (RPE):</strong> <span style={{color: fb.rpe <= 6 ? '#6b7280' : fb.rpe <= 8 ? '#22c55e' : fb.rpe === 9 ? '#eab308' : '#ef4444'}} className="font-black">{fb.rpe}/10</span></p>
+                        {fb.jointPain && <p><strong>Cơ/Khớp:</strong> <span className="text-red-500 font-semibold">{fb.jointPain}</span></p>}
+                        {fb.notes && <p><strong>Ghi chú:</strong> <span className="italic">{fb.notes}</span></p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {dragUnits.length === 0 && (
