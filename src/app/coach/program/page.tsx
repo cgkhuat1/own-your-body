@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Save, Plus, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
+import { ArrowLeft, Save, Plus, MessageSquareText, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
@@ -798,7 +798,7 @@ function ProgramBuilderInner() {
             <button key={d.dayIndex} onClick={() => { if (isActive) startEditDayName(); else setActiveDay(d.dayIndex); }}
               className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all group flex items-center gap-2 whitespace-nowrap ${isActive ? 'bg-brand-sand text-brand-mossDeep shadow-md' : 'bg-brand-paper/50 text-brand-moss/60 hover:bg-brand-paper'}`}>
               {d.name}
-              {isActive && <Pencil size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" title="Click để sửa tên" />}
+              {isActive && <Pencil size={12} className="opacity-40 group-hover:opacity-100 transition-opacity"  />}
             </button>
           );
         })}
@@ -822,7 +822,7 @@ function ProgramBuilderInner() {
             <div className="p-4 border-r border-brand-sage/20">Bài tập (Template)</div>
             {[1,2,3,4].map(w => {
               const activeDayData = days.find(d => d.dayIndex === activeDay);
-              const fb = activeDayData?.feedbackByWeek?.[w];
+              const fb = activeDayData?.feedbackByWeek ? (activeDayData.feedbackByWeek as any)[w] : null;
               return (
                 <div key={w} className="p-4 border-r border-brand-sage/20 flex flex-col items-center justify-center gap-1 relative group cursor-default">
                   <span>Tuần {w}</span>
