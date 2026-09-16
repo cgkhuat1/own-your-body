@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "App quản lý tập luyện 12 tuần",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "CK Coaching",
   },
   formatDetection: {
@@ -19,7 +19,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#2A3C24",
+  themeColor: "#1C2E20",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
