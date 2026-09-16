@@ -284,6 +284,7 @@ function ProgramBuilderInner() {
           dayIndex,
           name: dayWorkouts[0]?.name || `Buổi ${dayIndex}`,
           workoutIds: Object.fromEntries(dayWorkouts.map((w: any) => [w.week_number, w.id])),
+          feedbackByWeek,
           exercises: exercisesArray
         };
       });
