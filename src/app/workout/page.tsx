@@ -220,8 +220,13 @@ export default function WorkoutExecution() {
     }));
   };
 
+  // Mở modal feedback
+  const openFeedback = () => {
+    setShowFeedback(true);
+  };
+
   // Nộp buổi tập lên Supabase
-  const finishWorkout = async () => {
+  const submitFinalWorkout = async () => {
     setSaving(true);
     try {
       const logsToInsert: any[] = [];
@@ -239,25 +244,44 @@ export default function WorkoutExecution() {
         });
       });
 
-      // Xóa log cũ của buổi tập này (phòng trường hợp khách nộp lại bài)
       const wExIds = exercises.map(ex => ex.w_ex_id);
-      await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+      if (wExIds.length > 0) {
+        await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+      }
 
-      // Lưu log mới
       if (logsToInsert.length > 0) {
         await supabase.from('workout_logs').insert(logsToInsert);
       }
 
       await supabase.from('workouts')
-        .update({ is_completed: true, completed_at: new Date().toISOString() })
+        .update({ 
+          is_completed: true, 
+          completed_at: new Date().toISOString(),
+          rpe_score: rpeScore,
+          joint_pain: jointPain || null,
+          notes: workoutNotes || null
+        })
         .eq('id', workoutData.id);
 
       window.location.href = "/";
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Có lỗi khi lưu, vui lòng thử lại!");
-      setSaving(false);
+      alert("Lỗi khi lưu kết quả!");
     }
+    setSaving(false);
+  };
+  
+  // Helper tính số set hoàn thành
+  const getCompletedSetsCount = () => {
+    let total = 0;
+    let completed = 0;
+    exercises.forEach(ex => {
+      ex.sets.forEach((s: any) => {
+        total++;
+        if (s.completed) completed++;
+      });
+    });
+    return { total, completed };
   };
 
   if (loading) {
