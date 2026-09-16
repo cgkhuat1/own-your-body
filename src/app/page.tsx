@@ -144,7 +144,7 @@ export default function ClientDashboard() {
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">
+    <div className="max-w-md mx-auto min-h-screen shadow-2xl relative flex flex-col">
       {/* Header */}
       <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 rounded-b-2xl shadow-md" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
         <div className="flex justify-between items-center mb-4">
@@ -165,7 +165,6 @@ export default function ClientDashboard() {
               {userName.split(" ").pop()?.charAt(0)}
             </div>
             <div>
-              <p className="text-brand-sand/70 text-xs uppercase tracking-wider font-bold mb-0.5">Học viên</p>
               <h1 className="text-2xl font-bold text-white">Chào {userName}!</h1>
             </div>
           </div>
@@ -197,7 +196,7 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="p-5 flex-1 bg-brand-paper pb-24">
         {programData ? (
           <>
             <div className="mb-4">
