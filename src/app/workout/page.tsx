@@ -445,9 +445,14 @@ export default function WorkoutExecution() {
               <p className="text-brand-moss/70 font-semibold text-sm">Bạn đã tập được {getCompletedSetsCount().completed}/{getCompletedSetsCount().total} Set hôm nay.</p>
             </div>
             
-            <p className="text-sm font-medium text-brand-moss/80 text-center bg-white p-3 rounded-xl shadow-sm border border-brand-line">
-              Bạn cảm thấy buổi tập hôm nay thế nào? Việc đánh giá sẽ giúp Coach theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tiến phù hợp cho tuần tới.
-            </p>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-brand-line text-center flex flex-col gap-1.5">
+              <h3 className="text-lg font-extrabold text-brand-mossDeep leading-snug">
+                Bạn cảm thấy buổi tập hôm nay thế nào?
+              </h3>
+              <p className="text-[13px] font-semibold text-brand-moss/60 leading-relaxed px-1">
+                Việc đánh giá sẽ giúp Coach theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tiến phù hợp cho tuần tới.
+              </p>
+            </div>
 
             {/* Slider RPE */}
             <div className="space-y-4 pt-2">
