@@ -146,9 +146,9 @@ export default function ClientProfileDetail() {
           </button>
           
           <Link 
-            href={`/coach/program?client=${clientId}`}
+            href={`/coach/program?clientId=${clientId}`}
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
-              !user.is_active ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'bg-brand-sand text-brand-sage border-brand-sage/20 hover:bg-brand-sage/10'
+              !user.is_active ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md border-transparent'
             }`}
           >
             <Dumbbell className="w-5 h-5" />
@@ -266,12 +266,12 @@ export default function ClientProfileDetail() {
 
       {/* Save Button Fixed Bottom */}
       <div className="fixed bottom-[72px] md:bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 flex justify-center z-40">
-        <div className="max-w-3xl w-full flex justify-end items-center gap-4">
+        <div className="max-w-3xl w-full flex justify-center items-center gap-4">
           {savedMessage && <span className="text-brand-sage font-medium flex items-center gap-1"><CheckCircle className="w-5 h-5"/> {savedMessage}</span>}
           <button 
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-brand-sage text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+            className="flex items-center justify-center gap-2 bg-brand-moss text-white px-12 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all w-full md:w-auto min-w-[200px]"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Lưu Hồ Sơ
