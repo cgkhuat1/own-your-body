@@ -10,6 +10,12 @@ export default function WorkoutExecution() {
   const [exercises, setExercises] = useState<any[]>([]);
   
   const [showVideo, setShowVideo] = useState<string | null>(null);
+  
+  // Feedback States
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [rpeScore, setRpeScore] = useState(7);
+  const [jointPain, setJointPain] = useState("");
+  const [workoutNotes, setWorkoutNotes] = useState("");
   const [errorSetId, setErrorSetId] = useState<string | null>(null);
   const [restTime, setRestTime] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -395,7 +401,7 @@ export default function WorkoutExecution() {
       {/* Button Nộp Bài */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent pb-8 z-30">
         <button 
-          onClick={finishWorkout}
+          onClick={openFeedback}
           disabled={saving}
           className="w-full max-w-md mx-auto bg-brand-moss text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-brand-moss/30 hover:bg-brand-mossDeep transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
         >
@@ -403,6 +409,94 @@ export default function WorkoutExecution() {
            {saving ? "Đang lưu..." : "Hoàn Thành Buổi Tập"}
         </button>
       </div>
+
+      
+      {/* Modal Feedback (Đánh giá buổi tập) */}
+      {showFeedback && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-brand-paper w-full rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom flex flex-col gap-6 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="text-center">
+              <h2 className="text-2xl font-black text-brand-mossDeep mb-1">Chúc mừng bạn đã hoàn thành! 🎉</h2>
+              <p className="text-brand-moss/70 font-semibold text-sm">Bạn đã tập được {getCompletedSetsCount().completed}/{getCompletedSetsCount().total} Set hôm nay.</p>
+            </div>
+            
+            <p className="text-sm font-medium text-brand-moss/80 text-center bg-white p-3 rounded-xl shadow-sm border border-brand-line">
+              Đánh giá mức độ nỗ lực giúp HLV theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tạ phù hợp cho tuần tới.
+            </p>
+
+            {/* Slider RPE */}
+            <div className="space-y-4 pt-2">
+              <div className="text-center h-8 flex items-center justify-center">
+                <span className="text-2xl font-black transition-colors duration-200" style={{ 
+                  color: rpeScore <= 6 ? '#6b7280' : rpeScore <= 8 ? '#22c55e' : rpeScore === 9 ? '#eab308' : '#ef4444' 
+                }}>
+                  {rpeScore} - {rpeScore <= 6 ? 'Nhẹ nhàng' : rpeScore <= 8 ? 'Vừa sức' : rpeScore === 9 ? 'Nỗ lực cao' : 'Hết sức luôn'}
+                </span>
+              </div>
+              <div className="relative px-2">
+                <input 
+                  type="range" min="1" max="10" step="1" 
+                  value={rpeScore} 
+                  onChange={(e) => setRpeScore(parseInt(e.target.value))}
+                  className="w-full relative z-10 appearance-none bg-transparent focus:outline-none cursor-pointer h-2 rounded-full border border-brand-line/50"
+                  style={{
+                    background: rpeScore <= 6 ? '#e5e7eb' : rpeScore <= 8 ? '#dcfce7' : rpeScore === 9 ? '#fef08a' : '#fee2e2'
+                  }}
+                />
+                <style dangerouslySetInnerHTML={{__html: `
+                  input[type=range]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    height: 28px; width: 28px; border-radius: 50%; background: #fff;
+                    border: 3px solid ${rpeScore <= 6 ? '#6b7280' : rpeScore <= 8 ? '#22c55e' : rpeScore === 9 ? '#eab308' : '#ef4444'};
+                    margin-top: -10px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+                  }
+                `}} />
+                <div className="flex justify-between w-full mt-3 px-1 text-[11px] font-bold text-brand-moss/40">
+                  <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Khớp & Ghi chú */}
+            <div className="space-y-4 pt-4 border-t border-brand-line border-dashed">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">Mức độ đau khớp (nếu có)</label>
+                <input 
+                  type="text" 
+                  value={jointPain} onChange={(e) => setJointPain(e.target.value)}
+                  placeholder="Ví dụ: Đau nhẹ đầu gối phải" 
+                  className="w-full p-4 bg-white border border-brand-line rounded-xl font-medium text-brand-moss focus:ring-2 focus:ring-brand-sand outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">Ghi chú bổ sung (nếu có)</label>
+                <textarea 
+                  value={workoutNotes} onChange={(e) => setWorkoutNotes(e.target.value)}
+                  placeholder="Ví dụ: Cảm nhận trọng tâm trong bài squat tốt hơn, chưa tự tin về kĩ thuật trong bài Deadlift" 
+                  rows={3}
+                  className="w-full p-4 bg-white border border-brand-line rounded-xl font-medium text-brand-moss focus:ring-2 focus:ring-brand-sand outline-none resize-none"
+                ></textarea>
+              </div>
+            </div>
+
+            {/* Nút gửi */}
+            <div className="pt-2 flex gap-3">
+               <button onClick={() => setShowFeedback(false)} className="px-6 py-4 rounded-xl font-bold text-brand-moss bg-brand-line/50 hover:bg-brand-line transition-colors">
+                 Quay lại
+               </button>
+               <button 
+                onClick={submitFinalWorkout}
+                disabled={saving}
+                className="flex-1 bg-brand-moss text-white font-bold text-lg py-4 rounded-xl shadow-lg hover:bg-brand-mossDeep transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+               >
+                 {saving ? <Loader2 className="animate-spin" size={24} /> : <Check size={24} />} 
+                 {saving ? "Đang gửi..." : "Gửi cho Coach"}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Video YouTube */}
       {showVideo && (
