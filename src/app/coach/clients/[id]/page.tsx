@@ -111,11 +111,12 @@ export default function ClientProfileDetail() {
     });
   };
 
-  if (loading) return <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
-  if (!user) return <div className="p-8 text-center text-red-500">Không tìm thấy thông tin học viên.</div>;
+  if (loading) return <div className="min-h-screen bg-brand-paper flex items-center justify-center p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
+  if (!user) return <div className="min-h-screen bg-brand-paper flex items-center justify-center p-8 text-center text-red-500">Không tìm thấy thông tin học viên.</div>;
 
   return (
-    <div className={`p-6 max-w-3xl mx-auto space-y-6 pb-24 transition-all ${!user.is_active ? 'grayscale-[0.5]' : ''}`}>
+    <div className="min-h-screen bg-brand-paper">
+      <div className={`p-6 max-w-3xl mx-auto space-y-6 pb-24 transition-all ${!user.is_active ? 'grayscale-[0.5]' : ''}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -145,7 +146,7 @@ export default function ClientProfileDetail() {
           </button>
           
           <Link 
-            href={`/coach/program?clientId=${clientId}`}
+            href={`/coach/program?client=${clientId}`}
             className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
               !user.is_active ? 'bg-gray-100 text-gray-400 border-gray-200 pointer-events-none' : 'bg-brand-sand text-brand-sage border-brand-sage/20 hover:bg-brand-sage/10'
             }`}
@@ -277,6 +278,7 @@ export default function ClientProfileDetail() {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }
