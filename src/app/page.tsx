@@ -146,7 +146,7 @@ export default function ClientDashboard() {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">
       {/* Header */}
-      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 pt-[max(env(safe-area-inset-top),20px)] rounded-b-2xl shadow-md">
+      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 rounded-b-2xl shadow-md" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
         <div className="flex justify-between items-center mb-4">
           <div className="inline-flex items-center px-2 py-1 border border-brand-sand/80 rounded-md shadow-sm">
             <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">

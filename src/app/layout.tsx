@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="font-sans antialiased text-brand-moss bg-brand-paper">
+      <body className="font-sans antialiased text-brand-moss bg-brand-mossDeep">
         {children}
       </body>
     </html>

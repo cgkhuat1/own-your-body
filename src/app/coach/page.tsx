@@ -139,7 +139,7 @@ export default function CoachDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-paper/50 flex">
+    <div className="min-h-screen bg-brand-paper flex">
       {/* Sidebar */}
       <aside className="w-64 bg-brand-mossDeep text-brand-sage hidden md:flex flex-col shadow-2xl z-10 fixed h-screen">
         <div className="p-6 border-b border-brand-sage/10">
@@ -232,7 +232,7 @@ export default function CoachDashboard() {
               </p>
               
               {/* Box Thống kê chi tiết Phase gần nhất */}
-              <div className="bg-brand-paper/50 rounded-xl p-3 mb-5 border border-brand-line/50">
+              <div className="bg-brand-paper rounded-xl p-3 mb-5 border border-brand-line/50">
                 <p className="text-[10px] font-bold text-brand-moss/40 uppercase tracking-wider mb-1 truncate">
                   Đang tập: {client.latestProgramName}
                 </p>
@@ -281,7 +281,7 @@ export default function CoachDashboard() {
                   type="text" 
                   value={newClient.full_name}
                   onChange={e => setNewClient({...newClient, full_name: e.target.value})}
-                  className="w-full rounded-xl p-3 bg-brand-paper/50 border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
+                  className="w-full rounded-xl p-3 bg-brand-paper border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
                   placeholder="VD: Nguyễn Tuấn Anh"
                 />
               </div>
@@ -292,7 +292,7 @@ export default function CoachDashboard() {
                   type="email" 
                   value={newClient.email}
                   onChange={e => setNewClient({...newClient, email: e.target.value})}
-                  className="w-full rounded-xl p-3 bg-brand-paper/50 border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
+                  className="w-full rounded-xl p-3 bg-brand-paper border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
                   placeholder="tuananh@example.com"
                 />
               </div>
@@ -303,7 +303,7 @@ export default function CoachDashboard() {
                   type="text" 
                   value={newClient.password}
                   onChange={e => setNewClient({...newClient, password: e.target.value})}
-                  className="w-full rounded-xl p-3 bg-brand-paper/50 border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
+                  className="w-full rounded-xl p-3 bg-brand-paper border border-brand-line focus:border-brand-moss focus:ring-1 focus:ring-brand-moss outline-none"
                   placeholder="Nên đặt dễ nhớ, vd: ck123456"
                 />
               </div>
