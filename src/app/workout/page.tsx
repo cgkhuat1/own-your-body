@@ -110,7 +110,7 @@ export default function WorkoutExecution() {
 
       // Override video URL with previous week's if exists
       if (prevVideoUrl) {
-         setWorkoutData(prev => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
+         setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
       }
 
       if (wExercises) {
