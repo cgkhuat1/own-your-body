@@ -106,9 +106,7 @@ export default function WorkoutExecution() {
             });
           }
         }
-      }
-
-      // MỚI: Luôn ghi đè video URL. Nếu là Tuần 1 (prevVideoUrl = null), client sẽ KHÔNG thấy video dù DB có lưu.
+      }      // MỚI: Luôn ghi đè video URL. Nếu là Tuần 1 (prevVideoUrl = null), client sẽ KHÔNG thấy video dù DB có lưu.
       setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
 
       if (wExercises) {
