@@ -67,7 +67,7 @@ export default function WorkoutExecution() {
       // 1. Lấy thông tin Buổi tập
       const { data: workout } = await supabase
         .from('workouts')
-        .select('id, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url')
+        .select('id, block_id, order_index, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url')
         .eq('id', workoutId)
         .single();
       
@@ -82,6 +82,36 @@ export default function WorkoutExecution() {
         .select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)')
         .eq('workout_id', workoutId)
         .order('order_index', { ascending: true });
+
+      let prevVideoUrl = null;
+      let prevNotesMap: Record<string, string> = {};
+
+      if (workout?.week_number > 1 && workout?.block_id) {
+        const { data: prevWorkout } = await supabase.from('workouts')
+          .select('id, coach_video_url')
+          .eq('block_id', workout.block_id)
+          .eq('order_index', workout.order_index)
+          .eq('week_number', workout.week_number - 1)
+          .single();
+
+        if (prevWorkout) {
+          prevVideoUrl = prevWorkout.coach_video_url;
+          const { data: prevExs } = await supabase.from('workout_exercises')
+            .select('exercise_id, coach_notes')
+            .eq('workout_id', prevWorkout.id);
+            
+          if (prevExs) {
+            prevExs.forEach(px => {
+              if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
+            });
+          }
+        }
+      }
+
+      // Override video URL with previous week's if exists
+      if (prevVideoUrl) {
+         setWorkoutData(prev => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
+      }
 
       if (wExercises) {
         // Lấy lịch sử tạ đã lưu nếu khách đã từng ấn nộp bài trước đó
@@ -117,7 +147,7 @@ export default function WorkoutExecution() {
             group_code: ex.group_code || String(ex.order_index),
             name: name,
             youtube_id: ex.exercises?.youtube_id,
-            coach_notes: ex.coach_notes,
+            coach_notes: prevNotesMap[ex.exercise_id] || ex.coach_notes,
             sets: sets
           };
         });
@@ -314,14 +344,14 @@ export default function WorkoutExecution() {
           href={workoutData.coach_video_url} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="mx-5 mt-5 bg-blue-50 border border-blue-200 p-4 rounded-2xl flex gap-3 items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer block"
+          className="mx-5 mt-5 bg-brand-moss border border-brand-mossDeep p-4 rounded-2xl flex gap-3 items-center shadow-lg hover:shadow-xl transition-shadow cursor-pointer block"
         >
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex justify-center items-center text-blue-600 flex-shrink-0 animate-pulse">
+          <div className="w-12 h-12 bg-white/20 rounded-full flex justify-center items-center text-white flex-shrink-0 animate-pulse">
             <PlayCircle size={24} className="ml-1" />
           </div>
           <div>
-            <h3 className="text-blue-800 font-black text-sm uppercase tracking-wide">Video Phân Tích</h3>
-            <p className="text-blue-600/90 text-[13px] font-semibold leading-snug">Xem Coach nhận xét bài tập của bạn tuần trước trước khi bắt đầu.</p>
+            <h3 className="text-white font-black text-sm uppercase tracking-wide">Video Phân Tích</h3>
+            <p className="text-brand-paper/90 text-[13px] font-semibold leading-snug">Xem Coach nhận xét bài tập tuần trước trước khi bắt đầu.</p>
           </div>
         </a>
       )}
