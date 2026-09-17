@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Save, Plus, MessageSquareText, Loader2, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
+import { ArrowLeft, Save, Plus, MessageSquareText, Loader2, PlayCircle, MessageCircle, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
@@ -63,6 +63,9 @@ function ProgramBuilderInner() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<{workoutId: string, url: string} | null>(null);
+  const [editingNotes, setEditingNotes] = useState<{wExId: string, notes: string} | null>(null);
+
   const [phases, setPhases] = useState<any[]>([]);
   const [activeProgramId, setActiveProgramId] = useState<string | null>(initialProgramId);
   const [programInfo, setProgramInfo] = useState<any>(null);
@@ -287,6 +290,7 @@ function ProgramBuilderInner() {
           dayIndex,
           name: dayWorkouts[0]?.name || `Buổi ${dayIndex}`,
           workoutIds: Object.fromEntries(dayWorkouts.map((w: any) => [w.week_number, w.id])),
+          workoutsByWeek: Object.fromEntries(dayWorkouts.map((w: any) => [w.week_number, w])),
           feedbackByWeek,
           exercises: exercisesArray
         };
@@ -827,9 +831,21 @@ function ProgramBuilderInner() {
             {[1,2,3,4].map(w => {
               const activeDayData = days.find(d => d.dayIndex === activeDay);
               const fb = activeDayData?.feedbackByWeek ? (activeDayData.feedbackByWeek as any)[w] : null;
+              const wData = activeDayData?.workoutsByWeek ? (activeDayData.workoutsByWeek as any)[w] : null;
               return (
                 <div key={w} className="p-4 border-r border-brand-sage/20 flex flex-col items-center justify-center gap-1 relative group cursor-default">
-                  <span>Tuần {w}</span>
+                  <div className="flex items-center gap-2">
+                    <span>Tuần {w}</span>
+                    {wData && (
+                      <button 
+                        onClick={() => setEditingVideo({workoutId: wData.id, url: wData.coach_video_url || ''})}
+                        className={`hover:scale-110 transition-transform ${wData.coach_video_url ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
+                        title="Thêm/Sửa Video Phân Tích"
+                      >
+                        <PlayCircle size={16} />
+                      </button>
+                    )}
+                  </div>
                   {fb && (
                     <div className="flex items-center gap-1 text-xs text-brand-sand cursor-help" title="Có Feedback">
                        <MessageSquareText size={14} /> 
@@ -1180,6 +1196,75 @@ function ProgramBuilderInner() {
           {toast.message}
         </div>
       )}
+
+      {/* Video URL Modal */}
+      {editingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-bold text-brand-moss mb-4 flex items-center gap-2">
+              <PlayCircle className="text-blue-500"/> Link Video Phân Tích
+            </h3>
+            <input 
+              type="text" 
+              placeholder="Dán link Loom hoặc YouTube vào đây..."
+              className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-brand-sage mb-4"
+              value={editingVideo.url}
+              onChange={e => setEditingVideo({...editingVideo, url: e.target.value})}
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setEditingVideo(null)} className="px-4 py-2 bg-gray-100 rounded-xl font-medium hover:bg-gray-200">Huỷ</button>
+              <button 
+                onClick={async () => {
+                  setSaving(true);
+                  await supabase.from('workouts').update({ coach_video_url: editingVideo.url }).eq('id', editingVideo.workoutId);
+                  await fetchData();
+                  setEditingVideo(null);
+                  setSaving(false);
+                }} 
+                disabled={saving}
+                className="px-4 py-2 bg-brand-moss text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-mossDeep disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin w-4 h-4"/> : <Save className="w-4 h-4"/>} Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes Modal */}
+      {editingNotes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-bold text-brand-moss mb-4 flex items-center gap-2">
+              <MessageCircle className="text-amber-500"/> Lời nhắc Kỹ thuật (Cues)
+            </h3>
+            <textarea 
+              rows={3}
+              placeholder="VD: Nhớ gồng chặt core, hơi bênh gót chân nhé..."
+              className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-brand-sage mb-4 resize-none"
+              value={editingNotes.notes}
+              onChange={e => setEditingNotes({...editingNotes, notes: e.target.value})}
+            ></textarea>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setEditingNotes(null)} className="px-4 py-2 bg-gray-100 rounded-xl font-medium hover:bg-gray-200">Huỷ</button>
+              <button 
+                onClick={async () => {
+                  setSaving(true);
+                  await supabase.from('workout_exercises').update({ coach_notes: editingNotes.notes }).eq('id', editingNotes.wExId);
+                  await fetchData();
+                  setEditingNotes(null);
+                  setSaving(false);
+                }} 
+                disabled={saving}
+                className="px-4 py-2 bg-brand-moss text-white rounded-xl font-bold flex items-center gap-2 hover:bg-brand-mossDeep disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin w-4 h-4"/> : <Save className="w-4 h-4"/>} Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

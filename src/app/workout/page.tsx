@@ -67,19 +67,19 @@ export default function WorkoutExecution() {
       // 1. Lấy thông tin Buổi tập
       const { data: workout } = await supabase
         .from('workouts')
-        .select('id, name, week_number, is_completed, rpe_score, joint_pain, notes')
+        .select('id, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url')
         .eq('id', workoutId)
         .single();
       
       setWorkoutData(workout);
-      if (workout.rpe_score !== null) setRpeScore(workout.rpe_score);
-      if (workout.joint_pain) setJointPain(workout.joint_pain);
-      if (workout.notes) setWorkoutNotes(workout.notes);
+      if (workout?.rpe_score !== null && workout?.rpe_score !== undefined) setRpeScore(workout.rpe_score);
+      if (workout?.joint_pain) setJointPain(workout.joint_pain);
+      if (workout?.notes) setWorkoutNotes(workout.notes);
 
       // 2. Lấy Bài tập của buổi này
       const { data: wExercises } = await supabase
         .from('workout_exercises')
-        .select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, exercises(name, youtube_id)')
+        .select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)')
         .eq('workout_id', workoutId)
         .order('order_index', { ascending: true });
 
@@ -117,6 +117,7 @@ export default function WorkoutExecution() {
             group_code: ex.group_code || String(ex.order_index),
             name: name,
             youtube_id: ex.exercises?.youtube_id,
+            coach_notes: ex.coach_notes,
             sets: sets
           };
         });
@@ -307,6 +308,23 @@ export default function WorkoutExecution() {
         <h1 className="text-2xl font-bold mt-2">{workoutData?.name || "Buổi Tập"}</h1>
         <p className="text-brand-sage text-sm mt-1">Tuần {workoutData?.week_number}</p>
       </div>
+
+      {workoutData?.coach_video_url && (
+        <a 
+          href={workoutData.coach_video_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="mx-5 mt-5 bg-blue-50 border border-blue-200 p-4 rounded-2xl flex gap-3 items-center shadow-sm hover:shadow-md transition-shadow cursor-pointer block"
+        >
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex justify-center items-center text-blue-600 flex-shrink-0 animate-pulse">
+            <PlayCircle size={24} className="ml-1" />
+          </div>
+          <div>
+            <h3 className="text-blue-800 font-black text-sm uppercase tracking-wide">Video Phân Tích</h3>
+            <p className="text-blue-600/90 text-[13px] font-semibold leading-snug">Xem Coach nhận xét bài tập của bạn tuần trước trước khi bắt đầu.</p>
+          </div>
+        </a>
+      )}
 
       <div className="p-4 space-y-6 mt-2 relative">
         {exercises.map((ex, exIndex) => {
