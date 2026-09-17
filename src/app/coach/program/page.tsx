@@ -979,11 +979,7 @@ function ProgramBuilderInner() {
                               ))}
                             </div>
                           </div>
-                          {wEx.coach_notes && (
-                            <div className="mt-2 bg-amber-100/50 p-2 rounded border border-amber-200 text-[10px] text-amber-800 italic leading-snug">
-                              💡 {wEx.coach_notes}
-                            </div>
-                          )}
+
                         ) : (
                           <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 border-dashed text-gray-400">
                             <div className="flex justify-between items-center mb-0.5">
@@ -1000,11 +996,7 @@ function ProgramBuilderInner() {
                             </div>
                             <p className="text-xs italic font-medium">Chưa tập...</p>
                           </div>
-                          {wEx.coach_notes && (
-                            <div className="mt-2 bg-amber-100/50 p-2 rounded border border-amber-200 text-[10px] text-amber-800 italic leading-snug">
-                              💡 {wEx.coach_notes}
-                            </div>
-                          )}
+
                         )}
                       </div>
                     );
