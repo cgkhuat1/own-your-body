@@ -840,7 +840,7 @@ function ProgramBuilderInner() {
                       <button 
                         onClick={() => setEditingVideo({workoutId: wData.id, url: wData.coach_video_url || ''})}
                         className={`hover:scale-110 transition-transform ${wData.coach_video_url ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
-                        title="Thêm/Sửa Video Phân Tích"
+                        title={wData.coach_video_url ? `Đã gắn Video: ${wData.coach_video_url}` : "Chưa có Video Phân Tích (Click để thêm)"}
                       >
                         <PlayCircle size={16} />
                       </button>
@@ -995,6 +995,11 @@ function ProgramBuilderInner() {
                             </div>
                             <p className="text-xs italic font-medium">Chưa tập...</p>
                           </div>
+                          {wEx.coach_notes && (
+                            <div className="mt-2 bg-amber-100/50 p-2 rounded border border-amber-200 text-[10px] text-amber-800 italic leading-snug">
+                              💡 {wEx.coach_notes}
+                            </div>
+                          )}
                         )}
                       </div>
                     );
