@@ -189,9 +189,9 @@ function ProgramBuilderInner() {
       blocks (
           id, name, order_index,
           workouts (
-              id, name, week_number, order_index, is_completed, rpe_score, joint_pain, notes,
+              id, name, week_number, order_index, is_completed, rpe_score, joint_pain, notes, coach_video_url,
               workout_exercises (
-                  id, exercise_id, custom_name, group_code, order_index,
+                  id, exercise_id, custom_name, group_code, order_index, coach_notes,
                   target_sets, target_reps, target_rpe,
                   exercises (id, name),
                   workout_logs (
