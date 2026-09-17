@@ -108,10 +108,8 @@ export default function WorkoutExecution() {
         }
       }
 
-      // Override video URL with previous week's if exists
-      if (prevVideoUrl) {
-         setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
-      }
+      // MỚI: Luôn ghi đè video URL. Nếu là Tuần 1 (prevVideoUrl = null), client sẽ KHÔNG thấy video dù DB có lưu.
+      setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
 
       if (wExercises) {
         // Lấy lịch sử tạ đã lưu nếu khách đã từng ấn nộp bài trước đó
@@ -147,7 +145,7 @@ export default function WorkoutExecution() {
             group_code: ex.group_code || String(ex.order_index),
             name: name,
             youtube_id: ex.exercises?.youtube_id,
-            coach_notes: prevNotesMap[ex.exercise_id] || ex.coach_notes,
+            coach_notes: prevNotesMap[ex.exercise_id] || null,
             sets: sets
           };
         });
