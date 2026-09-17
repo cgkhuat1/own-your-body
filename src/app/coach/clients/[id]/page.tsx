@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff } from "lucide-react";
+import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff, Gamepad2, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 export default function ClientProfileDetail() {
@@ -24,7 +24,13 @@ export default function ClientProfileDetail() {
     injury_history: '',
     postural_issues: '',
     dietary_habits: '',
-    notes: ''
+    notes: '',
+    tracking_level: 1,
+    target_steps: '',
+    target_calories: '',
+    target_protein: '',
+    goal_type: 'cut',
+    target_weight_num: ''
   });
   
   const [savedMessage, setSavedMessage] = useState('');
@@ -69,6 +75,12 @@ export default function ClientProfileDetail() {
       postural_issues: profile.postural_issues,
       dietary_habits: profile.dietary_habits,
       notes: profile.notes,
+      tracking_level: profile.tracking_level,
+      target_steps: profile.target_steps || null,
+      target_calories: profile.target_calories || null,
+      target_protein: profile.target_protein || null,
+      goal_type: profile.goal_type,
+      target_weight_num: profile.target_weight_num || null,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
@@ -221,6 +233,92 @@ export default function ClientProfileDetail() {
               <input type="number" value={profile.measurements.thigh} onChange={e => handleMeasurementChange('thigh', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Cài đặt Tracking & Gamification */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-5">
+        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+          <Gamepad2 className="w-5 h-5 text-brand-sage" /> Cài đặt Tracking & Gamification
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Level Mở Khóa Khách Hàng</label>
+              <div className="flex gap-2">
+                {[1, 2, 3].map(level => (
+                  <button
+                    key={level}
+                    onClick={() => setProfile({...profile, tracking_level: level})}
+                    className={`flex-1 py-2 rounded-lg font-bold border transition-colors ${profile.tracking_level === level ? 'bg-brand-moss text-white border-brand-moss' : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    Level {level}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-500 mt-2 font-medium italic">
+                {profile.tracking_level === 1 && "L1: Chỉ nhập Cân nặng (Dành cho 2 tuần đầu)."}
+                {profile.tracking_level === 2 && "L2: Cân nặng + Bước chân (Bắt đầu tạo thói quen vận động)."}
+                {profile.tracking_level === 3 && "L3: Full tính năng (+Calo & Protein). Dành cho khách đã hiểu về dinh dưỡng."}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Chế Độ Dinh Dưỡng</label>
+              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
+                <button
+                  onClick={() => setProfile({...profile, goal_type: 'cut'})}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${profile.goal_type === 'cut' ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`}
+                >
+                  🟢 Giảm mỡ
+                </button>
+                <button
+                  onClick={() => setProfile({...profile, goal_type: 'bulk'})}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${profile.goal_type === 'bulk' ? 'bg-white shadow-sm text-red-500' : 'text-gray-400'}`}
+                >
+                  🔴 Tăng cân
+                </button>
+                <button
+                  onClick={() => setProfile({...profile, goal_type: 'maintain'})}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${profile.goal_type === 'maintain' ? 'bg-white shadow-sm text-blue-500' : 'text-gray-400'}`}
+                >
+                  ⚪️ Duy trì (Recomp)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="col-span-2">
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Đích Cân Nặng (kg)</label>
+              <input type="number" value={profile.target_weight_num || ''} onChange={e => setProfile({...profile, target_weight_num: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-black text-gray-800" placeholder="VD: 65" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Target Steps</label>
+              <input type="number" value={profile.target_steps || ''} onChange={e => setProfile({...profile, target_steps: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-black text-gray-800" placeholder="VD: 10000" />
+            </div>
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Target Calo</label>
+                <input type="number" value={profile.target_calories || ''} onChange={e => setProfile({...profile, target_calories: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-black text-gray-800" placeholder="VD: 2000" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Target Đạm (g)</label>
+                <input type="number" value={profile.target_protein || ''} onChange={e => setProfile({...profile, target_protein: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-black text-gray-800" placeholder="VD: 150" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Nhật ký sinh hoạt (Daily Log - Demo grid) */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4 overflow-x-auto">
+        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+          <CalendarDays className="w-5 h-5 text-brand-sage" /> Nhật ký sinh hoạt (Tháng này)
+        </h2>
+        <div className="text-center text-gray-400 py-10 font-medium italic border-2 border-dashed rounded-xl border-gray-200">
+          Chức năng bảng theo dõi hàng ngày đang được xây dựng...
         </div>
       </div>
 
