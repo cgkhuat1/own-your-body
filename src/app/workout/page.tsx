@@ -391,6 +391,17 @@ export default function WorkoutExecution() {
                   )}
                 </div>
 
+                {ex.coach_notes && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 mx-4 mt-4 rounded-xl flex items-start gap-2 shadow-sm relative overflow-hidden">
+                    <div className="absolute left-0 top-0 w-1 h-full bg-amber-400"></div>
+                    <span className="text-lg leading-none mt-0.5">💡</span>
+                    <div className="text-sm font-semibold leading-relaxed">
+                      <span className="font-bold uppercase tracking-wider text-[10px] block text-amber-600 mb-0.5">Coach dặn:</span>
+                      {ex.coach_notes}
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-3 bg-brand-paper/20">
                   <div className="flex items-center text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider px-2 mb-2">
                     <div className="flex-1 text-center">Tạ (kg)</div>
