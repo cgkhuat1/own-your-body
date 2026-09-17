@@ -959,7 +959,16 @@ function ProgramBuilderInner() {
 
                         {uniqueLogs.length > 0 ? (
                           <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5">✅ Thực tế tập</p>
+                            <div className="flex justify-between items-center mb-1.5">
+                              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">✅ Thực tế tập</p>
+                              <button 
+                                onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
+                                className={`p-1 rounded hover:bg-emerald-200 transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-emerald-300'}`}
+                                title="Ghi chú kỹ thuật cho bài này"
+                              >
+                                <MessageCircle size={14} />
+                              </button>
+                            </div>
                             <div className="space-y-1">
                               {uniqueLogs.map((l: any) => (
                                 <div key={l.id} className="flex justify-between items-center text-[11px] font-black text-emerald-900 bg-emerald-100/50 px-2 py-1 rounded">
@@ -972,7 +981,18 @@ function ProgramBuilderInner() {
                           </div>
                         ) : (
                           <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 border-dashed text-gray-400">
-                            <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5">Thực tế tập</p>
+                            <div className="flex justify-between items-center mb-0.5">
+                              <p className="text-[10px] font-bold uppercase tracking-wider">Thực tế tập</p>
+                              {wEx && (
+                                <button 
+                                  onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
+                                  className={`p-1 rounded hover:bg-gray-200 transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-gray-300'}`}
+                                  title="Ghi chú kỹ thuật cho bài này"
+                                >
+                                  <MessageCircle size={14} />
+                                </button>
+                              )}
+                            </div>
                             <p className="text-xs italic font-medium">Chưa tập...</p>
                           </div>
                         )}
