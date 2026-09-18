@@ -134,7 +134,7 @@ export default function WorkoutExecution() {
               id: `${ex.id}-${i}`,
               set_number: i,
               target: `${ex.target_reps} reps @${ex.target_rpe}`,
-              weight: log && log.weight ? String(log.weight) : "",
+              weight: log && log.weight !== undefined && log.weight !== null ? (log.weight === 0 ? '' : String(log.weight)) : '',
               reps: log && log.reps ? String(log.reps) : "",
               rpe: log && log.rpe ? String(log.rpe) : "",
               completed: !!log,
@@ -193,7 +193,7 @@ export default function WorkoutExecution() {
       
       const newSets = ex.sets.map((s: any) => {
         if (s.id !== setId) return s;
-        if (!s.completed && (!s.weight || !s.reps)) {
+        if (!s.completed && !s.reps) {
           setErrorSetId(setId);
           return s; // Failed validation
         }
@@ -453,7 +453,7 @@ export default function WorkoutExecution() {
                   
                   {errorSetId && ex.sets.find((s:any) => s.id === errorSetId) && (
                     <div className="mt-3 text-center text-xs font-bold text-red-500 bg-red-50 py-2 rounded-lg border border-red-100">
-                      ⚠️ Cần nhập số Tạ và Rep để hoàn thành Set!
+                      ⚠️ Cần nhập số Rep để hoàn thành Set!
                     </div>
                   )}
 
