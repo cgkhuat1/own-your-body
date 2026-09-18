@@ -85,6 +85,7 @@ export default function WorkoutExecution() {
 
       let prevVideoUrl = null;
       let prevNotesMap: Record<string, string> = {};
+      let prevLogsMap: Record<string, any[]> = {};
 
       if (workout?.week_number > 1 && workout?.block_id) {
         const { data: prevWorkout } = await supabase.from('workouts')
@@ -97,12 +98,13 @@ export default function WorkoutExecution() {
         if (prevWorkout) {
           prevVideoUrl = prevWorkout.coach_video_url;
           const { data: prevExs } = await supabase.from('workout_exercises')
-            .select('exercise_id, coach_notes')
+            .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps)')
             .eq('workout_id', prevWorkout.id);
             
           if (prevExs) {
             prevExs.forEach(px => {
               if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
+              if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
             });
           }
         }
