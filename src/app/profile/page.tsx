@@ -37,16 +37,16 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
       {/* Header */}
-      <div className="bg-brand-moss text-white pt-10 pb-6 px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex justify-between items-start">
-          <div>
-            <p className="text-brand-sand font-bold text-sm uppercase tracking-wider mb-1">CK COACHING</p>
-            <h1 className="text-3xl font-black text-white">{user?.full_name || 'Hồ Sơ'}</h1>
+      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 pt-[max(env(safe-area-inset-top),20px)] rounded-b-2xl shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <div className="inline-flex items-center px-2 py-1 border border-brand-sand/80 rounded-md shadow-sm">
+            <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">CK Coaching</span>
           </div>
-          <button onClick={handleLogout} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20">
-            <LogOut size={20} className="text-brand-sand" />
+          <button onClick={handleLogout} className="p-2.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors border border-white/20">
+            <LogOut size={18} className="text-brand-sand" />
           </button>
         </div>
+        <h1 className="text-2xl font-black text-white">Hồ Sơ Của Bạn</h1>
       </div>
 
       <div className="p-5 space-y-6">

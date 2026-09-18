@@ -186,9 +186,11 @@ export default function ClientDashboard() {
   return (
     <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
       {/* Header */}
-      <div className="bg-brand-moss text-white pt-10 pb-6 px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Activity size={120} />
+      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 pt-[max(env(safe-area-inset-top),20px)] rounded-b-2xl shadow-md">
+        <div className="flex justify-between items-center mb-4">
+          <div className="inline-flex items-center px-2 py-1 border border-brand-sand/80 rounded-md shadow-sm">
+            <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">CK Coaching</span>
+          </div>
         </div>
         <div className="relative z-10">
           <p className="text-brand-sand font-bold text-sm uppercase tracking-wider mb-1">Xin chào,</p>
@@ -196,14 +198,14 @@ export default function ClientDashboard() {
           
           {/* Gamification Level Badges */}
           <div className="flex gap-2 mt-4">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 1 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 1 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.1 Cân nặng
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 1 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 1 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Cân nặng
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 2 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 2 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.2 Steps
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 2 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 2 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Steps
             </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 3 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 3 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.3 Dinh dưỡng
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 3 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 3 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Dinh dưỡng
             </div>
           </div>
         </div>
