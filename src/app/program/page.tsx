@@ -260,7 +260,7 @@ export default function ClientDashboard() {
                     key={workout.id} 
                     className={`rounded-2xl p-5 shadow-sm border flex items-center justify-between cursor-pointer transition-all group ${
                       workout.status === 'perfect'
-                        ? "bg-gradient-to-br from-[#FFF3D6] to-[#FCE3A1] border-[#D4AF37] ring-1 ring-[#D4AF37]/50 hover:border-[#B5952F] hover:ring-[#B5952F]/70 shadow-[0_6px_20px_rgba(212,175,55,0.35)]" 
+                        ? "bg-gradient-to-tr from-[#B8860B] via-[#FCE3A1] to-[#D4AF37] border-0 shadow-[0_8px_30px_rgba(212,175,55,0.5)] transform scale-[1.01] hover:scale-[1.03] relative overflow-hidden" 
                         : workout.status === 'partial' 
                         ? "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
@@ -269,16 +269,19 @@ export default function ClientDashboard() {
                   >
                     <div>
                       <h3 className={`font-bold text-lg transition-colors ${
-                        workout.status === 'perfect' ? 'text-[#8C6216]' : workout.status === 'partial' ? 'text-emerald-800' : 'text-brand-moss group-hover:text-brand-mossDeep'
+                        workout.status === 'perfect' ? 'text-brand-mossDeep drop-shadow-sm' : workout.status === 'partial' ? 'text-emerald-800' : 'text-brand-moss group-hover:text-brand-mossDeep'
                       }`}>
                         {workout.name}
                       </h3>
                     </div>
                     
                     {/* Checkmark bên phải */}
-                    <div className="flex-shrink-0 ml-4">
+                    <div className="flex-shrink-0 ml-4 relative">
                       {workout.status === 'perfect' ? (
-                        <CheckCircle2 className="text-[#B8860B] fill-[#FFE066]" size={32} />
+                        <>
+                          <div className="absolute inset-0 bg-white/60 blur-md rounded-full animate-pulse"></div>
+                          <CheckCircle2 className="text-brand-mossDeep fill-white relative z-10" size={32} />
+                        </>
                       ) : workout.status === 'partial' ? (
                         <CheckCircle2 className="text-emerald-500 fill-emerald-100" size={32} />
                       ) : (
