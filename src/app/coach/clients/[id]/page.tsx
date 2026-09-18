@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff, Gamepad2, CalendarDays } from "lucide-react";
+import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff, Gamepad2, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import dayjs from "dayjs";
 import Link from "next/link";
 
 export default function ClientProfileDetail() {
@@ -34,10 +35,13 @@ export default function ClientProfileDetail() {
   });
   
   const [savedMessage, setSavedMessage] = useState('');
+  
+  const [currentMonth, setCurrentMonth] = useState(dayjs().startOf('month'));
+  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
 
   useEffect(() => {
     fetchClientData();
-  }, [clientId]);
+  }, [clientId, currentMonth]);
 
   const fetchClientData = async () => {
     setLoading(true);
@@ -54,6 +58,14 @@ export default function ClientProfileDetail() {
         measurements: profileData.measurements || { chest: '', waist: '', hips: '', thigh: '' }
       });
     }
+    
+    // Fetch metrics for selected month
+    const startDate = currentMonth.format('YYYY-MM-DD');
+    const endDate = currentMonth.endOf('month').format('YYYY-MM-DD');
+    const { data: metrics } = await supabase.from('daily_metrics')
+      .select('*').eq('client_id', clientId)
+      .gte('date', startDate).lte('date', endDate);
+    if (metrics) setDailyMetrics(metrics);
     setLoading(false);
   };
 
@@ -91,6 +103,38 @@ export default function ClientProfileDetail() {
     } else {
       alert("Lỗi: " + error.message);
     }
+  };
+
+  const getStepColor = (steps: number, target: number) => {
+    if (!steps || !target) return 'text-gray-900';
+    const ratio = steps / target;
+    if (ratio >= 1) return 'bg-emerald-100 text-emerald-800 font-bold';
+    if (ratio >= 0.8) return 'bg-amber-100 text-amber-800 font-bold';
+    return 'bg-red-100 text-red-800 font-bold';
+  };
+
+  const getCalColor = (cals: number, target: number, goalType: string) => {
+    if (!cals || !target) return 'text-gray-900';
+    const ratio = cals / target;
+    if (ratio >= 0.9 && ratio <= 1.1) return 'bg-emerald-100 text-emerald-800 font-bold';
+    
+    if (goalType === 'cut') {
+      if (ratio >= 0.8 && ratio < 0.9) return 'bg-amber-100 text-amber-800 font-bold';
+      return 'bg-red-100 text-red-800 font-bold';
+    } else if (goalType === 'bulk') {
+      if (ratio > 1.1 && ratio <= 1.2) return 'bg-amber-100 text-amber-800 font-bold';
+      return 'bg-red-100 text-red-800 font-bold';
+    }
+    // maintain
+    return 'bg-red-100 text-red-800 font-bold';
+  };
+
+  const getProColor = (pro: number, target: number) => {
+    if (!pro || !target) return 'text-gray-900';
+    const ratio = pro / target;
+    if (ratio >= 0.95) return 'bg-emerald-100 text-emerald-800 font-bold';
+    if (ratio >= 0.8) return 'bg-amber-100 text-amber-800 font-bold';
+    return 'bg-red-100 text-red-800 font-bold';
   };
 
   const handleToggleActive = async () => {
@@ -312,13 +356,67 @@ export default function ClientProfileDetail() {
         </div>
       </div>
 
-      {/* Nhật ký sinh hoạt (Daily Log - Demo grid) */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4 overflow-x-auto">
-        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-          <CalendarDays className="w-5 h-5 text-brand-sage" /> Nhật ký sinh hoạt (Tháng này)
-        </h2>
-        <div className="text-center text-gray-400 py-10 font-medium italic border-2 border-dashed rounded-xl border-gray-200">
-          Chức năng bảng theo dõi hàng ngày đang được xây dựng...
+      {/* Nhật ký sinh hoạt (Daily Log Table) */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+        <div className="flex justify-between items-center border-b pb-2">
+          <h2 className="font-bold flex items-center gap-2 text-gray-800">
+            <CalendarDays className="w-5 h-5 text-brand-sage" /> Nhật ký sinh hoạt
+          </h2>
+          <div className="flex items-center gap-3 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+            <button onClick={() => setCurrentMonth(prev => prev.subtract(1, 'month'))} className="p-1 hover:bg-white rounded"><ChevronLeft size={16} /></button>
+            <span className="text-sm font-bold w-20 text-center">Tháng {currentMonth.format('M')}</span>
+            <button onClick={() => setCurrentMonth(prev => prev.add(1, 'month'))} className="p-1 hover:bg-white rounded"><ChevronRight size={16} /></button>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="p-3 border-b border-gray-200">Ngày</th>
+                <th className="p-3 border-b border-gray-200 text-center">Cân (kg)</th>
+                <th className="p-3 border-b border-gray-200 text-center">Bước chân</th>
+                <th className="p-3 border-b border-gray-200 text-center">Calo in</th>
+                <th className="p-3 border-b border-gray-200 text-center">Protein (g)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({length: currentMonth.daysInMonth()}, (_, i) => {
+                const day = currentMonth.date(i + 1);
+                const dateStr = day.format('YYYY-MM-DD');
+                const row = dailyMetrics.find(m => m.date === dateStr);
+                const isToday = day.isSame(dayjs(), 'day');
+                
+                return (
+                  <tr key={dateStr} className={`border-b border-gray-100 hover:bg-gray-50/50 ${isToday ? 'bg-brand-moss/5' : ''}`}>
+                    <td className="p-2 whitespace-nowrap">
+                      <span className="font-bold text-gray-700">{day.format('DD/MM')}</span>
+                      <span className="text-xs text-gray-400 ml-1">({day.format('ddd')})</span>
+                    </td>
+                    <td className="p-2 text-center font-medium text-gray-700">{row?.weight || '-'}</td>
+                    
+                    <td className="p-1 text-center">
+                      <div className={`py-1.5 rounded-md ${getStepColor(row?.steps, row?.target_steps)}`}>
+                        {row?.steps ? row.steps.toLocaleString() : '-'}
+                      </div>
+                    </td>
+                    
+                    <td className="p-1 text-center">
+                      <div className={`py-1.5 rounded-md ${getCalColor(row?.calories, row?.target_calories, row?.goal_type)}`}>
+                        {row?.calories ? row.calories.toLocaleString() : '-'}
+                      </div>
+                    </td>
+                    
+                    <td className="p-1 text-center">
+                      <div className={`py-1.5 rounded-md ${getProColor(row?.protein, row?.target_protein)}`}>
+                        {row?.protein || '-'}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }).reverse()}
+            </tbody>
+          </table>
         </div>
       </div>
 
