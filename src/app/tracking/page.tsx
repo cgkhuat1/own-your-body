@@ -1,4 +1,5 @@
 "use client";
+import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Loader2, UserCircle, Target, Activity, Dumbbell, Calendar, Flame, Footprints, Lock, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
@@ -470,6 +471,7 @@ export default function ClientDashboard() {
           </div>
         </div>
       )}
+      <ClientNav />
     </div>
   );
 }

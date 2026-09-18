@@ -1,5 +1,6 @@
 "use client";
 
+import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -313,6 +314,7 @@ export default function ClientDashboard() {
           </div>
         )}
       </div>
+      <ClientNav />
     </div>
   );
 }
