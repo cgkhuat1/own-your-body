@@ -522,8 +522,8 @@ export default function WorkoutExecution() {
       
       {/* Modal Feedback (Đánh giá buổi tập) */}
       {showFeedback && (
-        <div className="fixed inset-0 z-[100] bg-brand-paper flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="w-full flex-1 px-6 pt-6 pb-6 flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)' }}>
+        <div className="fixed inset-0 z-[100] bg-brand-paper animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="absolute inset-0 w-full px-6 pt-6 pb-[120px] flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)' }}>
             {/* Header */}
             <div className="text-center">
               <h2 className="text-2xl font-black text-brand-mossDeep mb-1 leading-tight text-balance">Chúc mừng bạn đã hoàn thành buổi tập! 🎉</h2>
@@ -596,9 +596,9 @@ export default function WorkoutExecution() {
 
           </div>
           
-          {/* Nút gửi (Fixed Bottom) */}
-          <div className="w-full bg-transparent px-6 pt-4 pb-[max(env(safe-area-inset-bottom),32px)] shrink-0">
-            <div className="flex gap-3">
+          {/* Nút gửi (Floating Bottom) */}
+          <div className="absolute bottom-0 left-0 right-0 px-6 pt-8 pb-[max(env(safe-area-inset-bottom),32px)] bg-gradient-to-t from-brand-paper via-brand-paper/95 to-transparent pointer-events-none">
+            <div className="flex gap-3 pointer-events-auto">
                <button onClick={() => setShowFeedback(false)} className="px-6 py-4 rounded-xl font-bold text-brand-moss bg-brand-line/50 hover:bg-brand-line transition-colors">
                  Quay lại
                </button>
