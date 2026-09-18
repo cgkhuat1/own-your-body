@@ -295,9 +295,17 @@ export default function WorkoutExecution() {
         await supabase.from('workout_logs').insert(logsToInsert);
       }
 
+      let isPerfect = true;
+      exercises.forEach(ex => {
+        ex.sets.forEach((set: any) => {
+          if (!set.completed) isPerfect = false;
+        });
+      });
+
       await supabase.from('workouts')
         .update({ 
-          is_completed: true, 
+          is_completed: true,
+          is_perfect: isPerfect, 
           completed_at: new Date().toISOString(),
           rpe_score: rpeScore,
           joint_pain: jointPain || null,

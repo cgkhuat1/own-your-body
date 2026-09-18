@@ -45,7 +45,7 @@ export default function ClientDashboard() {
           id, name,
           blocks (
             id, name, order_index,
-            workouts ( id, name, week_number, is_completed, order_index )
+            workouts ( id, name, week_number, is_completed, is_perfect, order_index )
           )
         `)
         .eq('client_id', session.user.id)
@@ -78,7 +78,7 @@ export default function ClientDashboard() {
                 id: wo.id,
                 name: wo.name,
                 order_index: wo.order_index,
-                status: wo.is_completed ? 'perfect' : 'incomplete'
+                status: wo.is_completed ? (wo.is_perfect ? 'perfect' : 'partial') : 'incomplete'
               });
             });
           }
