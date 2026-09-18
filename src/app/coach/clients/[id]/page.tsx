@@ -305,6 +305,23 @@ export default function ClientProfileDetail() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 bg-brand-paper/30 p-3 rounded-xl border border-brand-line/50">
+              <div>
+                <label className="block text-[10px] font-black text-brand-moss mb-1 uppercase tracking-wider">Ngày bắt đầu (Thứ 2)</label>
+                <input type="date" value={profile?.coaching_start_date || ''} onChange={e => setProfile({...profile, coaching_start_date: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-bold text-gray-800 text-sm" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-brand-moss mb-1 uppercase tracking-wider">Số tuần Coaching</label>
+                <select value={profile?.coaching_duration_weeks || 12} onChange={e => setProfile({...profile, coaching_duration_weeks: parseInt(e.target.value)})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-bold text-gray-800 text-sm">
+                  <option value={4}>4 Tuần</option>
+                  <option value={8}>8 Tuần</option>
+                  <option value={12}>12 Tuần</option>
+                  <option value={16}>16 Tuần</option>
+                  <option value={24}>24 Tuần</option>
+                </select>
+              </div>
+            </div>
+            
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Level Mở Khóa Khách Hàng</label>
               <div className="flex gap-2">
