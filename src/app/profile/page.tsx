@@ -26,6 +26,8 @@ export default function ClientDashboard() {
 
   // Daily Log Logic
   const [currentWeekStart, setCurrentWeekStart] = useState(dayjs().startOf('isoWeek'));
+  const [clientRealWeek, setClientRealWeek] = useState<number | null>(null);
+  const [viewingWeekIdx, setViewingWeekIdx] = useState<number | null>(null);
   const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
   
   // Modal State
@@ -68,7 +70,21 @@ export default function ClientDashboard() {
       ]);
 
       if (userRes.data) setUser(userRes.data);
-      if (profileRes.data) setProfile(profileRes.data);
+      if (profileRes.data) {
+        setProfile(profileRes.data);
+        if (profileRes.data.coaching_start_date) {
+          const start = dayjs(profileRes.data.coaching_start_date).startOf('day');
+          const diff = dayjs().startOf('day').diff(start, 'day');
+          const w = diff >= 0 ? Math.floor(diff / 7) + 1 : 1;
+          setClientRealWeek(w);
+          
+          // If first time loading, set currentWeekStart to exactly match that week's Monday
+          if (!viewingWeekIdx) {
+            setViewingWeekIdx(w);
+            setCurrentWeekStart(start.add((w - 1) * 7, 'day'));
+          }
+        }
+      }
       if (progRes.data) {
         setActiveProgram(progRes.data);
         if (progRes.data.blocks && progRes.data.blocks.length > 0) {
@@ -201,12 +217,46 @@ export default function ClientDashboard() {
           
           {/* Week Selector */}
           <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-brand-line/50">
-            <button onClick={() => setCurrentWeekStart(prev => prev.subtract(1, 'week'))} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronLeft /></button>
+            <button onClick={() => {
+              if (profile?.coaching_start_date && viewingWeekIdx) {
+                const newIdx = viewingWeekIdx - 1;
+                if (newIdx >= 1) {
+                  setViewingWeekIdx(newIdx);
+                  setCurrentWeekStart(dayjs(profile.coaching_start_date).add((newIdx - 1) * 7, 'day'));
+                }
+              } else {
+                setCurrentWeekStart(prev => prev.subtract(1, 'week'));
+              }
+            }} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronLeft /></button>
+            
             <div className="text-center">
-              <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Tuần này</span>
-              <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.endOf('isoWeek').format('DD/MM')}</span>
+              {profile?.coaching_start_date && viewingWeekIdx ? (
+                <>
+                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+                     {viewingWeekIdx === clientRealWeek ? "🔥 Đang ở " : ""} Tuần {viewingWeekIdx} / {profile.coaching_duration_weeks || 12}
+                   </span>
+                   <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.add(6, 'day').format('DD/MM')}</span>
+                </>
+              ) : (
+                <>
+                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Tuần này</span>
+                   <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.endOf('isoWeek').format('DD/MM')}</span>
+                </>
+              )}
             </div>
-            <button onClick={() => setCurrentWeekStart(prev => prev.add(1, 'week'))} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronRight /></button>
+
+            <button onClick={() => {
+              if (profile?.coaching_start_date && viewingWeekIdx) {
+                const newIdx = viewingWeekIdx + 1;
+                const max = profile.coaching_duration_weeks || 12;
+                if (newIdx <= max) {
+                  setViewingWeekIdx(newIdx);
+                  setCurrentWeekStart(dayjs(profile.coaching_start_date).add((newIdx - 1) * 7, 'day'));
+                }
+              } else {
+                setCurrentWeekStart(prev => prev.add(1, 'week'));
+              }
+            }} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronRight /></button>
           </div>
 
           {/* Weekly Summary (If Level >= 2) */}

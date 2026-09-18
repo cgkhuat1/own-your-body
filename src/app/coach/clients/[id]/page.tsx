@@ -38,10 +38,12 @@ export default function ClientProfileDetail() {
   
   const [currentMonth, setCurrentMonth] = useState(dayjs().startOf('month'));
   const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [currentRealWeek, setCurrentRealWeek] = useState<number>(1);
 
   useEffect(() => {
     fetchClientData();
-  }, [clientId, currentMonth]);
+  }, [clientId]);
 
   const fetchClientData = async () => {
     setLoading(true);
@@ -55,17 +57,32 @@ export default function ClientProfileDetail() {
       setProfile({
         ...profileData,
         dob: profileData.dob || '',
-        measurements: profileData.measurements || { chest: '', waist: '', hips: '', thigh: '' }
+        measurements: profileData.measurements || { chest: '', waist: '', hips: '', thigh: '' },
+        coaching_start_date: profileData.coaching_start_date || '',
+        coaching_duration_weeks: profileData.coaching_duration_weeks || 12
       });
     }
     
-    // Fetch metrics for selected month
-    const startDate = currentMonth.format('YYYY-MM-DD');
-    const endDate = currentMonth.endOf('month').format('YYYY-MM-DD');
-    const { data: metrics } = await supabase.from('daily_metrics')
-      .select('*').eq('client_id', clientId)
-      .gte('date', startDate).lte('date', endDate);
-    if (metrics) setDailyMetrics(metrics);
+    
+    let calcCurrentWeek = 1;
+    if (profileData?.coaching_start_date) {
+      const start = dayjs(profileData.coaching_start_date).startOf('day');
+      const today = dayjs().startOf('day');
+      const diffDays = today.diff(start, 'day');
+      if (diffDays >= 0) {
+        calcCurrentWeek = Math.floor(diffDays / 7) + 1;
+      } else {
+        calcCurrentWeek = 1; // Not started yet
+      }
+      setCurrentRealWeek(calcCurrentWeek);
+      setSelectedWeek(calcCurrentWeek);
+      
+      // Fetch ALL metrics for this client to render any tab quickly
+      const { data: metrics } = await supabase.from('daily_metrics')
+        .select('*').eq('client_id', clientId);
+      if (metrics) setDailyMetrics(metrics);
+    }
+
     setLoading(false);
   };
 
@@ -356,68 +373,153 @@ export default function ClientProfileDetail() {
         </div>
       </div>
 
-      {/* Nhật ký sinh hoạt (Daily Log Table) */}
+      {/* Nhật ký sinh hoạt (Google Sheet 12 Weeks Style) */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-        <div className="flex justify-between items-center border-b pb-2">
-          <h2 className="font-bold flex items-center gap-2 text-gray-800">
-            <CalendarDays className="w-5 h-5 text-brand-sage" /> Nhật ký sinh hoạt
-          </h2>
-          <div className="flex items-center gap-3 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-            <button onClick={() => setCurrentMonth(prev => prev.subtract(1, 'month'))} className="p-1 hover:bg-white rounded"><ChevronLeft size={16} /></button>
-            <span className="text-sm font-bold w-20 text-center">Tháng {currentMonth.format('M')}</span>
-            <button onClick={() => setCurrentMonth(prev => prev.add(1, 'month'))} className="p-1 hover:bg-white rounded"><ChevronRight size={16} /></button>
-          </div>
-        </div>
+        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+          <CalendarDays className="w-5 h-5 text-brand-sage" /> Quản trị Lộ trình ({profile?.coaching_duration_weeks || 12} Tuần)
+        </h2>
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-              <tr>
-                <th className="p-3 border-b border-gray-200">Ngày</th>
-                <th className="p-3 border-b border-gray-200 text-center">Cân (kg)</th>
-                <th className="p-3 border-b border-gray-200 text-center">Bước chân</th>
-                <th className="p-3 border-b border-gray-200 text-center">Calo in</th>
-                <th className="p-3 border-b border-gray-200 text-center">Protein (g)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({length: currentMonth.daysInMonth()}, (_, i) => {
-                const day = currentMonth.date(i + 1);
+        {!profile?.coaching_start_date ? (
+          <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-orange-800 text-sm font-semibold text-center">
+            ⚠️ Vui lòng cài đặt "Ngày bắt đầu (Thứ 2)" ở khung phía trên và bấm Lưu hồ sơ để kích hoạt Bảng theo dõi!
+          </div>
+        ) : (
+          <>
+            {/* Tabs Cuộn */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {Array.from({length: profile.coaching_duration_weeks}, (_, i) => i + 1).map(w => {
+                const isCurrent = w === currentRealWeek;
+                const isSelected = w === selectedWeek;
+                return (
+                  <button
+                    key={w}
+                    onClick={() => setSelectedWeek(w)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all relative ${
+                      isSelected 
+                        ? 'bg-brand-moss text-brand-sand shadow-md' 
+                        : isCurrent 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-gray-50 text-gray-400 border border-gray-100 hover:bg-gray-100'
+                    }`}
+                  >
+                    Tuần {w}
+                    {isCurrent && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bảng Dữ liệu của Tuần được chọn */}
+            {(() => {
+              const weekStartDate = dayjs(profile.coaching_start_date).add((selectedWeek - 1) * 7, 'day');
+              const weekDays = Array.from({length: 7}, (_, i) => weekStartDate.add(i, 'day'));
+              
+              // Tính toán Tổng kết
+              let totalSteps = 0;
+              let totalCal = 0;
+              let totalPro = 0;
+              let totalWeight = 0;
+              let weightDays = 0;
+              let dietDays = 0;
+
+              const rows = weekDays.map(day => {
                 const dateStr = day.format('YYYY-MM-DD');
                 const row = dailyMetrics.find(m => m.date === dateStr);
-                const isToday = day.isSame(dayjs(), 'day');
-                
-                return (
-                  <tr key={dateStr} className={`border-b border-gray-100 hover:bg-gray-50/50 ${isToday ? 'bg-brand-moss/5' : ''}`}>
-                    <td className="p-2 whitespace-nowrap">
-                      <span className="font-bold text-gray-700">{day.format('DD/MM')}</span>
-                      <span className="text-xs text-gray-400 ml-1">({day.format('ddd')})</span>
-                    </td>
-                    <td className="p-2 text-center font-medium text-gray-700">{row?.weight || '-'}</td>
-                    
-                    <td className="p-1 text-center">
-                      <div className={`py-1.5 rounded-md ${getStepColor(row?.steps, row?.target_steps)}`}>
-                        {row?.steps ? row.steps.toLocaleString() : '-'}
-                      </div>
-                    </td>
-                    
-                    <td className="p-1 text-center">
-                      <div className={`py-1.5 rounded-md ${getCalColor(row?.calories, row?.target_calories, row?.goal_type)}`}>
-                        {row?.calories ? row.calories.toLocaleString() : '-'}
-                      </div>
-                    </td>
-                    
-                    <td className="p-1 text-center">
-                      <div className={`py-1.5 rounded-md ${getProColor(row?.protein, row?.target_protein)}`}>
-                        {row?.protein || '-'}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }).reverse()}
-            </tbody>
-          </table>
-        </div>
+                if (row) {
+                  totalSteps += (row.steps || 0);
+                  if (row.calories) { totalCal += row.calories; dietDays++; }
+                  if (row.protein) totalPro += row.protein;
+                  if (row.weight) { totalWeight += parseFloat(row.weight); weightDays++; }
+                }
+                return { day, dateStr, row };
+              });
+
+              const targetStepsW = (profile.target_steps || 0) * 7;
+              const targetCalW = (profile.target_calories || 0) * 7;
+              const targetProW = (profile.target_protein || 0) * 7;
+
+              const stepProgress = targetStepsW > 0 ? (totalSteps / targetStepsW) * 100 : 0;
+              const calProgress = targetCalW > 0 ? (totalCal / targetCalW) * 100 : 0;
+              const proProgress = targetProW > 0 ? (totalPro / targetProW) * 100 : 0;
+
+              return (
+                <div className="space-y-4">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cân TB Tuần</p>
+                      <p className="text-xl font-black text-brand-moss">{weightDays > 0 ? (totalWeight / weightDays).toFixed(1) : '--'} <span className="text-sm">kg</span></p>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${stepProgress >= 100 ? 'bg-emerald-50 border-emerald-200' : stepProgress >= 80 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Tiến độ Steps</p>
+                      <p className="text-xl font-black">{stepProgress.toFixed(1)}%</p>
+                      <p className="text-xs font-bold opacity-60">{totalSteps.toLocaleString()} / {targetStepsW.toLocaleString()}</p>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${calProgress >= 90 && calProgress <= 110 ? 'bg-emerald-50 border-emerald-200' : calProgress >= 80 && calProgress <= 120 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Tiến độ Calo</p>
+                      <p className="text-xl font-black">{calProgress.toFixed(1)}%</p>
+                      <p className="text-xs font-bold opacity-60">{totalCal.toLocaleString()} / {targetCalW.toLocaleString()}</p>
+                    </div>
+                    <div className={`p-3 rounded-xl border ${proProgress >= 95 ? 'bg-emerald-50 border-emerald-200' : proProgress >= 80 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Tiến độ Protein</p>
+                      <p className="text-xl font-black">{proProgress.toFixed(1)}%</p>
+                      <p className="text-xs font-bold opacity-60">{totalPro.toLocaleString()} / {targetProW.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* 7-Day Table */}
+                  <div className="overflow-x-auto rounded-xl border border-gray-200">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead className="bg-brand-moss text-white font-bold uppercase text-[10px] tracking-wider">
+                        <tr>
+                          <th className="p-3 border-b border-brand-mossDeep">Ngày</th>
+                          <th className="p-3 border-b border-brand-mossDeep text-center">Cân (kg)</th>
+                          <th className="p-3 border-b border-brand-mossDeep text-center">Bước chân</th>
+                          <th className="p-3 border-b border-brand-mossDeep text-center">Calo in</th>
+                          <th className="p-3 border-b border-brand-mossDeep text-center">Protein (g)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map(({day, dateStr, row}) => {
+                          const isToday = day.isSame(dayjs(), 'day');
+                          return (
+                            <tr key={dateStr} className={`border-b border-gray-100 hover:bg-gray-50/50 ${isToday ? 'bg-brand-moss/5' : ''}`}>
+                              <td className="p-2 whitespace-nowrap">
+                                <span className="font-bold text-gray-700">{day.format('ddd')}</span>
+                                <span className="text-xs text-gray-400 ml-1">{day.format('DD/MM')}</span>
+                              </td>
+                              <td className="p-2 text-center font-medium text-gray-700">{row?.weight || '-'}</td>
+                              
+                              <td className="p-1 text-center">
+                                <div className={`py-1.5 rounded-md ${getStepColor(row?.steps, row?.target_steps || profile.target_steps)}`}>
+                                  {row?.steps ? row.steps.toLocaleString() : '-'}
+                                </div>
+                              </td>
+                              
+                              <td className="p-1 text-center">
+                                <div className={`py-1.5 rounded-md ${getCalColor(row?.calories, row?.target_calories || profile.target_calories, row?.goal_type || profile.goal_type)}`}>
+                                  {row?.calories ? row.calories.toLocaleString() : '-'}
+                                </div>
+                              </td>
+                              
+                              <td className="p-1 text-center">
+                                <div className={`py-1.5 rounded-md ${getProColor(row?.protein, row?.target_protein || profile.target_protein)}`}>
+                                  {row?.protein || '-'}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
       </div>
 
       {/* Đánh giá chuyên môn */}
