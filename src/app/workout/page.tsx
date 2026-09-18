@@ -64,61 +64,70 @@ export default function WorkoutExecution() {
         return;
       }
 
-      // 1. Lấy thông tin Buổi tập
-      const { data: workout } = await supabase
-        .from('workouts')
-        .select('id, block_id, order_index, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url')
-        .eq('id', workoutId)
-        .single();
-      
+      // 🔥 CHẠY SONG SONG: Lấy Buổi tập hiện tại và Danh sách Bài tập cùng lúc (Tốn 1 lượt mạng)
+      const [workoutRes, wExRes] = await Promise.all([
+        supabase.from('workouts').select('id, block_id, order_index, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url').eq('id', workoutId).single(),
+        supabase.from('workout_exercises').select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)').eq('workout_id', workoutId).order('order_index', { ascending: true })
+      ]);
+
+      const workout = workoutRes.data;
+      const wExercises = wExRes.data;
+
       setWorkoutData(workout);
       if (workout?.rpe_score !== null && workout?.rpe_score !== undefined) setRpeScore(workout.rpe_score);
       if (workout?.joint_pain) setJointPain(workout.joint_pain);
       if (workout?.notes) setWorkoutNotes(workout.notes);
 
-      // 2. Lấy Bài tập của buổi này
-      const { data: wExercises } = await supabase
-        .from('workout_exercises')
-        .select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)')
-        .eq('workout_id', workoutId)
-        .order('order_index', { ascending: true });
-
       let prevVideoUrl = null;
       let prevNotesMap: Record<string, string> = {};
       let prevLogsMap: Record<string, any[]> = {};
+      let currentLogs: any[] = [];
+
+      // 🔥 CHẠY SONG SONG: Lấy Lịch sử Tạ hiện tại VÀ Dữ liệu tuần trước (Tốn 1 lượt mạng)
+      const parallelTasks = [];
+
+      if (wExercises && wExercises.length > 0) {
+        const wExIds = wExercises.map((ex: any) => ex.id);
+        parallelTasks.push(
+          supabase.from('workout_logs').select('*').in('workout_exercise_id', wExIds).then(res => {
+            currentLogs = res.data || [];
+          })
+        );
+      }
 
       if (workout?.week_number > 1 && workout?.block_id) {
-        const { data: prevWorkout } = await supabase.from('workouts')
-          .select('id, coach_video_url')
-          .eq('block_id', workout.block_id)
-          .eq('order_index', workout.order_index)
-          .eq('week_number', workout.week_number - 1)
-          .single();
+        parallelTasks.push(
+          (async () => {
+            const { data: prevWorkout } = await supabase.from('workouts')
+              .select('id, coach_video_url')
+              .eq('block_id', workout.block_id)
+              .eq('order_index', workout.order_index)
+              .eq('week_number', workout.week_number - 1)
+              .single();
 
-        if (prevWorkout) {
-          prevVideoUrl = prevWorkout.coach_video_url;
-          const { data: prevExs } = await supabase.from('workout_exercises')
-            .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
-            .eq('workout_id', prevWorkout.id);
-            
-          if (prevExs) {
-            prevExs.forEach(px => {
-              if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
-              if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
-            });
-          }
-        }
-      }      // MỚI: Luôn ghi đè video URL. Nếu là Tuần 1 (prevVideoUrl = null), client sẽ KHÔNG thấy video dù DB có lưu.
+            if (prevWorkout) {
+              prevVideoUrl = prevWorkout.coach_video_url;
+              const { data: prevExs } = await supabase.from('workout_exercises')
+                .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
+                .eq('workout_id', prevWorkout.id);
+                
+              if (prevExs) {
+                prevExs.forEach(px => {
+                  if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
+                  if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
+                });
+              }
+            }
+          })()
+        );
+      }
+
+      await Promise.all(parallelTasks);
+
       setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
 
       if (wExercises) {
-        // Lấy lịch sử tạ đã lưu nếu khách đã từng ấn nộp bài trước đó
-        const wExIds = wExercises.map(ex => ex.id);
-        const { data: logs } = await supabase
-          .from('workout_logs')
-          .select('*')
-          .in('workout_exercise_id', wExIds);
-
+        const logs = currentLogs;
         // Biến đổi thành State cho UI
         const exState = wExercises.map(ex => {
           const name = ex.custom_name || ex.exercises?.name || "Bài tập";
