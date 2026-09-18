@@ -185,28 +185,38 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
-      {/* Header */}
-      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 pt-[max(env(safe-area-inset-top),20px)] rounded-b-2xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <div className="inline-flex items-center px-2 py-1 border border-brand-sand/80 rounded-md shadow-sm">
-            <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">CK Coaching</span>
+                  {/* Header */}
+      <div className="bg-[#243028] px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-3xl shadow-lg relative overflow-hidden">
+        <div className="flex justify-between items-center mb-5 relative z-10">
+          <div className="inline-flex items-center px-3 py-1.5 border border-[#c4a962]/40 rounded-lg bg-white/5">
+            <span className="text-[#c4a962] text-[10px] font-black uppercase tracking-[0.2em]">CK Coaching</span>
           </div>
         </div>
-        <div className="relative z-10">
-          <p className="text-brand-sand font-bold text-sm uppercase tracking-wider mb-1">Xin chào,</p>
-          <h1 className="text-3xl font-black text-white">{user?.full_name}</h1>
-          
-          {/* Gamification Level Badges */}
-          <div className="flex gap-2 mt-4">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 1 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 1 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Cân nặng
-            </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 2 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 2 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Steps
-            </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${level >= 3 ? 'bg-brand-sand/20 text-brand-sand border border-brand-sand/40' : 'bg-white/5 text-white/30 border border-white/10'}`}>
-              {level >= 3 ? <CheckCircle2 size={12} /> : <Lock size={11} />} Dinh dưỡng
-            </div>
+        
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-[52px] h-[52px] bg-[#F2F1E8] rounded-full border-[3px] border-[#F2F1E8]/20 flex items-center justify-center shadow-md shrink-0">
+            <span className="text-[#243028] text-2xl font-black">
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (typeof userName !== 'undefined' && userName ? userName.charAt(0).toUpperCase() : 'B')}
+            </span>
+          </div>
+          <div>
+            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : (typeof userName !== 'undefined' && userName ? userName.split(' ').pop() : 'Bạn')}!</h1>
+            <p className="text-[#c4a962] text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
+              Nhật Ký Tracking
+            </p>
+          </div>
+        </div>
+        
+        {/* Gamification Level Badges */}
+        <div className="flex gap-2 mt-6 relative z-10">
+          <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 1 ? 'bg-[#c4a962] text-[#1a2b22]' : 'bg-white/5 text-white/40 border border-white/10'}`}>
+            {level >= 1 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Cân nặng
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 2 ? 'bg-[#c4a962] text-[#1a2b22]' : 'bg-white/5 text-white/40 border border-white/10'}`}>
+            {level >= 2 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Steps
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 3 ? 'bg-[#c4a962] text-[#1a2b22]' : 'bg-white/5 text-white/40 border border-white/10'}`}>
+            {level >= 3 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Dinh dưỡng
           </div>
         </div>
       </div>
