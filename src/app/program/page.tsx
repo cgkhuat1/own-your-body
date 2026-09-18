@@ -260,7 +260,7 @@ export default function ClientDashboard() {
                     key={workout.id} 
                     className={`rounded-2xl p-5 shadow-sm border flex items-center justify-between cursor-pointer transition-all group ${
                       workout.status === 'perfect'
-                        ? "bg-gradient-to-r from-[#FFF8E7] to-[#FDF4D9] border-[#D4AF37] hover:border-[#B5952F] shadow-[0_4px_12px_rgba(212,175,55,0.15)]" 
+                        ? "bg-gradient-to-br from-[#FFF3D6] to-[#FCE3A1] border-[#D4AF37] ring-1 ring-[#D4AF37]/50 hover:border-[#B5952F] hover:ring-[#B5952F]/70 shadow-[0_6px_20px_rgba(212,175,55,0.35)]" 
                         : workout.status === 'partial' 
                         ? "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
@@ -278,7 +278,7 @@ export default function ClientDashboard() {
                     {/* Checkmark bên phải */}
                     <div className="flex-shrink-0 ml-4">
                       {workout.status === 'perfect' ? (
-                        <CheckCircle2 className="text-[#D4AF37] fill-[#FFF8E7]" size={32} />
+                        <CheckCircle2 className="text-[#B8860B] fill-[#FFE066]" size={32} />
                       ) : workout.status === 'partial' ? (
                         <CheckCircle2 className="text-emerald-500 fill-emerald-100" size={32} />
                       ) : (
