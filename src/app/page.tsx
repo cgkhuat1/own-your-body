@@ -1,319 +1,476 @@
 "use client";
-
 import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { ArrowLeft, Loader2, UserCircle, Target, Activity, Dumbbell, Calendar, Flame, Footprints, Lock, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import updateLocale from "dayjs/plugin/updateLocale";
+
+dayjs.extend(isoWeek);
+dayjs.extend(updateLocale);
+dayjs.updateLocale('en', { weekStart: 1 }); // Monday is the first day of the week
 
 export default function ClientDashboard() {
-  const [activeWeek, setActiveWeek] = useState(1);
-  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("Bạn");
-  const [isActive, setIsActive] = useState(true);
-  const [programInfo, setProgramInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  
+  // Tab Navigation
+  const [activeTab, setActiveTab] = useState<'log' | 'workout'>('log');
+  
+  // Active Program (Old profile page logic)
+  const [activeProgram, setActiveProgram] = useState<any>(null);
+  const [activeBlock, setActiveBlock] = useState<any>(null);
 
-  // Load Dữ liệu từ Supabase thay vì Mock Data
+  // Daily Log Logic
+  const [currentWeekStart, setCurrentWeekStart] = useState(dayjs().startOf('isoWeek'));
+  const [clientRealWeek, setClientRealWeek] = useState<number | null>(null);
+  const [viewingWeekIdx, setViewingWeekIdx] = useState<number | null>(null);
+  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
+  
+  // Modal State
+  const [editingDay, setEditingDay] = useState<any>(null); // Date string 'YYYY-MM-DD'
+  const [metricsInput, setMetricsInput] = useState({ weight: '', steps: '', calories: '', protein: '' });
+
   useEffect(() => {
-    const fetchRealData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = "/login";
-        return;
-      }
+    fetchMyData();
+  }, [currentWeekStart]);
 
-      // 1. Fetch User Data
-      const { data: user } = await supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single();
-      if (user) {
-        if (user.full_name) setUserName(user.full_name);
-        setIsActive(user.is_active !== false); // Default is true unless explicitly false
-        if (user.role === 'coach' || user.role === 'founder') {
-          window.location.href = "/coach";
-          return;
-        }
-      }
+  const fetchMyData = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = "/login";
+      return;
+    }
 
-      if (user?.is_active === false) {
-        setLoading(false);
-        return; // Dừng lại nếu tài khoản bị khóa
-      }
+    const userId = session.user.id;
 
-      // 2. Fetch Latest Program
-      const { data: programsData } = await supabase
-        .from('programs')
-        .select(`
-          id, name,
-          blocks (
-            id, name, order_index,
-            workouts ( id, name, week_number, is_completed, order_index )
-          )
-        `)
-        .eq('client_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+    // Fetch User & Profile
+    if (!user) {
+      const startDate = currentWeekStart.format('YYYY-MM-DD');
+      const endDate = currentWeekStart.endOf('isoWeek').format('YYYY-MM-DD');
 
-      const programs = programsData?.[0];
+      // 🔥 Chạy song song tất cả các request để giảm thời gian load từ 3s xuống 0.5s
+      const [
+        userRes,
+        profileRes,
+        progRes,
+        metricsRes
+      ] = await Promise.all([
+        supabase.from('users').select('*').eq('id', userId).single(),
+        supabase.from('client_profiles').select('*').eq('id', userId).single(),
+        supabase.from('programs').select(`
+          id, name, duration_weeks,
+          blocks ( id, name, order_index, workouts ( id, name, week_number, is_completed ) )
+        `).eq('client_id', userId).neq('name', `dummy-${Date.now()}`).limit(1).single(),
+        supabase.from('daily_metrics').select('*').eq('client_id', userId).gte('date', startDate).lte('date', endDate)
+      ]);
 
-      if (programs) {
-        // Sort blocks
-        const sortedBlocks = programs.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
-        
-        let initialBlockId = sortedBlocks[0]?.id;
-        
-        const formatWeeks = (block: any) => {
-          // Group workouts by week_number
-          const weeksMap = new Map();
+      if (userRes.data) setUser(userRes.data);
+      if (profileRes.data) {
+        setProfile(profileRes.data);
+        if (profileRes.data.coaching_start_date) {
+          const start = dayjs(profileRes.data.coaching_start_date).startOf('day');
+          const diff = dayjs().startOf('day').diff(start, 'day');
+          const w = diff >= 0 ? Math.floor(diff / 7) + 1 : 1;
+          setClientRealWeek(w);
           
-          if (block.workouts && Array.isArray(block.workouts)) {
-            block.workouts.forEach((wo: any) => {
-              const wn = wo.week_number || 1;
-              if (!weeksMap.has(wn)) {
-                weeksMap.set(wn, {
-                  id: wn,
-                  name: `Tuần ${wn}`,
-                  workouts: []
-                });
-              }
-              weeksMap.get(wn).workouts.push({
-                id: wo.id,
-                name: wo.name,
-                order_index: wo.order_index,
-                status: wo.is_completed ? 'perfect' : 'incomplete'
-              });
-            });
-          }
-
-          // Convert to array and sort
-          return Array.from(weeksMap.values())
-            .sort((a, b) => a.id - b.id)
-            .map(w => {
-              w.workouts.sort((a: any, b: any) => a.order_index - b.order_index);
-              return w;
-            });
-        };
-
-        setProgramInfo({
-          id: programs.id,
-          name: programs.name,
-          blocks: sortedBlocks,
-          formatWeeks
-        });
-        
-        setActiveBlockId(initialBlockId);
-        
-        const firstBlock = sortedBlocks[0];
-        if (firstBlock) {
-          const weeksArray = formatWeeks(firstBlock);
-          if (weeksArray.length > 0) {
-            setActiveWeek(weeksArray[0].id);
+          // If first time loading, set currentWeekStart to exactly match that week's Monday
+          if (!viewingWeekIdx) {
+            setViewingWeekIdx(w);
+            setCurrentWeekStart(start.add((w - 1) * 7, 'day'));
           }
         }
       }
-
-      setLoading(false);
-    };
-
-    fetchRealData();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+      if (progRes.data) {
+        setActiveProgram(progRes.data);
+        if (progRes.data.blocks && progRes.data.blocks.length > 0) {
+          const sortedBlocks = [...progRes.data.blocks].sort((a: any, b: any) => a.order_index - b.order_index);
+          setActiveBlock(sortedBlocks[0]);
+        }
+      }
+      if (metricsRes.data) setDailyMetrics(metricsRes.data);
+    } else {
+      // Nếu user đã có sẵn, chỉ cần lấy metrics của tuần mới
+      const startDate = currentWeekStart.format('YYYY-MM-DD');
+      const endDate = currentWeekStart.endOf('isoWeek').format('YYYY-MM-DD');
+      const { data: metrics } = await supabase.from('daily_metrics')
+        .select('*')
+        .eq('client_id', userId)
+        .gte('date', startDate)
+        .lte('date', endDate);
+      if (metrics) setDailyMetrics(metrics);
+    }
+    
+    setLoading(false);
   };
 
-  if (loading) {
-    return <div className="min-h-screen bg-brand-paper flex items-center justify-center font-bold text-brand-moss">Đang tải dữ liệu...</div>;
-  }
+  // Gamification Level Check
+  const level = profile?.tracking_level || 1;
+  const canTrackSteps = level >= 2;
+  const canTrackDiet = level >= 3;
 
-  // Màn hình vô hiệu hóa
-  if (!isActive) {
-    return (
-      <div className="min-h-screen bg-brand-paper flex items-center justify-center p-6 text-center">
-        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-brand-line">
-          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock size={40} />
-          </div>
-          <h1 className="text-2xl font-black text-brand-moss mb-3">Tài khoản tạm khóa</h1>
-          <p className="text-brand-moss/70 leading-relaxed mb-8">
-            Gói Coaching của bạn đã kết thúc hoặc tài khoản đang bị tạm ngưng. Lịch tập đã được đưa vào Kho lưu trữ. Vui lòng liên hệ HLV để gia hạn và tiếp tục.
-          </p>
-          <button onClick={handleLogout} className="w-full py-4 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep transition-colors shadow-md">
-            Đăng xuất
+  // Handle Save Metric
+  const handleSaveMetric = async () => {
+    if (!editingDay || !user) return;
+    setSaving(true);
+    
+    const payload = {
+      client_id: user.id,
+      date: editingDay,
+      weight: metricsInput.weight ? parseFloat(metricsInput.weight) : null,
+      steps: metricsInput.steps ? parseInt(metricsInput.steps) : null,
+      calories: metricsInput.calories ? parseInt(metricsInput.calories) : null,
+      protein: metricsInput.protein ? parseInt(metricsInput.protein) : null,
+      // Snapshot targets if it's a new row, else keep existing (upsert logic)
+      target_steps: profile.target_steps,
+      target_calories: profile.target_calories,
+      target_protein: profile.target_protein,
+      goal_type: profile.goal_type || 'cut'
+    };
+
+    // We check if a row already exists to avoid overwriting old targets if they already exist
+    const existingRow = dailyMetrics.find(m => m.date === editingDay);
+    if (existingRow) {
+       payload.target_steps = existingRow.target_steps || payload.target_steps;
+       payload.target_calories = existingRow.target_calories || payload.target_calories;
+       payload.target_protein = existingRow.target_protein || payload.target_protein;
+       payload.goal_type = existingRow.goal_type || payload.goal_type;
+    }
+
+    await supabase.from('daily_metrics').upsert(payload, { onConflict: 'client_id,date' });
+    
+    await fetchMyData();
+    setEditingDay(null);
+    setSaving(false);
+  };
+
+  const openEditor = (dateStr: string) => {
+    const existingRow = dailyMetrics.find(m => m.date === dateStr);
+    setMetricsInput({
+      weight: existingRow?.weight?.toString() || '',
+      steps: existingRow?.steps?.toString() || '',
+      calories: existingRow?.calories?.toString() || '',
+      protein: existingRow?.protein?.toString() || '',
+    });
+    setEditingDay(dateStr);
+  };
+
+  // Generate 7 days for the UI
+  const weekDays = Array.from({length: 7}, (_, i) => {
+    return currentWeekStart.add(i, 'day');
+  });
+
+  // Calculate Weekly Step Summary
+  const totalStepsTarget = (profile?.target_steps || 0) * 7;
+  const totalStepsDone = dailyMetrics.reduce((sum, m) => sum + (m.steps || 0), 0);
+  const remainingSteps = Math.max(0, totalStepsTarget - totalStepsDone);
+  
+  // How many days left in the week (including today)?
+  const today = dayjs();
+  let daysLeft = 7;
+  if (currentWeekStart.isSame(today, 'isoWeek')) {
+    daysLeft = 7 - (today.isoWeekday() - 1); // 7 - (Day of week - 1)
+  } else if (currentWeekStart.isBefore(today)) {
+    daysLeft = 0; // Past week
+  }
+  
+  const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
+
+  if (loading && !user) return <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
+
+  return (
+    <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
+      {/* Header & Tabs */}
+      <div className="bg-brand-moss text-white pt-10 pb-4 px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <Activity size={120} />
+        </div>
+        <div className="relative z-10">
+          <p className="text-brand-sand font-bold text-sm uppercase tracking-wider mb-1">Xin chào,</p>
+          <h1 className="text-3xl font-black text-white">{user?.full_name}</h1>
+          <p className="text-brand-sage mt-1 font-medium italic">Level {level} Tracking Mở Khóa</p>
+        </div>
+
+        {/* Custom Tabs */}
+        <div className="relative z-10 flex gap-4 mt-8">
+          <button 
+            onClick={() => setActiveTab('log')}
+            className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'log' ? 'bg-brand-sand text-brand-moss shadow-lg' : 'bg-white/10 text-brand-sage hover:bg-white/20'}`}
+          >
+            <Calendar size={18} /> Nhật ký
+          </button>
+          <button 
+            onClick={() => setActiveTab('workout')}
+            className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'workout' ? 'bg-brand-sand text-brand-moss shadow-lg' : 'bg-white/10 text-brand-sage hover:bg-white/20'}`}
+          >
+            <Dumbbell size={18} /> Lịch Tập
           </button>
         </div>
       </div>
-    );
-  }
 
-  let programData = null;
-  let completedThisWeek = 0;
-  let compliance = 0;
-
-  if (programInfo && activeBlockId) {
-    const activeBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
-    if (activeBlock) {
-      const weeks = programInfo.formatWeeks(activeBlock);
-      programData = { weeks };
-      
-      const currentWeek = weeks.find((w: any) => w.id === activeWeek);
-      if (currentWeek) {
-        const total = currentWeek.workouts.length;
-        completedThisWeek = currentWeek.workouts.filter((w: any) => w.status === 'perfect').length;
-        compliance = total > 0 ? Math.round((completedThisWeek / total) * 100) : 0;
-      }
-    }
-  }
-
-  return (
-    <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">
-      {/* Header */}
-      <div className="bg-brand-mossDeep text-brand-sage px-5 pb-5 pt-[max(env(safe-area-inset-top),20px)] rounded-b-2xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <div className="inline-flex items-center px-2 py-1 border border-brand-sand/80 rounded-md shadow-sm">
-            <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">
-              CK Coaching
-            </span>
-          </div>
-          <a href="/profile" className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-            <UserCircle size={14} className="text-brand-sand" />
-            <span className="text-brand-sand text-[11px] font-bold uppercase tracking-[0.15em]">Hồ Sơ</span>
-          </a>
-        </div>
-        
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-full border-2 border-brand-sand bg-brand-paper flex items-center justify-center font-bold text-brand-moss text-lg shadow-sm">
-              {userName.split(" ").pop()?.charAt(0)}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Chào {userName}!</h1>
-            </div>
-          </div>
+      {activeTab === 'log' ? (
+        <div className="p-5 space-y-6">
           
-          <div>
-            <button onClick={handleLogout} className="p-2 bg-white/10 rounded-full text-brand-sand hover:bg-white/20 transition-all border border-brand-sand/20">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Consistency Widget */}
-        <div className="bg-brand-moss rounded-xl p-4 border border-brand-sage/20 relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 opacity-10">
-            <Flame size={80} />
-          </div>
-          <div className="relative z-10 flex justify-between items-center">
-            <div>
-              <div className="flex items-center space-x-2 text-brand-sand mb-1">
-                <Flame size={16} />
-                <span className="font-bold text-xs uppercase tracking-wider">Chuỗi tập luyện</span>
-              </div>
-              <p className="text-white text-sm">Tuân thủ: <span className="font-bold">{compliance}%</span> (Tuần này)</p>
-            </div>
-            <div className="w-10 h-10 bg-brand-sand rounded-full flex items-center justify-center">
-              <span className="text-brand-mossDeep font-black text-lg">{completedThisWeek}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-5">
-        {programData ? (
-          <>
-            <div className="mb-4">
-              <h2 className="text-brand-moss font-black text-xl flex items-center space-x-2 mb-3">
-                <CalendarDays size={20} className="text-brand-sand" />
-                <span>Phase: {programInfo?.name}</span>
-              </h2>
-              
-              {/* Block Tabs */}
-              {programInfo?.blocks && programInfo.blocks.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {programInfo.blocks.map((b: any) => (
-                    <button
-                      key={b.id}
-                      onClick={() => { setActiveBlockId(b.id); setActiveWeek(1); }}
-                      className={`flex-shrink-0 px-4 py-1.5 rounded-lg font-bold text-sm transition-all border ${
-                        activeBlockId === b.id 
-                          ? "bg-brand-mossDeep text-white border-brand-mossDeep shadow-sm" 
-                          : "bg-white text-brand-moss/60 border-brand-line hover:bg-brand-paper"
-                      }`}
-                    >
-                      {b.name}
-                    </button>
-                  ))}
-                </div>
+          {/* Week Selector */}
+          <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-brand-line/50">
+            <button onClick={() => {
+              if (profile?.coaching_start_date && viewingWeekIdx) {
+                const newIdx = viewingWeekIdx - 1;
+                if (newIdx >= 1) {
+                  setViewingWeekIdx(newIdx);
+                  setCurrentWeekStart(dayjs(profile.coaching_start_date).add((newIdx - 1) * 7, 'day'));
+                }
+              } else {
+                setCurrentWeekStart(prev => prev.subtract(1, 'week'));
+              }
+            }} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronLeft /></button>
+            
+            <div className="text-center">
+              {profile?.coaching_start_date && viewingWeekIdx ? (
+                <>
+                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+                     {viewingWeekIdx === clientRealWeek ? "🔥 Đang ở " : ""} Tuần {viewingWeekIdx} / {profile.coaching_duration_weeks || 12}
+                   </span>
+                   <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.add(6, 'day').format('DD/MM')}</span>
+                </>
+              ) : (
+                <>
+                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Tuần này</span>
+                   <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.endOf('isoWeek').format('DD/MM')}</span>
+                </>
               )}
             </div>
 
-            <div className="flex space-x-2 mb-6 overflow-x-auto p-2 -mx-2 scrollbar-hide">
-              {programData.weeks.map((week: any) => (
-                <button
-                  key={week.id}
-                  onClick={() => setActiveWeek(week.id)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-sm ${
-                    activeWeek === week.id 
-                      ? "bg-brand-moss text-white ring-2 ring-brand-sand ring-offset-2 ring-offset-brand-paper" 
-                      : "bg-white text-brand-moss/60 hover:bg-brand-sand/30 border border-brand-line"
-                  }`}
-                >
-                  {week.name}
-                </button>
-              ))}
-            </div>
+            <button onClick={() => {
+              if (profile?.coaching_start_date && viewingWeekIdx) {
+                const newIdx = viewingWeekIdx + 1;
+                const max = profile.coaching_duration_weeks || 12;
+                if (newIdx <= max) {
+                  setViewingWeekIdx(newIdx);
+                  setCurrentWeekStart(dayjs(profile.coaching_start_date).add((newIdx - 1) * 7, 'day'));
+                }
+              } else {
+                setCurrentWeekStart(prev => prev.add(1, 'week'));
+              }
+            }} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss"><ChevronRight /></button>
+          </div>
 
-            <div className="space-y-3">
-              {programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.length > 0 ? (
-                programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.map((workout: any) => (
-                  <div 
-                    key={workout.id} 
-                    className={`rounded-2xl p-5 shadow-sm border flex items-center justify-between cursor-pointer transition-all group ${
-                      workout.status === 'perfect'
-                        ? "bg-gradient-to-r from-[#FFF8E7] to-[#FDF4D9] border-[#D4AF37] hover:border-[#B5952F] shadow-[0_4px_12px_rgba(212,175,55,0.15)]" 
-                        : workout.status === 'partial' 
-                        ? "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400"
-                        : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
-                    }`}
-                    onClick={() => window.location.href = `/workout?id=${workout.id}`}
-                  >
-                    <div>
-                      <h3 className={`font-bold text-lg transition-colors ${
-                        workout.status === 'perfect' ? 'text-[#8C6216]' : workout.status === 'partial' ? 'text-emerald-800' : 'text-brand-moss group-hover:text-brand-mossDeep'
-                      }`}>
-                        {workout.name}
-                      </h3>
+          {/* Weekly Summary (If Level >= 2) */}
+          {canTrackSteps && profile?.target_steps && (
+             <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50">
+               <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                 <Footprints size={14} className="text-orange-500"/> Tổng kết Bước chân Tuần
+               </h3>
+               <div className="flex justify-between items-end mb-2">
+                 <div>
+                   <span className="text-3xl font-black text-brand-moss">{totalStepsDone.toLocaleString()}</span>
+                   <span className="text-gray-400 font-bold ml-1">/ {totalStepsTarget.toLocaleString()}</span>
+                 </div>
+                 <div className="text-right">
+                   <span className="block text-[10px] uppercase font-bold text-orange-500">Còn lại</span>
+                   <span className="font-bold text-gray-700">{remainingSteps.toLocaleString()}</span>
+                 </div>
+               </div>
+               {/* Progress Bar */}
+               <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden mb-3">
+                 <div className="bg-orange-400 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, (totalStepsDone / totalStepsTarget) * 100)}%` }}></div>
+               </div>
+               
+               {daysLeft > 0 && remainingSteps > 0 && (
+                 <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl flex gap-3 items-start">
+                   <span className="text-xl">💡</span>
+                   <p className="text-orange-800 text-[12px] font-semibold leading-snug">
+                     Tuần này còn {daysLeft} ngày. Để đạt target, mỗi ngày bạn chỉ cần đi trung bình <strong className="text-orange-600 text-sm">{avgStepsNeeded.toLocaleString()}</strong> bước. Cố lên nhé!
+                   </p>
+                 </div>
+               )}
+               {remainingSteps === 0 && (
+                 <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex gap-3 items-start text-emerald-800 text-sm font-bold">
+                   🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!
+                 </div>
+               )}
+             </div>
+          )}
+
+          {/* 7-Day Grid */}
+          <div className="space-y-4">
+            {weekDays.map(day => {
+              const dateStr = day.format('YYYY-MM-DD');
+              const isToday = day.isSame(dayjs(), 'day');
+              const row = dailyMetrics.find(m => m.date === dateStr);
+              
+              return (
+                <div key={dateStr} onClick={() => openEditor(dateStr)} className={`bg-white rounded-2xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-all ${isToday ? 'border-brand-moss ring-2 ring-brand-moss/20' : 'border-gray-100'}`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isToday ? 'bg-brand-moss text-brand-sand' : 'bg-brand-paper text-brand-moss'}`}>
+                        {day.format('DD')}
+                      </span>
+                      <div>
+                        <span className="block text-xs font-bold text-gray-400 uppercase">{day.format('dddd')}</span>
+                        {isToday && <span className="text-[10px] font-black text-brand-moss bg-brand-moss/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Hôm nay</span>}
+                      </div>
                     </div>
-                    
-                    {/* Checkmark bên phải */}
-                    <div className="flex-shrink-0 ml-4">
-                      {workout.status === 'perfect' ? (
-                        <CheckCircle2 className="text-[#D4AF37] fill-[#FFF8E7]" size={32} />
-                      ) : workout.status === 'partial' ? (
-                        <CheckCircle2 className="text-emerald-500 fill-emerald-100" size={32} />
+                    {row ? (
+                      <CheckCircle2 className="text-emerald-500 w-5 h-5" />
+                    ) : (
+                      <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">+ Nhập</span>
+                    )}
+                  </div>
+                  
+                  {/* Metric Chips */}
+                  <div className="flex flex-wrap gap-2">
+                    {/* Weight (Always Level 1) */}
+                    <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cân nặng</span>
+                      <span className="font-black text-brand-moss">{row?.weight ? `${row.weight} kg` : '--'}</span>
+                    </div>
+
+                    {/* Steps (Level 2+) */}
+                    <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center relative overflow-hidden">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Bước chân</span>
+                      {canTrackSteps ? (
+                        <span className="font-black text-brand-moss">{row?.steps ? row.steps.toLocaleString() : '--'}</span>
                       ) : (
-                        <Circle className="text-brand-line/60" size={32} />
+                         <div className="absolute inset-0 bg-gray-100/80 backdrop-blur-[1px] flex items-center justify-center">
+                           <Lock size={14} className="text-gray-400" />
+                         </div>
+                      )}
+                    </div>
+
+                    {/* Calories (Level 3+) */}
+                    <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center relative overflow-hidden">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Calo In</span>
+                      {canTrackDiet ? (
+                        <span className="font-black text-brand-moss">{row?.calories ? row.calories.toLocaleString() : '--'}</span>
+                      ) : (
+                         <div className="absolute inset-0 bg-gray-100/80 backdrop-blur-[1px] flex items-center justify-center">
+                           <Lock size={14} className="text-gray-400" />
+                         </div>
                       )}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="bg-white rounded-xl p-8 shadow-sm border border-brand-line border-dashed flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 bg-brand-paper rounded-full flex items-center justify-center mb-3">
-                    <CalendarDays className="text-brand-moss/30" size={24} />
-                  </div>
-                  <h3 className="font-bold text-brand-moss mb-1">Chưa có giáo án</h3>
-                  <p className="text-sm text-brand-moss/50">Tuần này của bạn trống. Chờ HLV lên lịch nhé!</p>
                 </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-10">
-            <h3 className="font-bold text-brand-moss mb-1">Chưa có giáo án</h3>
-            <p className="text-sm text-brand-moss/50">HLV chưa khởi tạo giáo án cho bạn.</p>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+        </div>
+      ) : (
+        <div className="p-5 space-y-6">
+          {/* Lịch tập Tab (Old Profile Logic) */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50 space-y-4">
+            <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+              <UserCircle className="w-5 h-5 text-brand-sage" /> Hồ sơ thể chất
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hiện tại</p>
+                <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'} kg</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mục tiêu</p>
+                <p className="text-lg font-black text-brand-moss">{profile?.target_weight || '--'}</p>
+              </div>
+            </div>
+            
+            {(profile?.injury_history || profile?.notes) && (
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
+                <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2"><Activity size={16}/> Lưu ý từ HLV</h3>
+                {profile?.injury_history && <p className="text-xs text-amber-700 font-medium"><strong>Chấn thương:</strong> {profile.injury_history}</p>}
+                {profile?.notes && <p className="text-xs text-amber-700 font-medium"><strong>Ghi chú:</strong> {profile.notes}</p>}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50 space-y-4">
+            <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+              <Dumbbell className="w-5 h-5 text-brand-sage" /> Chương trình tập
+            </h2>
+            {activeProgram ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-black text-xl text-brand-moss leading-tight">{activeProgram.name}</h3>
+                  <p className="text-sm font-bold text-brand-sage mt-1">Độ dài: {activeProgram.duration_weeks} tuần</p>
+                </div>
+                {activeBlock && (
+                  <div className="bg-brand-paper/30 p-4 rounded-xl border border-brand-line/30 space-y-3">
+                    <h4 className="font-bold text-brand-moss border-b border-brand-line/50 pb-2">{activeBlock.name}</h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {activeBlock.workouts?.sort((a:any, b:any)=>a.order_index - b.order_index).map((w: any) => (
+                         <Link key={w.id} href={`/workout?id=${w.id}`} className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100 hover:border-brand-sage transition-colors shadow-sm">
+                           <div>
+                             <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Tuần {w.week_number}</span>
+                             <span className="font-bold text-brand-moss">{w.name}</span>
+                           </div>
+                           {w.is_completed ? (
+                             <CheckCircle2 className="text-emerald-500 w-5 h-5" />
+                           ) : (
+                             <ArrowRight className="text-brand-sage w-5 h-5" />
+                           )}
+                         </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+               <div className="text-center py-6 text-gray-400 font-medium italic">
+                 HLV chưa giao giáo án nào cho bạn.
+               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Metric Input Modal */}
+      {editingDay && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0">
+            <h3 className="text-xl font-black text-brand-moss mb-1">
+              Nhật ký ngày {dayjs(editingDay).format('DD/MM')}
+            </h3>
+            <p className="text-sm text-gray-500 font-medium mb-6">Điền số liệu để Coach theo dõi tiến độ của bạn</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Cân nặng sáng (kg)</label>
+                <input type="number" step="0.1" value={metricsInput.weight} onChange={e => setMetricsInput({...metricsInput, weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900" placeholder="VD: 65.5" />
+              </div>
+
+              <div className="relative">
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Số bước chân</label>
+                <input type="number" disabled={!canTrackSteps} value={metricsInput.steps} onChange={e => setMetricsInput({...metricsInput, steps: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 10000" />
+                {!canTrackSteps && <div className="absolute right-4 top-10 flex items-center gap-1 text-xs font-bold text-orange-500"><Lock size={12}/> Level 2</div>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Calo In</label>
+                  <input type="number" disabled={!canTrackDiet} value={metricsInput.calories} onChange={e => setMetricsInput({...metricsInput, calories: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 2000" />
+                  {!canTrackDiet && <div className="absolute right-3 top-10 flex items-center text-orange-500"><Lock size={12}/></div>}
+                </div>
+                <div className="relative">
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Protein (g)</label>
+                  <input type="number" disabled={!canTrackDiet} value={metricsInput.protein} onChange={e => setMetricsInput({...metricsInput, protein: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 150" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button onClick={() => setEditingDay(null)} className="flex-1 py-3.5 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200">Hủy</button>
+              <button onClick={handleSaveMetric} disabled={saving} className="flex-1 py-3.5 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep shadow-md flex items-center justify-center gap-2">
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lưu Nhật Ký'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ClientNav />
     </div>
   );
