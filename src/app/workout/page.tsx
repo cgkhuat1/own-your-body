@@ -135,7 +135,8 @@ export default function WorkoutExecution() {
               weight: log && log.weight ? String(log.weight) : "",
               reps: log && log.reps ? String(log.reps) : "",
               rpe: log && log.rpe ? String(log.rpe) : "",
-              completed: !!log // Nếu có log cũ tức là set này đã được tick
+              completed: !!log,
+              prev_log: prevLogsMap[ex.exercise_id]?.find((l:any) => l.set_number === i) || null
             });
           }
           return {
@@ -417,13 +418,20 @@ export default function WorkoutExecution() {
                         <div key={set.id} className={`flex flex-col p-3 rounded-xl border shadow-sm transition-all ${
                           set.completed ? "bg-emerald-50 border-emerald-200" : isError ? "bg-red-50/80 border-red-300" : "bg-white border-brand-line"
                         }`}>
-                          <div className="mb-3 px-1">
-                            <span className={`text-sm font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
-                              Set {set.set_number}:
-                            </span>
-                            <span className={`text-sm font-bold ml-1.5 ${set.completed ? "text-emerald-600/90" : "text-brand-moss/70"}`}>
-                              {set.target}
-                            </span>
+                          <div className="mb-3 px-1 flex justify-between items-end">
+                            <div>
+                              <span className={`text-sm font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
+                                Set {set.set_number}:
+                              </span>
+                              <span className={`text-sm font-bold ml-1.5 ${set.completed ? "text-emerald-600/90" : "text-brand-moss/70"}`}>
+                                {set.target}
+                              </span>
+                            </div>
+                            {set.prev_log && (
+                               <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded uppercase tracking-wider border border-gray-200">
+                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight}kg x {set.prev_log.reps}</span>
+                               </div>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2">
