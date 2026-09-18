@@ -178,7 +178,7 @@ export default function ClientDashboard() {
   if (loading && !user) return <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
 
   return (
-    <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
+    <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito">
                         {/* Header */}
       <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
