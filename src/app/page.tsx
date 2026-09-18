@@ -170,15 +170,9 @@ export default function ClientDashboard() {
   const totalStepsDone = dailyMetrics.reduce((sum, m) => sum + (m.steps || 0), 0);
   const remainingSteps = Math.max(0, totalStepsTarget - totalStepsDone);
   
-  // How many days left in the week (including today)?
-  const today = dayjs();
-  let daysLeft = 7;
-  if (currentWeekStart.isSame(today, 'isoWeek')) {
-    daysLeft = 7 - (today.isoWeekday() - 1); // 7 - (Day of week - 1)
-  } else if (currentWeekStart.isBefore(today)) {
-    daysLeft = 0; // Past week
-  }
-  
+  // Calculate remaining days based on how many days have steps entered
+  const daysWithSteps = dailyMetrics.filter((m: any) => m.steps && m.steps > 0).length;
+  const daysLeft = Math.max(0, 7 - daysWithSteps);
   const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
 
   if (loading && !user) return <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
@@ -292,7 +286,7 @@ export default function ClientDashboard() {
                  <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl flex gap-3 items-start">
                    <span className="text-xl">💡</span>
                    <p className="text-orange-800 text-[12px] font-semibold leading-snug">
-                     Tuần này còn {daysLeft} ngày. Để đạt target, mỗi ngày bạn chỉ cần đi trung bình <strong className="text-orange-600 text-sm">{avgStepsNeeded.toLocaleString()}</strong> bước. Cố lên nhé!
+                     Còn lại {daysLeft} ngày chưa nhập số liệu. Để đạt target tuần, mỗi ngày bạn cần đi trung bình <strong className="text-orange-600 text-sm">{avgStepsNeeded.toLocaleString()}</strong> bước. Cố lên nhé!
                    </p>
                  </div>
                )}
