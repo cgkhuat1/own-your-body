@@ -431,7 +431,7 @@ export default function WorkoutExecution() {
                             </div>
                             {set.prev_log && (
                                <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded uppercase tracking-wider border border-gray-200">
-                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight}kg x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}</span>
+                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}kg`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}</span>
                                </div>
                             )}
                           </div>
