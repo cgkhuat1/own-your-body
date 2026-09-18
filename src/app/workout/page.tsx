@@ -597,7 +597,7 @@ export default function WorkoutExecution() {
           </div>
           
           {/* Nút gửi (Fixed Bottom) */}
-          <div className="w-full bg-white border-t border-brand-line px-6 pt-4 pb-[max(env(safe-area-inset-bottom),32px)] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] shrink-0">
+          <div className="w-full bg-transparent px-6 pt-4 pb-[max(env(safe-area-inset-bottom),32px)] shrink-0">
             <div className="flex gap-3">
                <button onClick={() => setShowFeedback(false)} className="px-6 py-4 rounded-xl font-bold text-brand-moss bg-brand-line/50 hover:bg-brand-line transition-colors">
                  Quay lại
