@@ -279,8 +279,8 @@ export default function ClientDashboard() {
                     <div className="flex-shrink-0 ml-4 relative">
                       {workout.status === 'perfect' ? (
                         <>
-                          <div className="absolute inset-0 bg-[#FFE066]/60 blur-md rounded-full animate-pulse"></div>
-                          <CheckCircle2 className="text-brand-mossDeep relative z-10" fill="#FFE066" size={32} />
+                          <div className="absolute inset-0 bg-[#FCE3A1]/70 blur-md rounded-full animate-pulse"></div>
+                          <CheckCircle2 className="text-brand-mossDeep relative z-10" fill="#FCE3A1" size={32} />
                         </>
                       ) : workout.status === 'partial' ? (
                         <CheckCircle2 className="text-emerald-500" fill="#D1FAE5" size={32} />
