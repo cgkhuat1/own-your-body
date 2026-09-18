@@ -185,36 +185,31 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
-      {/* Header & Tabs */}
-      <div className="bg-brand-moss text-white pt-10 pb-4 px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
+      {/* Header */}
+      <div className="bg-brand-moss text-white pt-10 pb-6 px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10">
           <Activity size={120} />
         </div>
         <div className="relative z-10">
           <p className="text-brand-sand font-bold text-sm uppercase tracking-wider mb-1">Xin chào,</p>
           <h1 className="text-3xl font-black text-white">{user?.full_name}</h1>
-          <p className="text-brand-sage mt-1 font-medium italic">Level {level} Tracking Mở Khóa</p>
-        </div>
-
-        {/* Custom Tabs */}
-        <div className="relative z-10 flex gap-4 mt-8">
-          <button 
-            onClick={() => setActiveTab('log')}
-            className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'log' ? 'bg-brand-sand text-brand-moss shadow-lg' : 'bg-white/10 text-brand-sage hover:bg-white/20'}`}
-          >
-            <Calendar size={18} /> Nhật ký
-          </button>
-          <button 
-            onClick={() => setActiveTab('workout')}
-            className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'workout' ? 'bg-brand-sand text-brand-moss shadow-lg' : 'bg-white/10 text-brand-sage hover:bg-white/20'}`}
-          >
-            <Dumbbell size={18} /> Lịch Tập
-          </button>
+          
+          {/* Gamification Level Badges */}
+          <div className="flex gap-2 mt-4">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 1 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 1 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.1 Cân nặng
+            </div>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 2 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 2 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.2 Steps
+            </div>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${level >= 3 ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/5 text-white/30 border border-white/10'}`}>
+              {level >= 3 ? <CheckCircle2 size={14} /> : <Lock size={12} />} Lv.3 Dinh dưỡng
+            </div>
+          </div>
         </div>
       </div>
 
-      {activeTab === 'log' ? (
-        <div className="p-5 space-y-6">
+      <div className="p-5 space-y-6">
           
           {/* Week Selector */}
           <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-brand-line/50">
@@ -360,73 +355,8 @@ export default function ClientDashboard() {
             })}
           </div>
 
-        </div>
-      ) : (
-        <div className="p-5 space-y-6">
-          {/* Lịch tập Tab (Old Profile Logic) */}
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50 space-y-4">
-            <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-              <UserCircle className="w-5 h-5 text-brand-sage" /> Hồ sơ thể chất
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hiện tại</p>
-                <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'} kg</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mục tiêu</p>
-                <p className="text-lg font-black text-brand-moss">{profile?.target_weight || '--'}</p>
-              </div>
-            </div>
-            
-            {(profile?.injury_history || profile?.notes) && (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
-                <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2"><Activity size={16}/> Lưu ý từ HLV</h3>
-                {profile?.injury_history && <p className="text-xs text-amber-700 font-medium"><strong>Chấn thương:</strong> {profile.injury_history}</p>}
-                {profile?.notes && <p className="text-xs text-amber-700 font-medium"><strong>Ghi chú:</strong> {profile.notes}</p>}
-              </div>
-            )}
-          </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50 space-y-4">
-            <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-              <Dumbbell className="w-5 h-5 text-brand-sage" /> Chương trình tập
-            </h2>
-            {activeProgram ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-black text-xl text-brand-moss leading-tight">{activeProgram.name}</h3>
-                  <p className="text-sm font-bold text-brand-sage mt-1">Độ dài: {activeProgram.duration_weeks} tuần</p>
-                </div>
-                {activeBlock && (
-                  <div className="bg-brand-paper/30 p-4 rounded-xl border border-brand-line/30 space-y-3">
-                    <h4 className="font-bold text-brand-moss border-b border-brand-line/50 pb-2">{activeBlock.name}</h4>
-                    <div className="grid grid-cols-1 gap-2">
-                      {activeBlock.workouts?.sort((a:any, b:any)=>a.order_index - b.order_index).map((w: any) => (
-                         <Link key={w.id} href={`/workout?id=${w.id}`} className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100 hover:border-brand-sage transition-colors shadow-sm">
-                           <div>
-                             <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Tuần {w.week_number}</span>
-                             <span className="font-bold text-brand-moss">{w.name}</span>
-                           </div>
-                           {w.is_completed ? (
-                             <CheckCircle2 className="text-emerald-500 w-5 h-5" />
-                           ) : (
-                             <ArrowRight className="text-brand-sage w-5 h-5" />
-                           )}
-                         </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-               <div className="text-center py-6 text-gray-400 font-medium italic">
-                 HLV chưa giao giáo án nào cho bạn.
-               </div>
-            )}
-          </div>
         </div>
-      )}
 
       {/* Metric Input Modal */}
       {editingDay && (
