@@ -303,10 +303,18 @@ export default function ClientDashboard() {
             {weekDays.map(day => {
               const dateStr = day.format('YYYY-MM-DD');
               const isToday = day.isSame(dayjs(), 'day');
-              const row = dailyMetrics.find(m => m.date === dateStr);
+              const row = dailyMetrics.find((m: any) => m.date === dateStr);
+              const hasData = !!row;
+              let bgClass = "bg-white border-gray-100 hover:border-brand-sand";
+              if (hasData) {
+                bgClass = "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400";
+              }
+              if (isToday) {
+                bgClass += " ring-2 ring-brand-moss/30 border-brand-moss";
+              }
               
               return (
-                <div key={dateStr} onClick={() => openEditor(dateStr)} className={`bg-white rounded-2xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-all ${isToday ? 'border-brand-moss ring-2 ring-brand-moss/20' : 'border-gray-100'}`}>
+                <div key={dateStr} onClick={() => openEditor(dateStr)} className={`rounded-2xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-all ${bgClass}`}>
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isToday ? 'bg-brand-moss text-brand-sand' : 'bg-brand-paper text-brand-moss'}`}>
