@@ -166,43 +166,43 @@ export default function ClientDashboard() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">
-            {/* Header */}
-      <div className="bg-[#243028] px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-3xl shadow-lg relative overflow-hidden">
+                  {/* Header */}
+      <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
-          <div className="inline-flex items-center px-3 py-1.5 border border-[#c4a962]/40 rounded-lg bg-white/5">
-            <span className="text-[#c4a962] text-[10px] font-black uppercase tracking-[0.2em]">CK Coaching</span>
+          <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/40 rounded-lg bg-white/5">
+            <span className="text-brand-sand text-[10px] font-black uppercase tracking-[0.2em]">CK Coaching</span>
           </div>
         </div>
         
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-[52px] h-[52px] bg-[#F2F1E8] rounded-full border-[3px] border-[#F2F1E8]/20 flex items-center justify-center shadow-md shrink-0">
-            <span className="text-[#243028] text-2xl font-black">
-              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (typeof userName !== 'undefined' && userName ? userName.charAt(0).toUpperCase() : 'B')}
+          <div className="w-[52px] h-[52px] bg-brand-paper rounded-full border-[3px] border-brand-paper/20 flex items-center justify-center shadow-md shrink-0">
+            <span className="text-brand-mossDeep text-2xl font-black">
+              {userName ? userName.charAt(0).toUpperCase() : 'B'}
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : (typeof userName !== 'undefined' && userName ? userName.split(' ').pop() : 'Bạn')}!</h1>
-            <p className="text-[#c4a962] text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
+            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {userName ? userName.split(' ').pop() : 'Bạn'}!</h1>
+            <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
               Chương Trình Tập Luyện
             </p>
           </div>
         </div>
 
         {/* Consistency Widget */}
-        <div className="bg-[#2C3B2E] rounded-xl p-4 border border-[#c4a962]/20 relative overflow-hidden mt-6">
+        <div className="bg-brand-moss rounded-xl p-4 border border-brand-sand/20 relative overflow-hidden mt-6">
           <div className="absolute -right-4 -bottom-4 opacity-10">
-            <Flame size={80} className="text-[#c4a962]" />
+            <Flame size={80} className="text-brand-sand" />
           </div>
           <div className="relative z-10 flex justify-between items-center">
             <div>
-              <div className="flex items-center space-x-2 text-[#c4a962] mb-1">
+              <div className="flex items-center space-x-2 text-brand-sand mb-1">
                 <Flame size={16} />
                 <span className="font-bold text-xs uppercase tracking-wider">Chuỗi tập luyện</span>
               </div>
               <p className="text-white text-sm">Tuân thủ: <span className="font-bold">{compliance}%</span> <span className="text-white/60 text-xs">(Tuần này)</span></p>
             </div>
-            <div className="w-10 h-10 bg-[#c4a962] rounded-full flex items-center justify-center shadow-inner">
-              <span className="text-[#2C3B2E] font-black text-lg">{completedThisWeek}</span>
+            <div className="w-10 h-10 bg-brand-sand rounded-full flex items-center justify-center shadow-inner">
+              <span className="text-brand-mossDeep font-black text-lg">{completedThisWeek}</span>
             </div>
           </div>
         </div>

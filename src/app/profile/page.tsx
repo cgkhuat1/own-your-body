@@ -36,23 +36,23 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-brand-paper/50 pb-24 font-nunito">
-                  {/* Header */}
-      <div className="bg-[#243028] px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-3xl shadow-lg relative overflow-hidden">
+                        {/* Header */}
+      <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
-          <div className="inline-flex items-center px-3 py-1.5 border border-[#c4a962]/40 rounded-lg bg-white/5">
-            <span className="text-[#c4a962] text-[10px] font-black uppercase tracking-[0.2em]">CK Coaching</span>
+          <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/40 rounded-lg bg-white/5">
+            <span className="text-brand-sand text-[10px] font-black uppercase tracking-[0.2em]">CK Coaching</span>
           </div>
         </div>
         
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-[52px] h-[52px] bg-[#F2F1E8] rounded-full border-[3px] border-[#F2F1E8]/20 flex items-center justify-center shadow-md shrink-0">
-            <span className="text-[#243028] text-2xl font-black">
-              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (typeof userName !== 'undefined' && userName ? userName.charAt(0).toUpperCase() : 'B')}
+          <div className="w-[52px] h-[52px] bg-brand-paper rounded-full border-[3px] border-brand-paper/20 flex items-center justify-center shadow-md shrink-0">
+            <span className="text-brand-mossDeep text-2xl font-black">
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'B'}
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : (typeof userName !== 'undefined' && userName ? userName.split(' ').pop() : 'Bạn')}!</h1>
-            <p className="text-[#c4a962] text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
+            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
+            <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
               Hồ Sơ Thể Chất
             </p>
           </div>
