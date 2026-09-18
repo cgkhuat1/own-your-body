@@ -403,7 +403,7 @@ export default function ClientProfileDetail() {
         ) : (
           <>
             {/* Tabs Cuộn */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto pt-2 pr-2 pb-2 scrollbar-hide">
               {Array.from({length: profile.coaching_duration_weeks}, (_, i) => i + 1).map(w => {
                 const isCurrent = w === currentRealWeek;
                 const isSelected = w === selectedWeek;
