@@ -103,6 +103,7 @@ export default function ClientProfileDetail() {
       injury_history: profile.injury_history,
       postural_issues: profile.postural_issues,
       dietary_habits: profile.dietary_habits,
+      action_plan: profile.action_plan || null,
       notes: profile.notes,
       tracking_level: profile.tracking_level,
       target_steps: profile.target_steps || null,
@@ -298,6 +299,58 @@ export default function ClientProfileDetail() {
           </div>
         </div>
       </div>
+
+      {/* Đánh giá chuyên môn */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
+          <Activity className="w-5 h-5 text-brand-sage" /> Đánh giá chuyên môn (HLV)
+        </h2>
+        
+        <div>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Lịch sử chấn thương / Bệnh lý</label>
+          <textarea 
+            rows={3} 
+            value={profile.injury_history} 
+            onChange={e => setProfile({...profile, injury_history: e.target.value})} 
+            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
+            placeholder="VD: Thoát vị đĩa đệm L4-L5, từng mổ dây chằng chéo trước..."
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Phân tích tư thế (Posture)</label>
+          <textarea 
+            rows={3} 
+            value={profile.postural_issues} 
+            onChange={e => setProfile({...profile, postural_issues: e.target.value})} 
+            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
+            placeholder="VD: Võng lưng (APT), gù vai, sập vòm bàn chân trái..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Thói quen ăn uống / Sinh hoạt</label>
+          <textarea 
+            rows={3} 
+            value={profile.dietary_habits} 
+            onChange={e => setProfile({...profile, dietary_habits: e.target.value})} 
+            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
+            placeholder="VD: Làm văn phòng ngồi nhiều, hay nhậu cuối tuần, ít ăn rau..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-brand-moss mb-1 uppercase tracking-wider">🎯 Phương án xử lý</label>
+          <textarea 
+            rows={4} 
+            value={profile.action_plan || ''} 
+            onChange={e => setProfile({...profile, action_plan: e.target.value})} 
+            className="w-full bg-emerald-50/50 border-2 border-brand-sage/30 rounded-lg p-3 outline-none focus:border-brand-sage font-medium"
+            placeholder="VD: Xử lý ở gym ABC, tập 4 buổi/tuần (Push-Pull-Legs-Upper), ưu tiên sửa tư thế trước khi tăng tạ..."
+          />
+        </div>
+      </div>
+
 
       {/* Cài đặt Tracking & Gamification */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-5">
@@ -539,46 +592,6 @@ export default function ClientProfileDetail() {
             })()}
           </>
         )}
-      </div>
-
-      {/* Đánh giá chuyên môn */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-        <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-          <Activity className="w-5 h-5 text-brand-sage" /> Đánh giá chuyên môn (HLV)
-        </h2>
-        
-        <div>
-          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Lịch sử chấn thương / Bệnh lý</label>
-          <textarea 
-            rows={3} 
-            value={profile.injury_history} 
-            onChange={e => setProfile({...profile, injury_history: e.target.value})} 
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
-            placeholder="VD: Thoát vị đĩa đệm L4-L5, từng mổ dây chằng chéo trước..."
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Phân tích tư thế (Posture)</label>
-          <textarea 
-            rows={3} 
-            value={profile.postural_issues} 
-            onChange={e => setProfile({...profile, postural_issues: e.target.value})} 
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
-            placeholder="VD: Võng lưng (APT), gù vai, sập vòm bàn chân trái..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">Thói quen ăn uống / Sinh hoạt</label>
-          <textarea 
-            rows={3} 
-            value={profile.dietary_habits} 
-            onChange={e => setProfile({...profile, dietary_habits: e.target.value})} 
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-brand-sage"
-            placeholder="VD: Làm văn phòng ngồi nhiều, hay nhậu cuối tuần, ít ăn rau..."
-          />
-        </div>
       </div>
 
       {/* Save Button Fixed Bottom */}

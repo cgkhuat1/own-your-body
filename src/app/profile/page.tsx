@@ -73,6 +73,13 @@ export default function ProfilePage() {
               {profile?.notes && <p className="text-xs text-amber-700 font-medium"><strong>Ghi chú:</strong> {profile.notes}</p>}
             </div>
           )}
+
+          {profile?.action_plan && (
+            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
+              <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">🎯 Phương án xử lý</h3>
+              <p className="text-xs text-emerald-700 font-medium whitespace-pre-line">{profile.action_plan}</p>
+            </div>
+          )}
         </div>
 
         {/* Tài khoản */}
@@ -81,13 +88,9 @@ export default function ProfilePage() {
             <Lock className="w-5 h-5 text-brand-sage" /> Tài khoản
           </h2>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b border-gray-50">
+            <div className="flex justify-between py-2">
               <span className="text-gray-500 font-bold">Email</span>
               <span className="text-gray-800 font-medium">{user?.email || '--'}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-50">
-              <span className="text-gray-500 font-bold">Chiều cao</span>
-              <span className="text-gray-800 font-medium">{profile?.height ? `${profile.height} cm` : '--'}</span>
             </div>
           </div>
           <button onClick={handleLogout} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2 mt-4">
