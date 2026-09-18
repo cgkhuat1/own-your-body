@@ -523,7 +523,7 @@ export default function WorkoutExecution() {
       {/* Modal Feedback (Đánh giá buổi tập) */}
       {showFeedback && (
         <div className="fixed inset-0 z-[100] bg-brand-paper flex flex-col animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="w-full flex-1 p-6 flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)' }}>
+          <div className="w-full flex-1 px-6 pt-6 pb-12 flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)', paddingBottom: 'max(env(safe-area-inset-bottom), 48px)' }}>
             {/* Header */}
             <div className="text-center">
               <h2 className="text-2xl font-black text-brand-mossDeep mb-1 leading-tight text-balance">Chúc mừng bạn đã hoàn thành buổi tập! 🎉</h2>
