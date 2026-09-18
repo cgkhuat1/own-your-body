@@ -372,8 +372,8 @@ export default function ClientDashboard() {
 
       {/* Metric Input Modal */}
       {editingDay && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 max-h-[90vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),24px)]">
             <h3 className="text-xl font-black text-brand-moss mb-1">
               Nhật ký ngày {dayjs(editingDay).format('DD/MM')}
             </h3>
