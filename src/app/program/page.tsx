@@ -62,9 +62,14 @@ export default function ClientDashboard() {
   const userName = user?.full_name || "Bạn";
   const isActive = user ? user.is_active !== false : true;
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   // Tự động set activeBlockId ban đầu
   useEffect(() => {
-    if (programInfo?.blocks?.length > 0 && !activeBlockId) {
+    if (programInfo?.blocks && programInfo.blocks.length > 0 && !activeBlockId) {
       setActiveBlockId(programInfo.blocks[0].id);
     }
   }, [programInfo, activeBlockId]);
@@ -139,7 +144,33 @@ export default function ClientDashboard() {
   if (programInfo && activeBlockId) {
     const activeBlock = programInfo.blocks.find((b: any) => b.id === activeBlockId);
     if (activeBlock) {
-      const weeks = programInfo.formatWeeks(activeBlock);
+      
+
+
+  const formatWeeks = (block: any) => {
+    const weeksMap = new Map();
+    if (block?.workouts && Array.isArray(block.workouts)) {
+      block.workouts.forEach((wo: any) => {
+        const wn = wo.week_number || 1;
+        if (!weeksMap.has(wn)) {
+          weeksMap.set(wn, { id: wn, name: `Tuần ${wn}`, workouts: [] });
+        }
+        weeksMap.get(wn).workouts.push({
+          id: wo.id,
+          name: wo.name,
+          day_of_week: wo.day_of_week,
+          status: wo.is_completed ? (wo.is_perfect ? 'perfect' : 'partial') : 'incomplete'
+        });
+      });
+    }
+    return Array.from(weeksMap.values()).sort((a, b) => a.id - b.id).map(w => {
+       w.workouts.sort((a:any, b:any) => (a.day_of_week || 0) - (b.day_of_week || 0));
+       return w;
+    });
+  };
+
+  const weeks = formatWeeks(activeBlock);
+
       programData = { weeks };
       
       const currentWeek = weeks.find((w: any) => w.id === activeWeek);

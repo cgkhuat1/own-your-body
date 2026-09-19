@@ -118,7 +118,29 @@ export default function ClientDashboard() {
     }
   };
 
+
+  // Gamification Level Check
+  const level = profile?.tracking_level || 1;
+  const canTrackSteps = level >= 2;
+  const canTrackDiet = level >= 3;
+
+  // Generate 7 days for the UI
+  const weekDays = Array.from({length: 7}, (_, i) => {
+    return currentWeekStart.add(i, 'day');
+  });
+
+  // Calculate Weekly Step Summary
+  const totalStepsTarget = (profile?.target_steps || 0) * 7;
+  const totalStepsDone = dailyMetrics.reduce((sum: any, m: any) => sum + (m.steps || 0), 0);
+  const remainingSteps = Math.max(0, totalStepsTarget - totalStepsDone);
+  
+  // Calculate remaining days based on how many days have steps entered
+  const daysWithSteps = dailyMetrics.filter((m: any) => m.steps && m.steps > 0).length;
+  const daysLeft = Math.max(0, 7 - daysWithSteps);
+  const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
+
   if (loading && !user) {
+
     return (
       <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito animate-pulse">
         {/* Header Skeleton */}
