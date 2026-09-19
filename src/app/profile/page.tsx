@@ -32,7 +32,53 @@ export default function ProfilePage() {
     window.location.href = "/login";
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-brand-sage" /></div>;
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative">
+          <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="bg-white/20 px-3 py-1.5 rounded-lg w-28 h-7"></div>
+          </div>
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-[52px] h-[52px] bg-white/20 rounded-full border-[3px] border-white/10 shrink-0"></div>
+            <div className="space-y-2">
+              <div className="w-32 h-8 bg-white/20 rounded-lg"></div>
+              <div className="w-24 h-3 bg-white/20 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-6">
+          {/* Card 1 Skeleton */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="w-32 h-6 bg-brand-line/50 rounded mb-4"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="w-16 h-3 bg-brand-line/40 rounded"></div>
+                <div className="w-20 h-6 bg-brand-line/60 rounded"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="w-16 h-3 bg-brand-line/40 rounded"></div>
+                <div className="w-20 h-6 bg-brand-line/60 rounded"></div>
+              </div>
+            </div>
+            <div className="bg-brand-line/20 h-24 rounded-xl mt-4 w-full"></div>
+          </div>
+
+          {/* Card 2 Skeleton */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="w-24 h-6 bg-brand-line/50 rounded mb-4"></div>
+            <div className="flex justify-between">
+              <div className="w-12 h-4 bg-brand-line/40 rounded"></div>
+              <div className="w-32 h-4 bg-brand-line/50 rounded"></div>
+            </div>
+            <div className="w-full h-12 bg-red-100/50 rounded-xl mt-4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito">
