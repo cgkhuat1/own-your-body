@@ -34,7 +34,7 @@ export default function ClientDashboard() {
         blocks (
           id, name, order_index,
           workouts (
-            id, name, week_number, is_completed, is_perfect, day_of_week
+            id, name, week_number, is_completed, is_perfect, order_index
           )
         )
       `)
@@ -48,7 +48,7 @@ export default function ClientDashboard() {
       // Sort blocks & workouts inside
       programsData.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
       programsData.blocks.forEach((b: any) => {
-        b.workouts.sort((w1: any, w2: any) => (w1.day_of_week || 0) - (w2.day_of_week || 0));
+        b.workouts.sort((w1: any, w2: any) => (w1.order_index || 0) - (w2.order_index || 0));
       });
     }
 
@@ -158,13 +158,13 @@ export default function ClientDashboard() {
         weeksMap.get(wn).workouts.push({
           id: wo.id,
           name: wo.name,
-          day_of_week: wo.day_of_week,
+          order_index: wo.order_index,
           status: wo.is_completed ? (wo.is_perfect ? 'perfect' : 'partial') : 'incomplete'
         });
       });
     }
     return Array.from(weeksMap.values()).sort((a, b) => a.id - b.id).map(w => {
-       w.workouts.sort((a:any, b:any) => (a.day_of_week || 0) - (b.day_of_week || 0));
+       w.workouts.sort((a:any, b:any) => (a.order_index || 0) - (b.order_index || 0));
        return w;
     });
   };

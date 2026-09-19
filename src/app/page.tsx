@@ -93,6 +93,10 @@ export default function ClientDashboard() {
         client_id: user.id,
         date: editingDay,
         weight: metricsInput.weight ? parseFloat(metricsInput.weight) : null,
+        target_steps: profile?.target_steps,
+        target_calories: profile?.target_calories,
+        target_protein: profile?.target_protein,
+        goal_type: profile?.goal_type || 'cut'
       };
       if (profile?.tracking_level >= 2) payload.steps = metricsInput.steps ? parseInt(metricsInput.steps) : null;
       if (profile?.tracking_level >= 3) {
