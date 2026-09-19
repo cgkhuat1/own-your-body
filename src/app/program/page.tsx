@@ -122,7 +122,43 @@ export default function ClientDashboard() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-brand-paper flex items-center justify-center font-bold text-brand-moss">Đang tải dữ liệu...</div>;
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative">
+          <div className="flex justify-between items-start mb-6">
+            <div className="bg-white/20 px-3 py-1 rounded-full w-24 h-6"></div>
+            <div className="w-12 h-12 bg-white/20 rounded-full border-2 border-white/30"></div>
+          </div>
+          <div className="w-32 h-8 bg-white/20 rounded-lg mb-2"></div>
+          <div className="w-48 h-4 bg-white/20 rounded-full"></div>
+        </div>
+
+        <div className="px-5 mt-6 space-y-6">
+          {/* Tabs Skeleton */}
+          <div className="flex gap-2 mb-6">
+            <div className="flex-1 h-12 bg-brand-line/30 rounded-2xl"></div>
+            <div className="flex-1 h-12 bg-brand-line/50 rounded-2xl"></div>
+          </div>
+
+          {/* Block Skeleton */}
+          <div className="mb-4">
+            <div className="w-40 h-6 bg-brand-line/50 rounded mb-3"></div>
+            <div className="space-y-3">
+              {[1, 2].map(i => (
+                <div key={i} className="bg-white border border-brand-line rounded-2xl p-5 flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="w-16 h-4 bg-brand-line/50 rounded"></div>
+                    <div className="w-32 h-5 bg-brand-line/40 rounded"></div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-brand-line/30"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Màn hình vô hiệu hóa

@@ -335,7 +335,41 @@ export default function WorkoutExecution() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex flex-col items-center justify-center bg-brand-paper text-brand-moss"><Loader2 className="animate-spin mb-4" size={40} /> Đang tải bài tập...</div>;
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-32 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-white px-5 py-4 flex items-center justify-between border-b border-brand-line sticky top-0 z-50 pt-[max(env(safe-area-inset-top),16px)]">
+          <div className="w-8 h-8 bg-brand-line/40 rounded-full"></div>
+          <div className="flex-1 px-4 text-center space-y-2">
+            <div className="w-24 h-4 bg-brand-line/50 mx-auto rounded"></div>
+            <div className="w-32 h-5 bg-brand-line/40 mx-auto rounded"></div>
+          </div>
+          <div className="w-8 h-8 bg-brand-line/40 rounded-full"></div>
+        </div>
+        
+        {/* Progress Bar Skeleton */}
+        <div className="h-1.5 w-full bg-brand-line/30"></div>
+
+        {/* Content Skeleton */}
+        <div className="p-4 space-y-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm border border-brand-line/50 p-4">
+              <div className="flex justify-between items-start mb-4">
+                <div className="space-y-2">
+                  <div className="w-16 h-4 bg-brand-line/50 rounded"></div>
+                  <div className="w-40 h-6 bg-brand-line/40 rounded"></div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-brand-line/30"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="w-full h-10 bg-brand-line/20 rounded-xl"></div>
+                <div className="w-full h-10 bg-brand-line/20 rounded-xl"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

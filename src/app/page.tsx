@@ -175,7 +175,64 @@ export default function ClientDashboard() {
   const daysLeft = Math.max(0, 7 - daysWithSteps);
   const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
 
-  if (loading && !user) return <div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
+  if (loading && !user) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative">
+          <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="bg-white/20 px-3 py-1 rounded-full w-24 h-6"></div>
+            <div className="w-12 h-12 bg-white/20 rounded-full border-2 border-white/30"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="w-32 h-8 bg-white/20 rounded-lg mb-2"></div>
+            <div className="w-48 h-4 bg-white/20 rounded-full"></div>
+          </div>
+        </div>
+
+        <div className="px-5 mt-6 space-y-6">
+          {/* Tabs Skeleton */}
+          <div className="flex gap-2">
+            <div className="flex-1 h-12 bg-brand-line/50 rounded-2xl"></div>
+            <div className="flex-1 h-12 bg-brand-line/30 rounded-2xl"></div>
+          </div>
+
+          {/* Gamification Skeleton */}
+          <div className="p-5 rounded-3xl bg-white border border-brand-line shadow-sm">
+            <div className="w-32 h-5 bg-brand-line/50 rounded mb-4"></div>
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-16 h-16 rounded-full bg-brand-line/40"></div>
+                  <div className="w-12 h-3 bg-brand-line/30 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Week Navigation Skeleton */}
+          <div className="flex justify-between items-center px-4">
+            <div className="w-8 h-8 rounded-full bg-brand-line/40"></div>
+            <div className="w-24 h-6 bg-brand-line/50 rounded"></div>
+            <div className="w-8 h-8 rounded-full bg-brand-line/40"></div>
+          </div>
+
+          {/* Daily Cards Skeleton */}
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white border border-brand-line rounded-2xl p-4 flex gap-4 items-center">
+                <div className="w-12 h-12 rounded-xl bg-brand-line/30 shrink-0"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="w-20 h-4 bg-brand-line/50 rounded"></div>
+                  <div className="w-full h-8 bg-brand-line/30 rounded-lg"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24 font-nunito">
