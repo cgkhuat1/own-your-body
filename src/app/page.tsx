@@ -63,7 +63,8 @@ export default function ClientDashboard() {
     if (profile?.coaching_start_date && !viewingWeekIdx) {
       const start = dayjs(profile.coaching_start_date).startOf('day');
       const diff = dayjs().startOf('day').diff(start, 'day');
-      const w = Math.floor(diff / 7) + 1;
+      // Nếu chưa tới ngày bắt đầu (diff < 0), luôn tính là Tuần 1
+      const w = Math.max(1, Math.floor(diff / 7) + 1);
       setClientRealWeek(w);
       setViewingWeekIdx(w);
       setCurrentWeekStart(start.add((w - 1) * 7, 'day'));
