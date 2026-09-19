@@ -1,6 +1,7 @@
 "use client";
 import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
+import useSWR from 'swr';
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Loader2, UserCircle, Target, Activity, Dumbbell, Calendar, Flame, Footprints, Lock, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
@@ -13,167 +14,109 @@ dayjs.extend(updateLocale);
 dayjs.updateLocale('en', { weekStart: 1 }); // Monday is the first day of the week
 
 export default function ClientDashboard() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
   
   // Tab Navigation
   const [activeTab, setActiveTab] = useState<'log' | 'workout'>('log');
   
-  // Active Program (Old profile page logic)
-  const [activeProgram, setActiveProgram] = useState<any>(null);
-  const [activeBlock, setActiveBlock] = useState<any>(null);
-
   // Daily Log Logic
   const [currentWeekStart, setCurrentWeekStart] = useState(dayjs().startOf('isoWeek'));
+  const weekStartStr = currentWeekStart.format('YYYY-MM-DD');
   const [clientRealWeek, setClientRealWeek] = useState<number | null>(null);
+
   const [viewingWeekIdx, setViewingWeekIdx] = useState<number | null>(null);
-  const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
   
-  // Modal State
-  const [editingDay, setEditingDay] = useState<any>(null); // Date string 'YYYY-MM-DD'
+  const [editingDay, setEditingDay] = useState<string | null>(null);
   const [metricsInput, setMetricsInput] = useState({ weight: '', steps: '', calories: '', protein: '' });
 
-  useEffect(() => {
-    fetchMyData();
-  }, [currentWeekStart]);
-
-  const fetchMyData = async () => {
-    setLoading(true);
+  const fetcher = async (key: string, weekStr: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       window.location.href = "/login";
-      return;
+      return null;
     }
-
     const userId = session.user.id;
+    const endDate = dayjs(weekStr).endOf('isoWeek').format('YYYY-MM-DD');
 
-    // Fetch User & Profile
-    if (!user) {
-      const startDate = currentWeekStart.format('YYYY-MM-DD');
-      const endDate = currentWeekStart.endOf('isoWeek').format('YYYY-MM-DD');
+    const [userRes, profileRes, metricsRes] = await Promise.all([
+      supabase.from('users').select('*').eq('id', userId).single(),
+      supabase.from('client_profiles').select('*').eq('id', userId).single(),
+      supabase.from('daily_metrics').select('*').eq('client_id', userId).gte('date', weekStr).lte('date', endDate)
+    ]);
 
-      // 🔥 Chạy song song tất cả các request để giảm thời gian load từ 3s xuống 0.5s
-      const [
-        userRes,
-        profileRes,
-        progRes,
-        metricsRes
-      ] = await Promise.all([
-        supabase.from('users').select('*').eq('id', userId).single(),
-        supabase.from('client_profiles').select('*').eq('id', userId).single(),
-        supabase.from('programs').select(`
-          id, name, duration_weeks,
-          blocks ( id, name, order_index, workouts ( id, name, week_number, is_completed ) )
-        `).eq('client_id', userId).neq('name', `dummy-${Date.now()}`).limit(1).single(),
-        supabase.from('daily_metrics').select('*').eq('client_id', userId).gte('date', startDate).lte('date', endDate)
-      ]);
-
-      if (userRes.data) setUser(userRes.data);
-      if (profileRes.data) {
-        setProfile(profileRes.data);
-        if (profileRes.data.coaching_start_date) {
-          const start = dayjs(profileRes.data.coaching_start_date).startOf('day');
-          const diff = dayjs().startOf('day').diff(start, 'day');
-          const w = diff >= 0 ? Math.floor(diff / 7) + 1 : 1;
-          setClientRealWeek(w);
-          
-          // If first time loading, set currentWeekStart to exactly match that week's Monday
-          if (!viewingWeekIdx) {
-            setViewingWeekIdx(w);
-            setCurrentWeekStart(start.add((w - 1) * 7, 'day'));
-          }
-        }
-      }
-      if (progRes.data) {
-        setActiveProgram(progRes.data);
-        if (progRes.data.blocks && progRes.data.blocks.length > 0) {
-          const sortedBlocks = [...progRes.data.blocks].sort((a: any, b: any) => a.order_index - b.order_index);
-          setActiveBlock(sortedBlocks[0]);
-        }
-      }
-      if (metricsRes.data) setDailyMetrics(metricsRes.data);
-    } else {
-      // Nếu user đã có sẵn, chỉ cần lấy metrics của tuần mới
-      const startDate = currentWeekStart.format('YYYY-MM-DD');
-      const endDate = currentWeekStart.endOf('isoWeek').format('YYYY-MM-DD');
-      const { data: metrics } = await supabase.from('daily_metrics')
-        .select('*')
-        .eq('client_id', userId)
-        .gte('date', startDate)
-        .lte('date', endDate);
-      if (metrics) setDailyMetrics(metrics);
-    }
-    
-    setLoading(false);
-  };
-
-  // Gamification Level Check
-  const level = profile?.tracking_level || 1;
-  const canTrackSteps = level >= 2;
-  const canTrackDiet = level >= 3;
-
-  // Handle Save Metric
-  const handleSaveMetric = async () => {
-    if (!editingDay || !user) return;
-    setSaving(true);
-    
-    const payload = {
-      client_id: user.id,
-      date: editingDay,
-      weight: metricsInput.weight ? parseFloat(metricsInput.weight) : null,
-      steps: metricsInput.steps ? parseInt(metricsInput.steps) : null,
-      calories: metricsInput.calories ? parseInt(metricsInput.calories) : null,
-      protein: metricsInput.protein ? parseInt(metricsInput.protein) : null,
-      // Snapshot targets if it's a new row, else keep existing (upsert logic)
-      target_steps: profile.target_steps,
-      target_calories: profile.target_calories,
-      target_protein: profile.target_protein,
-      goal_type: profile.goal_type || 'cut'
+    return {
+      user: userRes.data,
+      profile: profileRes.data,
+      metrics: metricsRes.data || []
     };
-
-    // We check if a row already exists to avoid overwriting old targets if they already exist
-    const existingRow = dailyMetrics.find(m => m.date === editingDay);
-    if (existingRow) {
-       payload.target_steps = existingRow.target_steps || payload.target_steps;
-       payload.target_calories = existingRow.target_calories || payload.target_calories;
-       payload.target_protein = existingRow.target_protein || payload.target_protein;
-       payload.goal_type = existingRow.goal_type || payload.goal_type;
-    }
-
-    await supabase.from('daily_metrics').upsert(payload, { onConflict: 'client_id,date' });
-    
-    await fetchMyData();
-    setEditingDay(null);
-    setSaving(false);
   };
+
+  const { data, isLoading: loading, mutate } = useSWR(['dashboard', weekStartStr], ([key, weekStr]) => fetcher(key, weekStr), {
+    revalidateOnFocus: true
+  });
+
+  const user = data?.user;
+  const profile = data?.profile;
+  const dailyMetrics = data?.metrics || [];
+
+  useEffect(() => {
+    if (profile?.coaching_start_date && !viewingWeekIdx) {
+      const start = dayjs(profile.coaching_start_date).startOf('day');
+      const diff = dayjs().startOf('day').diff(start, 'day');
+      const w = Math.floor(diff / 7) + 1;
+      setClientRealWeek(w);
+      setViewingWeekIdx(w);
+      setCurrentWeekStart(start.add((w - 1) * 7, 'day'));
+    }
+  }, [profile?.coaching_start_date, viewingWeekIdx]);
 
   const openEditor = (dateStr: string) => {
-    const existingRow = dailyMetrics.find(m => m.date === dateStr);
-    setMetricsInput({
-      weight: existingRow?.weight?.toString() || '',
-      steps: existingRow?.steps?.toString() || '',
-      calories: existingRow?.calories?.toString() || '',
-      protein: existingRow?.protein?.toString() || '',
-    });
+    const existing = dailyMetrics.find((m: any) => m.date === dateStr);
+    if (existing) {
+      setMetricsInput({
+        weight: existing.weight?.toString() || '',
+        steps: existing.steps?.toString() || '',
+        calories: existing.calories?.toString() || '',
+        protein: existing.protein?.toString() || ''
+      });
+    } else {
+      setMetricsInput({ weight: '', steps: '', calories: '', protein: '' });
+    }
     setEditingDay(dateStr);
   };
 
-  // Generate 7 days for the UI
-  const weekDays = Array.from({length: 7}, (_, i) => {
-    return currentWeekStart.add(i, 'day');
-  });
-
-  // Calculate Weekly Step Summary
-  const totalStepsTarget = (profile?.target_steps || 0) * 7;
-  const totalStepsDone = dailyMetrics.reduce((sum, m) => sum + (m.steps || 0), 0);
-  const remainingSteps = Math.max(0, totalStepsTarget - totalStepsDone);
-  
-  // Calculate remaining days based on how many days have steps entered
-  const daysWithSteps = dailyMetrics.filter((m: any) => m.steps && m.steps > 0).length;
-  const daysLeft = Math.max(0, 7 - daysWithSteps);
-  const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
+  const handleSaveMetric = async () => {
+    if (!editingDay || !user) return;
+    setSaving(true);
+    try {
+      const payload: any = {
+        client_id: user.id,
+        date: editingDay,
+        weight: metricsInput.weight ? parseFloat(metricsInput.weight) : null,
+      };
+      if (profile?.tracking_level >= 2) payload.steps = metricsInput.steps ? parseInt(metricsInput.steps) : null;
+      if (profile?.tracking_level >= 3) {
+        payload.calories = metricsInput.calories ? parseInt(metricsInput.calories) : null;
+        payload.protein = metricsInput.protein ? parseInt(metricsInput.protein) : null;
+      }
+      
+      const existing = dailyMetrics.find((m: any) => m.date === editingDay);
+      if (existing) {
+        await supabase.from('daily_metrics').update(payload).eq('id', existing.id);
+      } else {
+        await supabase.from('daily_metrics').insert([payload]);
+      }
+      
+      // Update local SWR cache immediately for instant UI response
+      await mutate();
+      setEditingDay(null);
+    } catch (e) {
+      console.error(e);
+      alert("Lỗi khi lưu");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading && !user) {
     return (

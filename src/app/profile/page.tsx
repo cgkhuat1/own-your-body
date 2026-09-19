@@ -1,31 +1,28 @@
 "use client";
 import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
+import useSWR from 'swr';
 import { supabase } from "@/lib/supabase";
 import { Loader2, UserCircle, Activity, LogOut, Lock } from "lucide-react";
 
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetcher = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = "/login"; return; }
-
+    if (!session) {
+      window.location.href = "/login";
+      return null;
+    }
+    const userId = session.user.id;
     const [userRes, profileRes] = await Promise.all([
-      supabase.from('users').select('*').eq('id', session.user.id).single(),
-      supabase.from('client_profiles').select('*').eq('id', session.user.id).single()
+      supabase.from('users').select('*').eq('id', userId).single(),
+      supabase.from('client_profiles').select('*').eq('id', userId).single()
     ]);
-
-    if (userRes.data) setUser(userRes.data);
-    if (profileRes.data) setProfile(profileRes.data);
-    setLoading(false);
+    return { user: userRes.data, profile: profileRes.data };
   };
+
+  const { data, isLoading: loading } = useSWR('profile_page', fetcher, { revalidateOnFocus: true });
+  const user = data?.user;
+  const profile = data?.profile;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

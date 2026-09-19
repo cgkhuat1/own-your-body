@@ -2,124 +2,75 @@
 
 import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
+import useSWR from 'swr';
 import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function ClientDashboard() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("Bạn");
-  const [isActive, setIsActive] = useState(true);
-  const [programInfo, setProgramInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Load Dữ liệu từ Supabase thay vì Mock Data
-  useEffect(() => {
-    const fetchRealData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = "/login";
-        return;
-      }
+  const fetcher = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = "/login";
+      return null;
+    }
 
-      // 1. Fetch User Data
-      const { data: user } = await supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single();
-      if (user) {
-        if (user.full_name) setUserName(user.full_name);
-        setIsActive(user.is_active !== false); // Default is true unless explicitly false
-        if (user.role === 'coach' || user.role === 'founder') {
-          window.location.href = "/coach";
-          return;
-        }
-      }
+    const { data: user } = await supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single();
+    if (user?.role === 'coach' || user?.role === 'founder') {
+      window.location.href = "/coach";
+      return null;
+    }
 
-      if (user?.is_active === false) {
-        setLoading(false);
-        return; // Dừng lại nếu tài khoản bị khóa
-      }
+    if (user?.is_active === false) {
+      return { user, programInfo: null };
+    }
 
-      // 2. Fetch Latest Program
-      const { data: programsData } = await supabase
-        .from('programs')
-        .select(`
-          id, name,
-          blocks (
-            id, name, order_index,
-            workouts ( id, name, week_number, is_completed, is_perfect, order_index )
+    const { data: programsData } = await supabase
+      .from('programs')
+      .select(`
+        id, name,
+        blocks (
+          id, name, order_index,
+          workouts (
+            id, name, week_number, is_completed, is_perfect, day_of_week
           )
-        `)
-        .eq('client_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        )
+      `)
+      .eq('client_id', session.user.id)
+      .neq('name', `dummy-${Date.now()}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-      const programs = programsData?.[0];
+    if (programsData) {
+      // Sort blocks & workouts inside
+      programsData.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
+      programsData.blocks.forEach((b: any) => {
+        b.workouts.sort((w1: any, w2: any) => (w1.day_of_week || 0) - (w2.day_of_week || 0));
+      });
+    }
 
-      if (programs) {
-        // Sort blocks
-        const sortedBlocks = programs.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
-        
-        let initialBlockId = sortedBlocks[0]?.id;
-        
-        const formatWeeks = (block: any) => {
-          // Group workouts by week_number
-          const weeksMap = new Map();
-          
-          if (block.workouts && Array.isArray(block.workouts)) {
-            block.workouts.forEach((wo: any) => {
-              const wn = wo.week_number || 1;
-              if (!weeksMap.has(wn)) {
-                weeksMap.set(wn, {
-                  id: wn,
-                  name: `Tuần ${wn}`,
-                  workouts: []
-                });
-              }
-              weeksMap.get(wn).workouts.push({
-                id: wo.id,
-                name: wo.name,
-                order_index: wo.order_index,
-                status: wo.is_completed ? (wo.is_perfect ? 'perfect' : 'partial') : 'incomplete'
-              });
-            });
-          }
-
-          // Convert to array and sort
-          return Array.from(weeksMap.values())
-            .sort((a, b) => a.id - b.id)
-            .map(w => {
-              w.workouts.sort((a: any, b: any) => a.order_index - b.order_index);
-              return w;
-            });
-        };
-
-        setProgramInfo({
-          id: programs.id,
-          name: programs.name,
-          blocks: sortedBlocks,
-          formatWeeks
-        });
-        
-        setActiveBlockId(initialBlockId);
-        
-        const firstBlock = sortedBlocks[0];
-        if (firstBlock) {
-          const weeksArray = formatWeeks(firstBlock);
-          if (weeksArray.length > 0) {
-            setActiveWeek(weeksArray[0].id);
-          }
-        }
-      }
-
-      setLoading(false);
-    };
-
-    fetchRealData();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    return { user, programInfo: programsData };
   };
+
+  const { data, isLoading: loading } = useSWR('program_dashboard', fetcher, { revalidateOnFocus: true });
+  const user = data?.user;
+  const programInfo = data?.programInfo;
+  
+  const userName = user?.full_name || "Bạn";
+  const isActive = user ? user.is_active !== false : true;
+
+  // Tự động set activeBlockId ban đầu
+  useEffect(() => {
+    if (programInfo?.blocks?.length > 0 && !activeBlockId) {
+      setActiveBlockId(programInfo.blocks[0].id);
+    }
+  }, [programInfo, activeBlockId]);
+
+  const activeBlock = programInfo?.blocks?.find((b: any) => b.id === activeBlockId) || programInfo?.blocks?.[0];
+  const activeWorkouts = activeBlock?.workouts?.filter((w: any) => w.week_number === activeWeek) || [];
 
   if (loading) {
     return (
