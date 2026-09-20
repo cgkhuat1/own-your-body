@@ -1,6 +1,6 @@
+"use client";
 import dayjs from 'dayjs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-"use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -302,7 +302,14 @@ export default function CoachDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-brand-line/50">
+              <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-brand-line/50">
+                
+                <button 
+                  onClick={() => openChartModal(client)}
+                  className="text-center py-2 text-xs font-bold text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-lg transition-colors flex flex-col items-center justify-center gap-1"
+                >
+                  <TrendingUp size={16} /> Cân nặng
+                </button>
                 <Link 
                   href={`/coach/clients/${client.id}`}
                   className="text-center py-2 text-xs font-bold text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-lg transition-colors flex flex-col items-center justify-center gap-1"
@@ -339,7 +346,7 @@ export default function CoachDashboard() {
                   Tiến độ Cân nặng
                 </h3>
                 <p className="text-sm font-semibold text-brand-moss/60 mt-1">
-                  Học viên: {chartClient.full_name}
+                  Học viên: {chartClient.name || chartClient.full_name}
                 </p>
               </div>
               <button 

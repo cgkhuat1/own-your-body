@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import ProgramClient from './ProgramClient'
 
 export default async function ProgramPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
   if (!authUser) {
