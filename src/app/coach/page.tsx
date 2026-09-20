@@ -111,15 +111,16 @@ export default function CoachDashboard() {
     setChartData([]);
     
     try {
-      const { data: metrics } = await supabase
-        .from('daily_metrics')
-        .select('date, weight')
-        .eq('client_id', client.id)
-        .gt('weight', 0)
-        .order('date', { ascending: true });
+      // Fetch coaching_start_date from client_profiles (not available in client list)
+      const [{ data: profileData }, { data: metrics }] = await Promise.all([
+        supabase.from('client_profiles').select('coaching_start_date').eq('id', client.id).single(),
+        supabase.from('daily_metrics').select('date, weight').eq('client_id', client.id).gt('weight', 0).order('date', { ascending: true })
+      ]);
+
+      const coachingStartDate = profileData?.coaching_start_date;
         
-      if (metrics && metrics.length > 0 && client.coaching_start_date) {
-        const start = dayjs(client.coaching_start_date).startOf('day');
+      if (metrics && metrics.length > 0 && coachingStartDate) {
+        const start = dayjs(coachingStartDate).startOf('day');
         const weeksMap: Record<number, number[]> = {};
         let minW = Infinity;
         let maxW = -Infinity;
