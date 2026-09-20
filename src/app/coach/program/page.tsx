@@ -602,6 +602,16 @@ function ProgramBuilderInner() {
       return;
     }
 
+    // 1. Dịch chuyển tạm thời sang âm để né constraint
+    const tempPromises: Promise<any>[] = [];
+    updatedAllExercises.forEach((e: any, i: number) => {
+      Object.values(e.weeks).forEach((wEx: any) => {
+        tempPromises.push(supabase.from('workout_exercises').update({ order_index: -(i + 1000) }).eq('id', wEx.id));
+      });
+    });
+    await Promise.all(tempPromises);
+
+    // 2. Cập nhật thứ tự chuẩn
     const updatePromises: Promise<any>[] = [];
     updatedAllExercises.forEach((e: any, i: number) => {
       Object.values(e.weeks).forEach((wEx: any) => {
@@ -642,19 +652,31 @@ function ProgramBuilderInner() {
     }));
     setDragUnitIndex(null); dragUnit.current = null; dragOverUnit.current = null;
 
+    // 1. Dịch chuyển tạm thời sang index âm để né lỗi đụng độ Unique Constraint của Database
+    const tempPromises: Promise<any>[] = [];
+    allExercises.forEach((ex: any, i: number) => {
+      Object.values(ex.weeks).forEach((wEx: any) => {
+        tempPromises.push(supabase.from('workout_exercises').update({ order_index: -(i + 1000) }).eq('id', wEx.id));
+      });
+    });
+    await Promise.all(tempPromises);
+
+    // 2. Cập nhật thứ tự chuẩn
     const updatePromises: Promise<any>[] = [];
     allExercises.forEach((ex: any, i: number) => {
       Object.values(ex.weeks).forEach((wEx: any) => {
         updatePromises.push(supabase.from('workout_exercises').update({ order_index: i + 1, group_code: ex.group_code }).eq('id', wEx.id));
       });
     });
+    
     const results = await Promise.all(updatePromises);
-    const hasError = results.some(r => r.error);
-    if (hasError) {
-      showToast("Có lỗi mạng khi lưu thứ tự, một số ô có thể bị kẹt. Vui lòng tải lại trang.", "error");
+    if (results.some(r => r.error)) {
+      const errMsg = results.find(r => r.error)?.error?.message || JSON.stringify(results.find(r => r.error)?.error);
+      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errMsg}\n\nVui lòng chụp màn hình cái bảng này gửi cho Antigravity nhé!`);
     } else {
       showToast("Đã sắp xếp lại thứ tự bài tập");
     }
+    
     await fetchData();
     setSaving(false);
   };
