@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -19,14 +20,20 @@ export default function ClientDashboard() {
       return null;
     }
 
-    const { data: user } = await supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single();
+    const [userRes, profileRes] = await Promise.all([
+      supabase.from('users').select('full_name, role, is_active').eq('id', session.user.id).single(),
+      supabase.from('client_profiles').select('coaching_start_date, coaching_duration_weeks').eq('id', session.user.id).single()
+    ]);
+    const user = userRes.data;
+    const profile = profileRes.data;
+
     if (user?.role === 'coach' || user?.role === 'founder') {
       window.location.href = "/coach";
       return null;
     }
 
     if (user?.is_active === false) {
-      return { user, programInfo: null };
+      return { user, profile: null, programInfo: null };
     }
 
     const { data: programsData } = await supabase
@@ -59,11 +66,12 @@ export default function ClientDashboard() {
       });
     }
 
-    return { user, programInfo: programsData };
+    return { user, profile, programInfo: programsData };
   };
 
   const { data, isLoading: loading } = useSWR('program_dashboard', fetcher, { revalidateOnFocus: true });
   const user = data?.user;
+  const profile = data?.profile;
   const programInfo = data?.programInfo;
   
   const userName = user?.full_name || "Bạn";
@@ -74,37 +82,36 @@ export default function ClientDashboard() {
     window.location.href = "/login";
   };
 
-  // Tự động set activeBlockId và activeWeek dựa trên tiến độ thực tế
+  // Tự động set activeBlockId và activeWeek dựa trên thời gian thực (Đồng bộ Nhật Ký)
   useEffect(() => {
     if (programInfo?.blocks && programInfo.blocks.length > 0 && !activeBlockId) {
-      let targetBlockId = programInfo.blocks[0].id;
       let targetWeek = 1;
-      let found = false;
-
-      // Quét tìm buổi tập đầu tiên chưa hoàn thành
-      for (const block of programInfo.blocks) {
-        const incompleteWorkout = block.workouts?.find((w: any) => !w.is_completed);
-        if (incompleteWorkout) {
-          targetBlockId = block.id;
-          targetWeek = incompleteWorkout.week_number || 1;
-          found = true;
-          break;
-        }
+      
+      // Tính tuần thực tế dựa vào ngày bắt đầu Coaching
+      if (profile?.coaching_start_date) {
+        const start = dayjs(profile.coaching_start_date).startOf('day');
+        const diff = dayjs().startOf('day').diff(start, 'day');
+        targetWeek = Math.max(1, Math.floor(diff / 7) + 1);
+        
+        // Giới hạn ở tuần cuối cùng của khóa học
+        const maxWeeks = profile.coaching_duration_weeks || 12;
+        if (targetWeek > maxWeeks) targetWeek = maxWeeks;
       }
 
-      // Nếu đã tập xong toàn bộ, trỏ về tuần cuối cùng
-      if (!found) {
-        const lastBlock = programInfo.blocks[programInfo.blocks.length - 1];
-        targetBlockId = lastBlock.id;
-        if (lastBlock.workouts && lastBlock.workouts.length > 0) {
-          targetWeek = Math.max(...lastBlock.workouts.map((w: any) => w.week_number || 1));
+      // Tìm Block chứa targetWeek
+      let targetBlockId = programInfo.blocks[0].id;
+      for (const block of programInfo.blocks) {
+        const hasWeek = block.workouts?.some((w: any) => w.week_number === targetWeek);
+        if (hasWeek) {
+          targetBlockId = block.id;
+          break;
         }
       }
 
       setActiveBlockId(targetBlockId);
       setActiveWeek(targetWeek);
     }
-  }, [programInfo, activeBlockId]);
+  }, [programInfo, profile, activeBlockId]);
 
   const activeBlock = programInfo?.blocks?.find((b: any) => b.id === activeBlockId) || programInfo?.blocks?.[0];
   const activeWorkouts = activeBlock?.workouts?.filter((w: any) => w.week_number === activeWeek) || [];
