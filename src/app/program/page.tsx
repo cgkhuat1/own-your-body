@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 import useSWR from 'swr';
 import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function ClientDashboard() {
+  const router = useRouter();
   const [activeWeek, setActiveWeek] = useState(1);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
@@ -283,7 +285,7 @@ export default function ClientDashboard() {
                         ? "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
                     }`}
-                    onClick={() => window.location.href = `/workout?id=${workout.id}`}
+                    onClick={() => router.push(`/workout?id=${workout.id}`)}
                   >
                     <div>
                       <h3 className={`font-bold text-lg transition-colors ${
