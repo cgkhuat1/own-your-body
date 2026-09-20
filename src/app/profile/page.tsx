@@ -91,44 +91,7 @@ export default function ProfilePage() {
 
         <div className="p-5 space-y-6">
           {/* Card 1 Skeleton */}
-          
-        {/* Biểu đồ cân nặng */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="text-brand-moss" size={20} />
-            <h3 className="font-bold text-brand-moss text-lg">Cân nặng Trung bình tuần</h3>
-          </div>
-          {chartData.length > 0 ? (
-            <div className="h-[250px] w-full mt-4 -ml-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dy={10} />
-                  <YAxis domain={yDomain} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
-                    itemStyle={{ color: '#1C2E20' }}
-                    formatter={(value) => [`${value} kg`, 'Trung bình']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="weight" 
-                    stroke="#1C2E20" 
-                    strokeWidth={3} 
-                    dot={{ r: 4, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
-                    activeDot={{ r: 6, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="p-8 text-center text-brand-moss/50 bg-brand-paper/50 rounded-xl font-semibold border border-dashed border-gray-200">
-              Chưa có đủ dữ liệu cân nặng để vẽ biểu đồ.
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="w-32 h-6 bg-brand-line/50 rounded mb-4"></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -211,6 +174,42 @@ export default function ProfilePage() {
             <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
               <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">🎯 Phương án xử lý</h3>
               <p className="text-xs text-emerald-700 font-medium whitespace-pre-line">{profile.action_plan}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Biểu đồ cân nặng trung bình tuần */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="text-brand-moss" size={20} />
+            <h3 className="font-bold text-brand-moss text-lg">Cân nặng Trung bình tuần</h3>
+          </div>
+          {chartData.length > 0 ? (
+            <div className="h-[250px] w-full -ml-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} dy={10} />
+                  <YAxis domain={yDomain} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
+                    itemStyle={{ color: '#1C2E20' }}
+                    formatter={(value: any) => [`${value} kg`, 'Trung bình']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="weight" 
+                    stroke="#1C2E20" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
+                    activeDot={{ r: 6, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-brand-moss/50 bg-brand-paper/50 rounded-xl font-semibold border border-dashed border-gray-200">
+              Chưa có đủ dữ liệu cân nặng để vẽ biểu đồ.
             </div>
           )}
         </div>

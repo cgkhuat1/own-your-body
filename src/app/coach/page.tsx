@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus, Activity, X } from "lucide-react";
+import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus, Activity, X, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 export default function CoachDashboard() {
