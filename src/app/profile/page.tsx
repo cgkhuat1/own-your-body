@@ -2,6 +2,8 @@
 import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
 import useSWR from 'swr';
+import dayjs from 'dayjs';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from "@/lib/supabase";
 import { Loader2, UserCircle, Activity, LogOut, Lock } from "lucide-react";
 
@@ -13,16 +15,57 @@ export default function ProfilePage() {
       return null;
     }
     const userId = session.user.id;
-    const [userRes, profileRes] = await Promise.all([
+    const [userRes, profileRes, metricsRes] = await Promise.all([
       supabase.from('users').select('*').eq('id', userId).single(),
-      supabase.from('client_profiles').select('*').eq('id', userId).single()
+      supabase.from('client_profiles').select('*').eq('id', userId).single(),
+      supabase.from('daily_metrics').select('date, weight').eq('client_id', userId).gt('weight', 0).order('date', { ascending: true })
     ]);
-    return { user: userRes.data, profile: profileRes.data };
+    
+    const profile = profileRes.data;
+    const metrics = metricsRes.data || [];
+    
+    let chartData = [];
+    let minWeight = Infinity;
+    let maxWeight = -Infinity;
+    
+    if (profile?.coaching_start_date && metrics.length > 0) {
+      const start = dayjs(profile.coaching_start_date).startOf('day');
+      const weeksMap = {};
+      
+      metrics.forEach(m => {
+        const mDate = dayjs(m.date).startOf('day');
+        if (mDate.isBefore(start)) return;
+        const wIndex = Math.floor(mDate.diff(start, 'day') / 7) + 1;
+        if (!weeksMap[wIndex]) weeksMap[wIndex] = [];
+        weeksMap[wIndex].push(m.weight);
+        
+        if (m.weight < minWeight) minWeight = m.weight;
+        if (m.weight > maxWeight) maxWeight = m.weight;
+      });
+      
+      chartData = Object.keys(weeksMap).sort((a,b) => parseInt(a) - parseInt(b)).map(weekNum => {
+        const arr = weeksMap[parseInt(weekNum)];
+        const avg = arr.reduce((a,b) => a+b, 0) / arr.length;
+        return {
+          name: `Tuần ${weekNum}`,
+          weight: parseFloat(avg.toFixed(1))
+        };
+      });
+    }
+    
+    return { 
+      user: userRes.data, 
+      profile, 
+      chartData,
+      yDomain: minWeight !== Infinity ? [Math.max(0, Math.floor(minWeight - 3)), Math.ceil(maxWeight + 3)] : ['dataMin - 3', 'dataMax + 3']
+    };
   };
 
   const { data, isLoading: loading } = useSWR('profile_page', fetcher, { revalidateOnFocus: true });
   const user = data?.user;
   const profile = data?.profile;
+  const chartData = data?.chartData || [];
+  const yDomain = data?.yDomain || [0, 'auto'];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
