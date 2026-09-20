@@ -264,9 +264,35 @@ export default function WorkoutExecution() {
     }));
   };
 
-  // Mở modal feedback
-  const openFeedback = () => {
-    setShowFeedback(true);
+  // Mở modal feedback hoặc xoá buổi tập nếu trống
+  const openFeedback = async () => {
+    const stats = getCompletedSetsCount();
+    if (stats.completed === 0) {
+      // Un-complete the workout silently
+      setSaving(true);
+      try {
+        const wExIds = exercises.map(ex => ex.w_ex_id);
+        if (wExIds.length > 0) {
+          await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+        }
+        await supabase.from('workouts')
+          .update({ 
+            is_completed: false,
+            is_perfect: false, 
+            completed_at: null,
+            rpe_score: null,
+            joint_pain: null,
+            energy_level: null
+          })
+          .eq('id', workoutId);
+        router.push("/program");
+      } catch(e) {
+        alert("Lỗi khi xoá dữ liệu!");
+      }
+      setSaving(false);
+    } else {
+      setShowFeedback(true);
+    }
   };
 
   // Nộp buổi tập lên Supabase

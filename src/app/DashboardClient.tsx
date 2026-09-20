@@ -108,10 +108,19 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
       }
       
       const existing = dailyMetrics.find((m: any) => m.date === editingDay);
-      if (existing) {
-        await supabase.from('daily_metrics').update(payload).eq('id', existing.id);
+      
+      const isEmpty = !payload.weight && !payload.steps && !payload.calories && !payload.protein;
+      
+      if (isEmpty) {
+        if (existing) {
+          await supabase.from('daily_metrics').delete().eq('id', existing.id);
+        }
       } else {
-        await supabase.from('daily_metrics').insert([payload]);
+        if (existing) {
+          await supabase.from('daily_metrics').update(payload).eq('id', existing.id);
+        } else {
+          await supabase.from('daily_metrics').insert([payload]);
+        }
       }
       
       // Update local SWR cache immediately for instant UI response
