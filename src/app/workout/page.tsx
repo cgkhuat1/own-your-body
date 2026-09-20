@@ -284,7 +284,7 @@ export default function WorkoutExecution() {
             joint_pain: null,
             energy_level: null
           })
-          .eq('id', workoutId);
+          .eq('id', workoutData.id);
         router.push("/program");
       } catch(e) {
         alert("Lỗi khi xoá dữ liệu!");
