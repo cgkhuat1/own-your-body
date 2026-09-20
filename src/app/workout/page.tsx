@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, PlayCircle, Check, Plus, Trash2, Clock, X, Target, Link as LinkIcon, TimerReset, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function WorkoutExecution() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [workoutData, setWorkoutData] = useState<any>(null);
@@ -60,7 +62,7 @@ export default function WorkoutExecution() {
       const urlParams = new URLSearchParams(window.location.search);
       const workoutId = urlParams.get('id');
       if (!workoutId) {
-        window.location.href = "/";
+        router.push("/program");
         return;
       }
 
@@ -313,7 +315,7 @@ export default function WorkoutExecution() {
         })
         .eq('id', workoutData.id);
 
-      window.location.href = "/";
+      router.push("/program");
     } catch (err: any) {
       console.error(err);
       alert("Lỗi khi lưu kết quả!");
@@ -377,9 +379,9 @@ export default function WorkoutExecution() {
       {/* Header */}
       <div className="bg-brand-mossDeep text-white p-5 rounded-b-2xl shadow-md sticky top-0 z-20">
         <div className="flex items-center justify-between mb-2">
-          <a href="/" className="text-brand-sage hover:text-white transition-colors">
+          <button onClick={() => router.push('/program')} className="text-brand-sage hover:text-white transition-colors">
             <ArrowLeft size={24} />
-          </a>
+          </button>
           <div className="flex items-center space-x-2 bg-brand-moss px-3 py-1.5 rounded-full border border-brand-sage/20">
             <Clock size={16} className="text-brand-sand" />
             <span className="text-sm font-bold font-mono text-brand-sand tracking-widest">{formatTime(workoutDuration)}</span>

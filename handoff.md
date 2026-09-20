@@ -1,45 +1,30 @@
-# CK Coaching App - Project Handoff
+# Project Handoff: CK Coaching App
 
-## 1. Thông tin chung
-- **Dự án:** CK Coaching (Web App quản lý và theo dõi lịch tập luyện).
-- **Tech Stack:** Next.js (App Router), TailwindCSS v4, Lucide React, Supabase (Database & Auth).
-- **Trạng thái Database:** Đã có schema hoàn chỉnh (programs, blocks, workouts, workout_exercises, workout_logs). Đang chạy chế độ Tắt RLS (Run without RLS) để Client Component có thể chèn data trực tiếp.
+## 1. Project Overview
+- **App Name:** CK Coaching (Premium Fitness Coaching Platform)
+- **Tech Stack:** Next.js 14/15 (App Router, Client Components mostly), Tailwind CSS, Supabase (PostgreSQL + Auth), Lucide React, SWR (for caching).
+- **Core Concept:** A luxury, mobile-first web app for high-end fitness coaching. Clients get 12-week highly personalized tracking and workout blocks.
 
-## 2. Triết lý thiết kế (Cực kỳ quan trọng)
-- **Màu sắc & UI:** Giao diện tối giản, sang trọng. Dùng tông Vàng Gold (#D4AF37) cho việc hoàn thành xuất sắc, Xanh ngọc (Emerald) cho hoàn thành một phần. Nền nhạt (Paper), Chữ đậm (Moss Deep).
-- **Tâm lý khách hàng:** Đề cao sự linh hoạt. Không ép buộc tập đúng ngày (Thứ 2, 4, 6), không phán xét nếu tập thiếu bài. Khách tập là có thành tựu.
-- **Trải nghiệm UX:** Mọi thao tác phải mượt mà. Hạn chế popup mặc định của trình duyệt (dùng Toast), thao tác edit inline tự động lưu (auto-save).
-- **Quy ước bài tập:** Khung chương trình (Block) duy trì trong 4 tuần. Superset đi theo nhóm (1A, 1B). Thứ tự bài tập tự động sắp xếp lại khi kéo thả.
+## 2. Current State & Recent Work
+**Phase 4 (Gamification & Daily Tracking) - COMPLETED:**
+- Developed a 3-Level Habit Tracking system (L1: Weight, L2: Steps, L3: Macros).
+- Created premium UI for "Perfect Workouts" (Gold foil metallic effects, glowing borders).
+- Re-architected iOS Safe Area scrolling by using Floating Bottom Buttons (`absolute bottom-0`) overlaid on a deeply padded scrollable container (`pb-[120px]`).
 
-## 3. Tiến độ hiện tại (Đã hoàn thiện Core Flow)
-✅ **Client Dashboard (`/`):** Hoàn thiện. Đã gọi API Supabase, nhóm theo tuần, tính toán tỷ lệ hoàn thành (Perfect/Partial).
-✅ **Workout Execution (`/workout`):** Hoàn thiện. Lấy bài tập từ Supabase, gom nhóm Superset (không tính giờ nghỉ cho bài đầu), tự động tính Rest Timer theo RPE. Đã có logic xóa log cũ khi nộp lại.
-✅ **Coach Dashboard (`/coach`):** Hoàn thiện. Quản lý danh sách học viên, tự động tính toán Compliance (Tỷ lệ tuân thủ) của tuần và của cả khóa.
-✅ **Coach Program Builder (`/coach/program`):** Hoàn thiện (Siêu tính năng). 
-  - Giao diện Spreadsheet (Bảng tính 4 tuần) chia tab theo từng buổi tập.
-  - Sửa trực tiếp (Inline Edit) tên bài, tên buổi, Target Sets/Reps/RPE.
-  - Kéo thả (Drag & Drop) bài tập, tự động nhóm thành Cụm Superset (Drag Units) và đánh lại số thứ tự (`1, 2A, 2B, 3`) liền mạch vào DB.
-  - Sửa chéo Ad-hoc: Cho phép thay thế (Swap) 1 bài tập cụ thể ở riêng 1 tuần mà không làm vỡ Template gốc.
-  - Nhân bản Block: Nút "+ Tạo Phase tiếp" copy y nguyên khung bài tập và Target sang Block 2, Block 3 để Coach dễ dàng tinh chỉnh.
+**Phase 5 (Performance Optimization / V5) - COMPLETED:**
+- Replaced all rotating loading spinners with modern, pulsing Skeleton UIs across the Client App.
+- Implemented **SWR (Stale-While-Revalidate)** for the Client Dashboard (`/`), Program (`/program`), and Profile (`/profile`) tabs.
+- Achieved **0-second (Instant Load)** perceived load times when navigating between main tabs via caching.
+- Fixed complex date math bugs (e.g., jumping to negative weeks if `coaching_start_date` is in the future).
 
-## 4. Nhiệm vụ TIẾP THEO (Bắt đầu làm ở chat mới)
-Dự án đã xong khoảng 85% core business. Các tính năng cốt lõi cho Client tập và Coach tạo bài đều đã chạy mượt.
+## 3. Strict Rules & Conventions (CRITICAL)
+- **Terminology:** NEVER use the word "HLV". ALWAYS use "Coach".
+- **Agent Workflow:** ALWAYS discuss architectural plans or UI mockups with the user first. DO NOT write or push code without explicit user approval of the plan.
+- **Client App Container:** All client-facing pages MUST use the exact wrapper: `<div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">`. This ensures the app looks like a floating mobile card on desktop monitors.
+- **Floating Bottom Buttons:** For sticky bottom actions (like "Submit"), do NOT use thick white background panels. Instead, make them float transparently (`absolute bottom-0 pb-[max(env(safe-area-inset-bottom),32px)]`) over the content, and give the main container `pb-[120px]` so text scrolls smoothly underneath without clipping.
+- **Lucide Icons:** When filling a Lucide React icon (like `CheckCircle2`), Tailwind `fill-` classes often fail. Pass the color string directly: `<CheckCircle2 fill="#FCE3A1" />`.
+- **SWR Caching:** The Client App uses SWR. If you update database tables, make sure to call SWR's `mutate()` to instantly update the UI.
 
-**Các tính năng cần triển khai tiếp (Roadmap):**
-
-**Bước 1: Quản lý Kho bài tập & Giáo án mẫu (Templates)**
-- Kho bài tập (Exercise Library): Có trang quản trị (CRUD) danh sách bài tập kèm link video/hình ảnh hướng dẫn.
-- Giáo án mẫu (Program Templates): Tính năng cho phép HLV lưu một Program (ví dụ 3 Blocks) thành "Mẫu" và gán (assign) siêu nhanh cho người dùng mới.
-
-**Bước 2: Biểu đồ Tiến độ & Phân tích (Analytics cho Khách & HLV)**
-- Bảng vẽ biểu đồ tự động tracking Volume, Max Weight (1RM estimation) theo thời gian cho các bài Compound chính.
-- Báo cáo cảnh báo (VD: Khách bỏ tập 2 tuần) nổi lên ở Dashboard của Coach.
-
-**Bước 3: Tối ưu Bảo mật (RLS) & UX/UI Cấp cao**
-- Bật cấu hình Supabase Row Level Security (RLS) để cô lập dữ liệu người dùng.
-- Tối ưu Loading Skeletons, Skeleton State khi tải data để tránh giật lag UI (hiện tại đang dùng icon xoay).
-
-**Bước 4: Triển khai (Deployment) & PWA**
-- Đưa mã nguồn lên GitHub Repo chính thức.
-- Deploy Next.js lên Vercel.
-- Cấu hình PWA (Progressive Web App) + Manifest + Icons để khách hàng cài đặt như App điện thoại.
+## 4. Next Steps for Next Session
+- Wait for the user's direction on the next feature. We have successfully completed the core Gamification (Phase 4) and Performance Caching (Phase 5).
+- If moving to Server-Side Rendering (SSR) for the initial load, we will need to migrate Supabase Auth from `localStorage` to Cookies via Middleware, which is a major architectural shift.
