@@ -404,7 +404,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                 bgClass = "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400";
               }
               if (isToday) {
-                bgClass += " ring-2 ring-brand-moss/30 border-brand-moss";
+                bgClass += " border-2 border-brand-moss shadow-md";
               }
               
               return (
