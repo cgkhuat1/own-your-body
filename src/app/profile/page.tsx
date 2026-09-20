@@ -28,13 +28,16 @@ export default function ProfilePage() {
     let minWeight = Infinity;
     let maxWeight = -Infinity;
     
-    if (profile?.coaching_start_date && metrics.length > 0) {
-      const start = dayjs(profile.coaching_start_date).startOf('day');
+    if (metrics && metrics.length > 0) {
+      let start = profile?.coaching_start_date ? dayjs(profile.coaching_start_date).startOf('day') : dayjs(metrics[0].date).startOf('day');
+      if (dayjs(metrics[0].date).startOf('day').isBefore(start)) {
+        start = dayjs(metrics[0].date).startOf('day');
+      }
+
       const weeksMap: Record<number, number[]> = {};
       
       metrics.forEach(m => {
         const mDate = dayjs(m.date).startOf('day');
-        if (mDate.isBefore(start)) return;
         const wIndex = Math.floor(mDate.diff(start, 'day') / 7) + 1;
         if (!weeksMap[wIndex]) weeksMap[wIndex] = [];
         weeksMap[wIndex].push(m.weight);

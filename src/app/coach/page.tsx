@@ -117,17 +117,18 @@ export default function CoachDashboard() {
         supabase.from('daily_metrics').select('date, weight').eq('client_id', client.id).gt('weight', 0).order('date', { ascending: true })
       ]);
 
-      const coachingStartDate = profileData?.coaching_start_date;
-        
-      if (metrics && metrics.length > 0 && coachingStartDate) {
-        const start = dayjs(coachingStartDate).startOf('day');
+      if (metrics && metrics.length > 0) {
+        let start = profileData?.coaching_start_date ? dayjs(profileData.coaching_start_date).startOf('day') : dayjs(metrics[0].date).startOf('day');
+        if (dayjs(metrics[0].date).startOf('day').isBefore(start)) {
+          start = dayjs(metrics[0].date).startOf('day');
+        }
+
         const weeksMap: Record<number, number[]> = {};
         let minW = Infinity;
         let maxW = -Infinity;
         
         metrics.forEach(m => {
           const mDate = dayjs(m.date).startOf('day');
-          if (mDate.isBefore(start)) return;
           const wIndex = Math.floor(mDate.diff(start, 'day') / 7) + 1;
           if (!weeksMap[wIndex]) weeksMap[wIndex] = [];
           weeksMap[wIndex].push(m.weight);
