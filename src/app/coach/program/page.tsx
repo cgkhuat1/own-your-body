@@ -561,10 +561,26 @@ function ProgramBuilderInner() {
   };
 
   const handleDeleteExercise = async (ex: any) => {
+    const exName = ex.base_ex?.custom_name || ex.base_ex?.exercises?.name || "bài tập này";
+    if (!confirm(`Bạn có chắc muốn xóa "${exName}" khỏi toàn bộ Phase này?`)) return;
+    
+    setSaving(true);
     // 1. Xóa trong DB
     const weekExIds = Object.values(ex.weeks).map((w: any) => w.id);
-    await Promise.all(weekExIds.map(id => supabase.from('workout_logs').delete().eq('workout_exercise_id', id)));
-    await Promise.all(weekExIds.map(id => supabase.from('workout_exercises').delete().eq('id', id)));
+    
+    const logDeletes = await Promise.all(weekExIds.map(id => supabase.from('workout_logs').delete().eq('workout_exercise_id', id)));
+    if (logDeletes.some(r => r.error)) {
+      showToast("Lỗi khi xóa lịch sử tập (Logs)", "error");
+      console.error("Log delete error", logDeletes);
+    }
+
+    const exDeletes = await Promise.all(weekExIds.map(id => supabase.from('workout_exercises').delete().eq('id', id)));
+    if (exDeletes.some(r => r.error)) {
+      showToast("Lỗi DB khi xóa bài tập", "error");
+      console.error("Ex delete error", exDeletes);
+      setSaving(false);
+      return;
+    }
 
     // 2. Tính toán lại thứ tự cho các bài còn lại
     const currentDay = days.find(d => d.dayIndex === activeDay);
@@ -585,6 +601,7 @@ function ProgramBuilderInner() {
     }
     showToast(`Đã xóa bài tập`);
     await fetchData();
+    setSaving(false);
   };
 
   const handleDragStart = (unitIndex: number) => { dragUnit.current = unitIndex; setDragUnitIndex(unitIndex); };
