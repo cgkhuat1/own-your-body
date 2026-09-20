@@ -82,23 +82,50 @@ export default function ClientDashboard() {
     window.location.href = "/login";
   };
 
-  // Tự động set activeBlockId và activeWeek dựa trên thời gian thực (Đồng bộ Nhật Ký)
+  // Tự động set activeBlockId và activeWeek dựa trên "Tuần hoạt động gần nhất" (Last Active Week)
   useEffect(() => {
     if (programInfo?.blocks && programInfo.blocks.length > 0 && !activeBlockId) {
+      let maxCompletedWeek = 0;
+      let allWorkouts: any[] = [];
+
+      // Gom tất cả workout lại để dễ tính toán
+      programInfo.blocks.forEach((b: any) => {
+        if (b.workouts) allWorkouts.push(...b.workouts);
+      });
+
+      // Tìm "Tuần xa nhất" mà khách đã từng tập (hoàn thành ít nhất 1 buổi)
+      allWorkouts.forEach(w => {
+        if (w.is_completed && w.week_number > maxCompletedWeek) {
+          maxCompletedWeek = w.week_number;
+        }
+      });
+
       let targetWeek = 1;
-      
-      // Tính tuần thực tế dựa vào ngày bắt đầu Coaching
-      if (profile?.coaching_start_date) {
-        const start = dayjs(profile.coaching_start_date).startOf('day');
-        const diff = dayjs().startOf('day').diff(start, 'day');
-        targetWeek = Math.max(1, Math.floor(diff / 7) + 1);
-        
-        // Giới hạn ở tuần cuối cùng của khóa học
-        const maxWeeks = profile.coaching_duration_weeks || 12;
-        if (targetWeek > maxWeeks) targetWeek = maxWeeks;
+
+      if (maxCompletedWeek === 0) {
+        // Khách chưa tập buổi nào bao giờ -> Bắt đầu từ Tuần 1
+        targetWeek = 1;
+      } else {
+        // Kiểm tra xem "Tuần xa nhất" đó đã hoàn thành TRỌN VẸN chưa?
+        const workoutsInMaxWeek = allWorkouts.filter(w => w.week_number === maxCompletedWeek);
+        const isMaxWeekFullyCompleted = workoutsInMaxWeek.length > 0 && workoutsInMaxWeek.every(w => w.is_completed);
+
+        if (isMaxWeekFullyCompleted) {
+          // Đã tốt nghiệp trọn vẹn tuần này -> Tự động sang số, nhảy sang tuần tiếp theo
+          targetWeek = maxCompletedWeek + 1;
+        } else {
+          // Vẫn còn buổi tập dở dang trong tuần này -> Giữ nguyên tuần này
+          targetWeek = maxCompletedWeek;
+        }
       }
 
-      // Tìm Block chứa targetWeek
+      // Giới hạn: Không được vượt quá tuần lớn nhất có trong giáo án
+      const maxAvailableWeek = Math.max(...allWorkouts.map(w => w.week_number || 1), 1);
+      if (targetWeek > maxAvailableWeek) {
+        targetWeek = maxAvailableWeek;
+      }
+
+      // Tìm Block đang chứa targetWeek
       let targetBlockId = programInfo.blocks[0].id;
       for (const block of programInfo.blocks) {
         const hasWeek = block.workouts?.some((w: any) => w.week_number === targetWeek);
@@ -111,7 +138,7 @@ export default function ClientDashboard() {
       setActiveBlockId(targetBlockId);
       setActiveWeek(targetWeek);
     }
-  }, [programInfo, profile, activeBlockId]);
+  }, [programInfo, activeBlockId]);
 
   const activeBlock = programInfo?.blocks?.find((b: any) => b.id === activeBlockId) || programInfo?.blocks?.[0];
   const activeWorkouts = activeBlock?.workouts?.filter((w: any) => w.week_number === activeWeek) || [];
