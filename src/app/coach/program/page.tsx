@@ -264,16 +264,22 @@ function ProgramBuilderInner() {
           });
         });
 
-        // Pass 2: Xác định base_ex bằng cách tìm bài tập xuất hiện nhiều nhất (Majority vote)
+        // Pass 2: Xác định base_ex bằng cách tìm bài tập xuất hiện nhiều nhất (Majority vote) + Tính ổn định (Ưu tiên Tuần nhỏ nhất)
         Array.from(masterExercises.values()).forEach((group: any) => {
           const freqMap = new Map();
           let maxFreq = 0;
-          let bestBaseEx = group.all_ex[0]; // Mặc định lấy cái đầu tiên
+          
+          // Sắp xếp các tuần từ nhỏ đến lớn (1 -> 4) để đảm bảo tính ổn định (Deterministic)
+          const sortedWeeks = Object.keys(group.weeks).map(Number).sort((a, b) => a - b);
+          let bestBaseEx = group.weeks[sortedWeeks[0]]; // Mặc định lấy bài của tuần đầu tiên xuất hiện
 
-          for (const ex of group.all_ex) {
-            const exId = ex.exercise_id;
-            const count = (freqMap.get(exId) || 0) + 1;
-            freqMap.set(exId, count);
+          for (const weekNum of sortedWeeks) {
+            const ex = group.weeks[weekNum];
+            const keyToCount = `${ex.exercise_id}_${ex.custom_name || ''}`; // Tính count chính xác theo cả ID và tên custom
+            const count = (freqMap.get(keyToCount) || 0) + 1;
+            freqMap.set(keyToCount, count);
+            
+            // Chỉ đổi bestBaseEx nếu count LỚN HƠN. Nếu hòa, nó sẽ giữ bài của tuần nhỏ hơn làm gốc.
             if (count > maxFreq) {
               maxFreq = count;
               bestBaseEx = ex;
