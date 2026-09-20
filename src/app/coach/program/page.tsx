@@ -89,6 +89,7 @@ function ProgramBuilderInner() {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAddDay, setShowAddDay] = useState(false);
   const [showDeleteDay, setShowDeleteDay] = useState(false);
+  const [exerciseToDelete, setExerciseToDelete] = useState<any>(null);
   const [exerciseLibrary, setExerciseLibrary] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
@@ -562,12 +563,24 @@ function ProgramBuilderInner() {
     await fetchData();
   };
 
-  const handleDeleteExercise = async (ex: any) => {
-    const exName = ex.base_ex?.custom_name || ex.base_ex?.exercises?.name || "bài tập này";
-    if (!confirm(`Bạn có chắc muốn xóa "${exName}" khỏi toàn bộ Phase này?`)) return;
-    
+  const handleDeleteExercise = async () => {
+    if (!exerciseToDelete) return;
+    const ex = exerciseToDelete;
     setSaving(true);
-    // 1. Xóa trong DB
+    
+    // 1. Cập nhật giao diện ngay lập tức (Optimistic UI - Load 0s)
+    let updatedAllExercises: any[] = [];
+    setDays(prevDays => prevDays.map(day => {
+      if (day.dayIndex !== activeDay) return day;
+      const remainingExercises = day.exercises.filter((e: any) => e.key !== ex.key);
+      const units = groupIntoDragUnits(remainingExercises);
+      const { allExercises } = renumberUnits(units);
+      updatedAllExercises = allExercises;
+      return { ...day, exercises: allExercises.map((e: any, i: number) => ({ ...e, order_index: i + 1 })) };
+    }));
+    setExerciseToDelete(null); // Đóng modal ngay lập tức
+
+    // 2. Chạy ngầm Database
     const weekExIds = Object.values(ex.weeks).map((w: any) => w.id);
     
     const logDeletes = await Promise.all(weekExIds.map(id => supabase.from('workout_logs').delete().eq('workout_exercise_id', id)));
@@ -584,25 +597,18 @@ function ProgramBuilderInner() {
       return;
     }
 
-    // 2. Tính toán lại thứ tự cho các bài còn lại
-    const currentDay = days.find(d => d.dayIndex === activeDay);
-    if (currentDay) {
-      const remainingExercises = currentDay.exercises.filter((e: any) => e.key !== ex.key);
-      const units = groupIntoDragUnits(remainingExercises);
-      const { allExercises } = renumberUnits(units);
-
-      const updatePromises: Promise<any>[] = [];
-      allExercises.forEach((e: any, i: number) => {
-        Object.values(e.weeks).forEach((wEx: any) => {
-          updatePromises.push(
-            supabase.from('workout_exercises').update({ order_index: i + 1, group_code: e.group_code }).eq('id', wEx.id)
-          );
-        });
+    const updatePromises: Promise<any>[] = [];
+    updatedAllExercises.forEach((e: any, i: number) => {
+      Object.values(e.weeks).forEach((wEx: any) => {
+        updatePromises.push(
+          supabase.from('workout_exercises').update({ order_index: i + 1, group_code: e.group_code }).eq('id', wEx.id)
+        );
       });
-      await Promise.all(updatePromises);
-    }
+    });
+    await Promise.all(updatePromises);
+    
     showToast(`Đã xóa bài tập`);
-    await fetchData();
+    await fetchData(); // Fetch lại ngầm để đồng bộ
     setSaving(false);
   };
 
@@ -941,7 +947,7 @@ function ProgramBuilderInner() {
                       )}
                     </div>
                     {editingExKey !== ex.key && (
-                      <button onClick={() => handleDeleteExercise(ex)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-all flex-shrink-0" title="Xóa bài tập này khỏi toàn bộ Phase">
+                      <button onClick={() => setExerciseToDelete(ex)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-all flex-shrink-0" title="Xóa bài tập này khỏi toàn bộ Phase">
                         <Trash2 size={14} />
                       </button>
                     )}
@@ -1194,6 +1200,28 @@ function ProgramBuilderInner() {
               <button onClick={() => setShowDeleteDay(false)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
               <button onClick={handleDeleteDay} disabled={addingExercise} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
                 {addingExercise ? "Đang xóa..." : "Xóa luôn"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exerciseToDelete && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setExerciseToDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={28} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-bold text-brand-moss mb-2">Xóa bài tập này?</h2>
+              <p className="text-sm text-brand-moss/60 leading-relaxed">
+                Bài tập <span className="font-bold text-brand-moss">"{exerciseToDelete.base_ex?.custom_name || exerciseToDelete.base_ex?.exercises?.name || 'này'}"</span> sẽ bị xóa khỏi toàn bộ 4 tuần của Phase. Hành động này không thể hoàn tác!
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setExerciseToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
+              <button onClick={handleDeleteExercise} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+                Xóa vĩnh viễn
               </button>
             </div>
           </div>
