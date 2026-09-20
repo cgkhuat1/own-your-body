@@ -90,6 +90,7 @@ function ProgramBuilderInner() {
   const [showAddDay, setShowAddDay] = useState(false);
   const [showDeleteDay, setShowDeleteDay] = useState(false);
   const [exerciseToDelete, setExerciseToDelete] = useState<any>(null);
+  const [weekToDelete, setWeekToDelete] = useState<{ wExId: string, weekNum: number } | null>(null);
   const [exerciseLibrary, setExerciseLibrary] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
@@ -562,6 +563,28 @@ function ProgramBuilderInner() {
     showToast(`Đã xóa buổi "${currentDay.name}"`);
     await fetchData();
   };
+  const handleDeleteSingleWeek = async () => {
+    if (!weekToDelete) return;
+    setSaving(true);
+    
+    // Xóa ngầm DB
+    const logRes = await supabase.from('workout_logs').delete().eq('workout_exercise_id', weekToDelete.wExId);
+    if (logRes.error) {
+      window.alert(`🛑 LỖI XÓA LOGS:\n\n${logRes.error.message}`);
+    } else {
+      const exRes = await supabase.from('workout_exercises').delete().eq('id', weekToDelete.wExId);
+      if (exRes.error) {
+        window.alert(`🛑 LỖI XÓA BÀI TẬP:\n\n${exRes.error.message}`);
+      } else {
+        showToast(`Đã xóa bài tập khỏi Tuần ${weekToDelete.weekNum}`);
+      }
+    }
+    
+    await fetchData();
+    setWeekToDelete(null);
+    setSaving(false);
+  };
+
 
   const handleDeleteExercise = async () => {
     if (!exerciseToDelete) return;
@@ -1018,13 +1041,22 @@ function ProgramBuilderInner() {
                         {/* Header của Cell (Swap button & Override Badge) */}
                         <div className="flex items-center justify-between mb-1 min-h-[20px]">
                           <p className="text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider">Mục tiêu (Set x Rep @RPE)</p>
-                          <button 
-                            onClick={() => { setSwapTarget({ wExId: wEx.id, weekNum }); setShowAddExercise(true); }}
-                            className="opacity-0 group-hover/cell:opacity-100 p-1 rounded bg-brand-paper hover:bg-brand-sand/50 text-brand-moss/60 hover:text-brand-mossDeep transition-all flex items-center gap-1"
-                            title="Thay thế bài tập riêng cho tuần này"
-                          >
-                            <Repeat size={12} /> <span className="text-[9px] font-bold uppercase">Thay thế</span>
-                          </button>
+                          <div className="flex items-center gap-1 opacity-0 group-hover/cell:opacity-100 transition-all">
+                            <button 
+                              onClick={() => { setSwapTarget({ wExId: wEx.id, weekNum }); setShowAddExercise(true); }}
+                              className="p-1 rounded bg-brand-paper hover:bg-brand-sand/50 text-brand-moss/60 hover:text-brand-mossDeep flex items-center gap-1"
+                              title="Thay thế bài tập riêng cho tuần này"
+                            >
+                              <Repeat size={12} /> <span className="text-[9px] font-bold uppercase">Thay thế</span>
+                            </button>
+                            <button 
+                              onClick={() => setWeekToDelete({ wExId: wEx.id, weekNum })}
+                              className="p-1 rounded bg-brand-paper hover:bg-red-50 text-brand-moss/60 hover:text-red-500"
+                              title="Xóa bài tập tuần này (Trống)"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                         
                         {/* Override Badge */}
@@ -1268,6 +1300,28 @@ function ProgramBuilderInner() {
               <button onClick={() => setExerciseToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
               <button onClick={handleDeleteExercise} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
                 Xóa vĩnh viễn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {weekToDelete && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={() => setWeekToDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={28} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-bold text-brand-moss mb-2">Xóa bài tập Tuần {weekToDelete.weekNum}?</h2>
+              <p className="text-sm text-brand-moss/60 leading-relaxed">
+                Bài tập này sẽ bị xóa khỏi <span className="font-bold text-brand-moss">Tuần {weekToDelete.weekNum}</span> và trở thành ô Trống. Các tuần khác vẫn giữ nguyên. Bạn chắc chắn chứ?
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setWeekToDelete(null)} className="flex-1 py-3 rounded-xl font-bold text-sm bg-brand-paper text-brand-moss hover:bg-brand-line transition-colors">Hủy</button>
+              <button onClick={handleDeleteSingleWeek} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50">
+                Xóa Tuần {weekToDelete.weekNum}
               </button>
             </div>
           </div>
