@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, PlayCircle, Check, Plus, Trash2, Clock, X, Target, Link as LinkIcon, TimerReset, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { mutate } from 'swr';
 
 export default function WorkoutExecution() {
   const router = useRouter();
@@ -285,6 +286,7 @@ export default function WorkoutExecution() {
             energy_level: null
           })
           .eq('id', workoutData.id);
+        mutate('program_dashboard');
         router.push("/program");
       } catch(e) {
         alert("Lỗi khi xoá dữ liệu!");
@@ -341,6 +343,7 @@ export default function WorkoutExecution() {
         })
         .eq('id', workoutData.id);
 
+      mutate('program_dashboard');
       router.push("/program");
     } catch (err: any) {
       console.error(err);
