@@ -602,28 +602,35 @@ function ProgramBuilderInner() {
       return;
     }
 
-    // 1. Dịch chuyển tạm thời sang âm để né constraint
-    const tempPromises: Promise<any>[] = [];
+    // 1. Chỉ lọc ra những bài bị thay đổi thứ tự hoặc group_code
+    const updatesNeeded: any[] = [];
     updatedAllExercises.forEach((e: any, i: number) => {
+      const newOrder = i + 1;
       Object.values(e.weeks).forEach((wEx: any) => {
-        tempPromises.push(supabase.from('workout_exercises').update({ order_index: -(i + 1000) }).eq('id', wEx.id));
+        if (wEx.order_index !== newOrder || wEx.group_code !== e.group_code) {
+          updatesNeeded.push({ id: wEx.id, newOrder, newGroupCode: e.group_code });
+        }
       });
     });
-    await Promise.all(tempPromises);
 
-    // 2. Cập nhật thứ tự chuẩn
-    const updatePromises: Promise<any>[] = [];
-    updatedAllExercises.forEach((e: any, i: number) => {
-      Object.values(e.weeks).forEach((wEx: any) => {
-        updatePromises.push(
-          supabase.from('workout_exercises').update({ order_index: i + 1, group_code: e.group_code }).eq('id', wEx.id)
-        );
-      });
-    });
-    const updateResults = await Promise.all(updatePromises);
-    if (updateResults.some(r => r.error)) {
-      const errMsg = updateResults.find(r => r.error)?.error?.message;
-      showToast(`Lỗi sắp xếp lại thứ tự: ${errMsg}`, "error");
+    // 2. Cập nhật tuần tự để chống nghẽn mạng Supabase
+    let hasError = false;
+    let errorMsg = "";
+    for (const update of updatesNeeded) {
+      const { error } = await supabase.from('workout_exercises').update({ 
+        order_index: update.newOrder, 
+        group_code: update.newGroupCode 
+      }).eq('id', update.id);
+      
+      if (error) {
+        hasError = true;
+        errorMsg = error.message;
+        break;
+      }
+    }
+
+    if (hasError) {
+      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng báo lại cho Antigravity nhé!`);
     } else {
       showToast(`Đã xóa bài tập`);
     }
@@ -652,27 +659,35 @@ function ProgramBuilderInner() {
     }));
     setDragUnitIndex(null); dragUnit.current = null; dragOverUnit.current = null;
 
-    // 1. Dịch chuyển tạm thời sang index âm để né lỗi đụng độ Unique Constraint của Database
-    const tempPromises: Promise<any>[] = [];
+    // 1. Chỉ lọc ra những bài bị thay đổi thứ tự hoặc group_code
+    const updatesNeeded: any[] = [];
     allExercises.forEach((ex: any, i: number) => {
+      const newOrder = i + 1;
       Object.values(ex.weeks).forEach((wEx: any) => {
-        tempPromises.push(supabase.from('workout_exercises').update({ order_index: -(i + 1000) }).eq('id', wEx.id));
+        if (wEx.order_index !== newOrder || wEx.group_code !== ex.group_code) {
+          updatesNeeded.push({ id: wEx.id, newOrder, newGroupCode: ex.group_code });
+        }
       });
     });
-    await Promise.all(tempPromises);
 
-    // 2. Cập nhật thứ tự chuẩn
-    const updatePromises: Promise<any>[] = [];
-    allExercises.forEach((ex: any, i: number) => {
-      Object.values(ex.weeks).forEach((wEx: any) => {
-        updatePromises.push(supabase.from('workout_exercises').update({ order_index: i + 1, group_code: ex.group_code }).eq('id', wEx.id));
-      });
-    });
+    // 2. Chạy cập nhật tuần tự (hoặc chunk nhỏ) để không làm Supabase quá tải (tránh Statement Timeout)
+    let hasError = false;
+    let errorMsg = "";
+    for (const update of updatesNeeded) {
+      const { error } = await supabase.from('workout_exercises').update({ 
+        order_index: update.newOrder, 
+        group_code: update.newGroupCode 
+      }).eq('id', update.id);
+      
+      if (error) {
+        hasError = true;
+        errorMsg = error.message;
+        break; // Dừng ngay nếu có lỗi
+      }
+    }
     
-    const results = await Promise.all(updatePromises);
-    if (results.some(r => r.error)) {
-      const errMsg = results.find(r => r.error)?.error?.message || JSON.stringify(results.find(r => r.error)?.error);
-      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errMsg}\n\nVui lòng chụp màn hình cái bảng này gửi cho Antigravity nhé!`);
+    if (hasError) {
+      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng chụp màn hình cái bảng này gửi cho Antigravity nhé!`);
     } else {
       showToast("Đã sắp xếp lại thứ tự bài tập");
     }
