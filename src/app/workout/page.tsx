@@ -284,7 +284,7 @@ export default function WorkoutExecution() {
             completed_at: null,
             rpe_score: null,
             joint_pain: null,
-            energy_level: null
+            notes: null
           })
           .eq('id', workoutData.id);
         
