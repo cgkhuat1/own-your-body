@@ -486,6 +486,7 @@ function ProgramBuilderInner() {
   const handleAddOrSwapExercise = async () => {
     if (!selectedExercise) return;
     setAddingExercise(true);
+    setSaving(true);
 
     if (swapTarget) {
       // Logic: Swap chỉ cho 1 tuần duy nhất
@@ -497,9 +498,9 @@ function ProgramBuilderInner() {
       showToast(`Đã thay thế thành "${selectedExercise.name}" cho Tuần ${swapTarget.weekNum}`);
     } else {
       // Logic: Thêm mới cho cả 4 tuần
-      if (!newGroupCode.trim()) { setAddingExercise(false); return; }
+      if (!newGroupCode.trim()) { setAddingExercise(false); setSaving(false); return; }
       const currentDay = days.find(d => d.dayIndex === activeDay);
-      if (!currentDay) { setAddingExercise(false); return; }
+      if (!currentDay) { setAddingExercise(false); setSaving(false); return; }
   
       const maxOrder = currentDay.exercises.reduce((max: number, ex: any) => Math.max(max, ex.order_index || 0), 0);
   
@@ -521,6 +522,7 @@ function ProgramBuilderInner() {
 
     setShowAddExercise(false); setSelectedExercise(null); setSwapTarget(null);
     setNewGroupCode(""); setNewSets("3"); setNewReps("8-10"); setNewRpe("8"); setSearchQuery(""); setAddingExercise(false);
+    setSaving(false);
     await fetchData();
   };
 
@@ -613,6 +615,7 @@ function ProgramBuilderInner() {
     const currentDay = days.find(d => d.dayIndex === activeDay);
     if (!currentDay) return;
     
+    setSaving(true);
     let units = groupIntoDragUnits(currentDay.exercises);
     const draggedUnit = units.splice(dragUnit.current, 1)[0];
     units.splice(dragOverUnit.current, 0, draggedUnit);
@@ -638,6 +641,7 @@ function ProgramBuilderInner() {
       showToast("Đã sắp xếp lại thứ tự bài tập");
     }
     await fetchData();
+    setSaving(false);
   };
 
   // === TẠO PHASE KẾ TIẾP (SAO CHÉP BLOCK) ===
@@ -1319,7 +1323,8 @@ function ProgramBuilderInner() {
           </div>
         </div>
       )}
-
+      
+      {saving && <div className="fixed inset-0 z-[9999] cursor-wait" />}
     </div>
   );
 }
