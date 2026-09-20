@@ -183,17 +183,41 @@ export default function ClientDashboard() {
     );
   }
 
+  // Grace Period Logic
+  let durationWeeks = 12;
+  let gracePeriodWeeks = 3;
+  let maxAllowedWeeks = 15;
+  let isExpired = false;
+
+  if (profile?.coaching_start_date) {
+    durationWeeks = profile.coaching_duration_weeks || 12;
+    gracePeriodWeeks = Math.ceil(durationWeeks * 0.25);
+    maxAllowedWeeks = durationWeeks + gracePeriodWeeks;
+    
+    const start = dayjs(profile.coaching_start_date).startOf('day');
+    const diff = dayjs().startOf('day').diff(start, 'day');
+    const clientRealWeek = Math.max(1, Math.floor(diff / 7) + 1);
+
+    if (clientRealWeek > maxAllowedWeeks) {
+      isExpired = true;
+    }
+  }
+
   // Màn hình vô hiệu hóa
-  if (!isActive) {
+  if (!isActive || isExpired) {
     return (
       <div className="min-h-screen bg-brand-paper flex items-center justify-center p-6 text-center">
-        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-brand-line">
+        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-brand-line w-full">
           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock size={40} />
           </div>
-          <h1 className="text-2xl font-black text-brand-moss mb-3">Tài khoản tạm khóa</h1>
+          <h1 className="text-2xl font-black text-brand-moss mb-3">
+            {isExpired ? "Hành trình khép lại" : "Tài khoản bị khóa"}
+          </h1>
           <p className="text-brand-moss/70 leading-relaxed mb-8">
-            Gói Coaching của bạn đã kết thúc hoặc tài khoản đang bị tạm ngưng. Lịch tập đã được đưa vào Kho lưu trữ. Vui lòng liên hệ HLV để gia hạn và tiếp tục.
+            {isExpired 
+              ? `Gói Coaching ${durationWeeks} tuần (kèm ${gracePeriodWeeks} tuần hỗ trợ thêm) của bạn đã kết thúc. Chúc mừng bạn đã nỗ lực hết mình! Vui lòng liên hệ Coach để đánh giá lại hành trình hoặc gia hạn.`
+              : "Gói Coaching của bạn đang bị tạm ngưng. Lịch tập đã được đưa vào Kho lưu trữ. Vui lòng liên hệ Coach để biết thêm chi tiết."}
           </p>
           <button onClick={handleLogout} className="w-full py-4 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep transition-colors shadow-md">
             Đăng xuất

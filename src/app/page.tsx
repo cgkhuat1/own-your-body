@@ -145,6 +145,56 @@ export default function ClientDashboard() {
   const daysLeft = Math.max(0, 7 - daysWithSteps);
   const avgStepsNeeded = daysLeft > 0 ? Math.round(remainingSteps / daysLeft) : 0;
 
+  // Grace Period Logic
+  const isActive = user ? user.is_active !== false : true;
+  let durationWeeks = 12;
+  let gracePeriodWeeks = 3;
+  let maxAllowedWeeks = 15;
+  let isExpired = false;
+  let isInGracePeriod = false;
+  let weeksLeftInGrace = 0;
+
+  if (profile?.coaching_start_date && clientRealWeek) {
+    durationWeeks = profile.coaching_duration_weeks || 12;
+    gracePeriodWeeks = Math.ceil(durationWeeks * 0.25);
+    maxAllowedWeeks = durationWeeks + gracePeriodWeeks;
+
+    if (clientRealWeek > maxAllowedWeeks) {
+      isExpired = true;
+    } else if (clientRealWeek > durationWeeks) {
+      isInGracePeriod = true;
+      weeksLeftInGrace = maxAllowedWeeks - clientRealWeek;
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
+  if (!loading && user && (!isActive || isExpired)) {
+    return (
+      <div className="min-h-screen bg-brand-paper flex items-center justify-center p-6 text-center font-nunito">
+        <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-brand-line w-full">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock size={40} />
+          </div>
+          <h1 className="text-2xl font-black text-brand-moss mb-3">
+            {isExpired ? "Hành trình khép lại" : "Tài khoản bị khóa"}
+          </h1>
+          <p className="text-brand-moss/70 leading-relaxed mb-8">
+            {isExpired 
+              ? `Gói Coaching ${durationWeeks} tuần (kèm ${gracePeriodWeeks} tuần hỗ trợ thêm) của bạn đã kết thúc. Chúc mừng bạn đã nỗ lực hết mình! Vui lòng liên hệ Coach để đánh giá lại hành trình hoặc gia hạn.`
+              : "Gói Coaching của bạn đang bị tạm ngưng. Vui lòng liên hệ Coach để biết thêm chi tiết."}
+          </p>
+          <button onClick={handleLogout} className="w-full py-4 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep transition-colors shadow-md">
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && !user) {
 
     return (
@@ -245,6 +295,21 @@ export default function ClientDashboard() {
 
       <div className="p-5 space-y-6">
           
+          {/* Grace Period Warning */}
+          {isInGracePeriod && (
+            <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex gap-3 items-start shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex flex-shrink-0 items-center justify-center text-orange-500 mt-0.5">
+                <Flame size={16} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-orange-800 mb-1">Thời gian linh hoạt (Grace Period)</h4>
+                <p className="text-[12px] text-orange-700 leading-relaxed font-medium">
+                  Bạn đã bước qua tuần thứ {durationWeeks}. App đang kích hoạt thời gian hỗ trợ thêm để bạn hoàn thành nốt mục tiêu. Thời hạn đóng app: <strong>{weeksLeftInGrace === 0 ? "Cuối tuần này" : `Còn ${weeksLeftInGrace} tuần nữa`}</strong>. Cố lên nhé!
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Week Selector */}
           <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-brand-line/50">
             <button onClick={() => {
