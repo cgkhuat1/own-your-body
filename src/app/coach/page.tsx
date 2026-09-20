@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 "use client";
 
 import { useState, useEffect } from "react";
@@ -118,7 +120,7 @@ export default function CoachDashboard() {
         
       if (metrics && metrics.length > 0 && client.coaching_start_date) {
         const start = dayjs(client.coaching_start_date).startOf('day');
-        const weeksMap = {};
+        const weeksMap: Record<number, number[]> = {};
         let minW = Infinity;
         let maxW = -Infinity;
         
@@ -135,7 +137,7 @@ export default function CoachDashboard() {
         
         const cData = Object.keys(weeksMap).sort((a,b) => parseInt(a) - parseInt(b)).map(weekNum => {
           const arr = weeksMap[parseInt(weekNum)];
-          const avg = arr.reduce((a,b) => a+b, 0) / arr.length;
+          const avg = arr.reduce((a: number, b: number) => a+b, 0) / arr.length;
           return {
             name: `T${weekNum}`,
             weight: parseFloat(avg.toFixed(1))
