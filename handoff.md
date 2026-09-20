@@ -16,6 +16,7 @@
 - Implemented **SWR (Stale-While-Revalidate)** for the Client Dashboard (`/`), Program (`/program`), and Profile (`/profile`) tabs.
 - Achieved **0-second (Instant Load)** perceived load times when navigating between main tabs via caching.
 - Fixed complex date math bugs (e.g., jumping to negative weeks if `coaching_start_date` is in the future).
+- **[HOTFIX] SWR Cache Preservation:** Replaced all `window.location.href` and `<a href>` tags with Next.js `useRouter()` in the Workout Execution and Program pages. This prevents full page reloads, ensuring the SWR memory cache is preserved and back-navigation is instantly 0s.
 
 ## 3. Strict Rules & Conventions (CRITICAL)
 - **Terminology:** NEVER use the word "HLV". ALWAYS use "Coach".

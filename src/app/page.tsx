@@ -52,7 +52,8 @@ export default function ClientDashboard() {
   };
 
   const { data, isLoading: loading, mutate } = useSWR(['dashboard', weekStartStr], ([key, weekStr]) => fetcher(key, weekStr), {
-    revalidateOnFocus: true
+    revalidateOnFocus: true,
+    keepPreviousData: true
   });
 
   const user = data?.user;
