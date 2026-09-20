@@ -103,6 +103,7 @@ function ProgramBuilderInner() {
 
   // Trạng thái Swap (Thay thế 1 bài tập cụ thể trong 1 tuần)
   const [swapTarget, setSwapTarget] = useState<{ wExId: string, weekNum: number } | null>(null);
+  const [modifiedWExIds, setModifiedWExIds] = useState<Set<string>>(new Set());
 
   // Inline edit state
   const [editingDayName, setEditingDayName] = useState(false);
@@ -318,6 +319,7 @@ function ProgramBuilderInner() {
       setDays([]);
     }
   }
+    setModifiedWExIds(new Set());
     setLoading(false);
   }, [clientId, activeProgramId, activeBlockId, activeDay]);
 
@@ -339,7 +341,10 @@ function ProgramBuilderInner() {
         exercises: day.exercises.map((ex: any) => {
           if (ex.key !== exKey) return ex;
           const newWeeks = { ...ex.weeks };
-          if (newWeeks[week]) { newWeeks[week] = { ...newWeeks[week], [field]: value }; }
+          if (newWeeks[week]) {
+            newWeeks[week] = { ...newWeeks[week], [field]: value };
+            setModifiedWExIds(prev => new Set(prev).add(newWeeks[week].id));
+          }
           return { ...ex, weeks: newWeeks };
         })
       };
@@ -347,19 +352,47 @@ function ProgramBuilderInner() {
   };
 
   const handleSave = async () => {
+    if (modifiedWExIds.size === 0) {
+      showToast("Không có thay đổi nào cần lưu!");
+      return;
+    }
+    
     setSaving(true);
     const updates: any[] = [];
     days.forEach(day => {
       day.exercises.forEach((ex: any) => {
         Object.values(ex.weeks).forEach((wEx: any) => {
-          updates.push({ id: wEx.id, target_sets: parseInt(wEx.target_sets) || 3, target_reps: wEx.target_reps, target_rpe: wEx.target_rpe });
+          if (modifiedWExIds.has(wEx.id)) {
+            updates.push({ id: wEx.id, target_sets: parseInt(wEx.target_sets) || 3, target_reps: wEx.target_reps, target_rpe: wEx.target_rpe });
+          }
         });
       });
     });
-    await Promise.all(updates.map(u => 
-      supabase.from('workout_exercises').update({ target_sets: u.target_sets, target_reps: u.target_reps, target_rpe: u.target_rpe }).eq('id', u.id)
-    ));
-    showToast("Đã lưu giáo án thành công!");
+
+    let hasError = false;
+    let errorMsg = "";
+    
+    // Gửi tuần tự để không làm quá tải Supabase
+    for (const u of updates) {
+      const { error } = await supabase.from('workout_exercises').update({ 
+        target_sets: u.target_sets, 
+        target_reps: u.target_reps, 
+        target_rpe: u.target_rpe 
+      }).eq('id', u.id);
+      
+      if (error) {
+        hasError = true;
+        errorMsg = error.message;
+        break;
+      }
+    }
+    
+    if (hasError) {
+      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng báo lại cho Antigravity nhé!`);
+    } else {
+      showToast(`Đã lưu thành công ${updates.length} ô thay đổi!`);
+      setModifiedWExIds(new Set()); // Reset bộ đếm sau khi lưu thành công
+    }
     setSaving(false);
   };
 
