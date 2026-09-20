@@ -585,15 +585,20 @@ function ProgramBuilderInner() {
     
     const logDeletes = await Promise.all(weekExIds.map(id => supabase.from('workout_logs').delete().eq('workout_exercise_id', id)));
     if (logDeletes.some(r => r.error)) {
-      showToast("Lỗi khi xóa lịch sử tập (Logs)", "error");
+      const errMsg = logDeletes.find(r => r.error)?.error?.message;
+      showToast(`Lỗi xóa Logs: ${errMsg}`, "error");
       console.error("Log delete error", logDeletes);
     }
 
     const exDeletes = await Promise.all(weekExIds.map(id => supabase.from('workout_exercises').delete().eq('id', id)));
     if (exDeletes.some(r => r.error)) {
-      showToast("Lỗi DB khi xóa bài tập", "error");
+      const errMsg = exDeletes.find(r => r.error)?.error?.message;
+      showToast(`Lỗi DB: ${errMsg}`, "error");
       console.error("Ex delete error", exDeletes);
       setSaving(false);
+      
+      // Rollback Optimistic UI
+      await fetchData();
       return;
     }
 
@@ -605,9 +610,13 @@ function ProgramBuilderInner() {
         );
       });
     });
-    await Promise.all(updatePromises);
-    
-    showToast(`Đã xóa bài tập`);
+    const updateResults = await Promise.all(updatePromises);
+    if (updateResults.some(r => r.error)) {
+      const errMsg = updateResults.find(r => r.error)?.error?.message;
+      showToast(`Lỗi sắp xếp lại thứ tự: ${errMsg}`, "error");
+    } else {
+      showToast(`Đã xóa bài tập`);
+    }
     await fetchData(); // Fetch lại ngầm để đồng bộ
     setSaving(false);
   };
