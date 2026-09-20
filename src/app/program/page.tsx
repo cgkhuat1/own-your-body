@@ -50,7 +50,12 @@ export default function ClientDashboard() {
       // Sort blocks & workouts inside
       programsData.blocks.sort((a: any, b: any) => a.order_index - b.order_index);
       programsData.blocks.forEach((b: any) => {
-        b.workouts.sort((w1: any, w2: any) => (w1.order_index || 0) - (w2.order_index || 0));
+        b.workouts.sort((w1: any, w2: any) => {
+          if (w1.week_number !== w2.week_number) {
+            return (w1.week_number || 0) - (w2.week_number || 0);
+          }
+          return (w1.order_index || 0) - (w2.order_index || 0);
+        });
       });
     }
 
