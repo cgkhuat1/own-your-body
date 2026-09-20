@@ -249,7 +249,12 @@ function ProgramBuilderInner() {
         // Pass 1: Gom nhóm theo order_index
         dayWorkouts.forEach((w: any) => {
           w.workout_exercises?.forEach((ex: any) => {
-            const key = String(ex.order_index);
+            let key = String(ex.order_index);
+            // Self-healing: Nếu đụng độ order_index do lỗi mạng khi drag-and-drop, tách ra hàng mới để user thấy thay vì bị nuốt mất (ô Trống)
+            while (masterExercises.has(key) && masterExercises.get(key).weeks[w.week_number]) {
+              key = key + "_dup";
+            }
+
             if (!masterExercises.has(key)) {
               masterExercises.set(key, {
                 key,
@@ -608,8 +613,13 @@ function ProgramBuilderInner() {
         updatePromises.push(supabase.from('workout_exercises').update({ order_index: i + 1, group_code: ex.group_code }).eq('id', wEx.id));
       });
     });
-    await Promise.all(updatePromises);
-    showToast("Đã sắp xếp lại thứ tự bài tập");
+    const results = await Promise.all(updatePromises);
+    const hasError = results.some(r => r.error);
+    if (hasError) {
+      showToast("Có lỗi mạng khi lưu thứ tự, một số ô có thể bị kẹt. Vui lòng tải lại trang.", "error");
+    } else {
+      showToast("Đã sắp xếp lại thứ tự bài tập");
+    }
     await fetchData();
   };
 
