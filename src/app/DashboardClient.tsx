@@ -57,9 +57,9 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
     keepPreviousData: true
   });
 
-  const user = data?.user;
-  const profile = data?.profile;
-  const dailyMetrics = data?.metrics || [];
+  const user = data?.user || initialData?.user;
+  const profile = data?.profile || initialData?.profile;
+  const dailyMetrics = data?.metrics || initialData?.metrics || [];
 
   useEffect(() => {
     if (profile?.coaching_start_date && !viewingWeekIdx) {
