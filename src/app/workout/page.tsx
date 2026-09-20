@@ -274,9 +274,10 @@ export default function WorkoutExecution() {
       try {
         const wExIds = exercises.map(ex => ex.w_ex_id);
         if (wExIds.length > 0) {
-          await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+          const { error: delError } = await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+          if (delError) throw delError;
         }
-        await supabase.from('workouts')
+        const { error: upError } = await supabase.from('workouts')
           .update({ 
             is_completed: false,
             is_perfect: false, 
@@ -286,10 +287,15 @@ export default function WorkoutExecution() {
             energy_level: null
           })
           .eq('id', workoutData.id);
-        mutate('program_dashboard');
+        
+        if (upError) throw upError;
+
+        await mutate('program_dashboard');
+        router.refresh();
         router.push("/program");
-      } catch(e) {
-        alert("Lỗi khi xoá dữ liệu!");
+      } catch(e: any) {
+        console.error(e);
+        alert("Lỗi khi xoá dữ liệu! " + (e.message || ""));
       }
       setSaving(false);
     } else {
@@ -318,11 +324,13 @@ export default function WorkoutExecution() {
 
       const wExIds = exercises.map(ex => ex.w_ex_id);
       if (wExIds.length > 0) {
-        await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+        const { error: delError } = await supabase.from('workout_logs').delete().in('workout_exercise_id', wExIds);
+        if (delError) throw delError;
       }
 
       if (logsToInsert.length > 0) {
-        await supabase.from('workout_logs').insert(logsToInsert);
+        const { error: insError } = await supabase.from('workout_logs').insert(logsToInsert);
+        if (insError) throw insError;
       }
 
       let isPerfect = true;
@@ -332,7 +340,7 @@ export default function WorkoutExecution() {
         });
       });
 
-      await supabase.from('workouts')
+      const { error: upError } = await supabase.from('workouts')
         .update({ 
           is_completed: true,
           is_perfect: isPerfect, 
@@ -343,11 +351,14 @@ export default function WorkoutExecution() {
         })
         .eq('id', workoutData.id);
 
-      mutate('program_dashboard');
+      if (upError) throw upError;
+
+      await mutate('program_dashboard');
+      router.refresh();
       router.push("/program");
     } catch (err: any) {
       console.error(err);
-      alert("Lỗi khi lưu kết quả!");
+      alert("Lỗi khi lưu kết quả! " + (err.message || ""));
     }
     setSaving(false);
   };
