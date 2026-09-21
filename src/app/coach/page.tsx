@@ -35,12 +35,15 @@ export default function CoachDashboard() {
     
     // Check role
     const { data: me } = await supabase.from('users').select('role').eq('id', session.user.id).single();
-    if (me) setCurrentUserRole(me.role);
+    if (me) setCurrentUserRole(me.role?.toLowerCase() || 'client');
 
-    // Fetch all assigned clients
-    let query = supabase.from('users').select('id, full_name, email, role, assigned_coach_id, is_active').neq('id', session.user.id);
+    // Fetch clients only (exclude coaches and founders from the client list)
+    let query = supabase.from('users')
+      .select('id, full_name, email, role, assigned_coach_id, is_active')
+      .neq('id', session.user.id)
+      .eq('role', 'client'); // Only fetch clients
     
-    if (me?.role?.toLowerCase() === 'coach') {
+    if (me?.role?.toLowerCase() === 'coach' || me?.role?.toLowerCase() === 'pt') {
       query = query.eq('assigned_coach_id', session.user.id);
     }
 
