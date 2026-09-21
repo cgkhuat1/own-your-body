@@ -43,7 +43,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
         blocks (
           id, name, order_index,
           workouts (
-            id, name, week_number, is_completed, is_perfect, order_index
+            id, name, week_number, is_completed, is_perfect, order_index, completed_at
           )
         )
       `)
