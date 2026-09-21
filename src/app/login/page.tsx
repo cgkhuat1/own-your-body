@@ -20,8 +20,12 @@ export default function LoginPage() {
           .select('role')
           .eq('id', session.user.id)
           .single();
-        if (userData?.role === 'pt' || userData?.role === 'coach') window.location.href = "/coach";
-        else window.location.href = "/";
+        const role = userData?.role?.toLowerCase().trim();
+        if (role === 'pt' || role === 'coach' || role === 'founder' || role === 'admin') {
+          window.location.href = "/coach";
+        } else {
+          window.location.href = "/";
+        }
       }
     };
     checkSession();
@@ -49,7 +53,8 @@ export default function LoginPage() {
       .eq('id', data.user.id)
       .single();
 
-    if (userData?.role === 'pt' || userData?.role === 'coach') {
+    const role = userData?.role?.toLowerCase().trim();
+    if (role === 'pt' || role === 'coach' || role === 'founder' || role === 'admin') {
       window.location.href = "/coach";
     } else {
       window.location.href = "/";
