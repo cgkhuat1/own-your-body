@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { CheckCircle2, Circle, Flame, CalendarDays, LogOut, UserCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dayjs from "dayjs";
 
 export default function ClientDashboard({ initialData }: { initialData?: any }) {
@@ -380,16 +381,16 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
             <div className="space-y-3">
               {programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.length > 0 ? (
                 programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.map((workout: any) => (
-                  <div 
+                  <Link 
+                    href={`/workout?id=${workout.id}`}
                     key={workout.id} 
-                    className={`rounded-2xl p-5 shadow-sm border flex items-center justify-between cursor-pointer transition-all group ${
+                    className={`rounded-2xl p-5 shadow-sm border flex items-center justify-between cursor-pointer transition-all group block ${
                       workout.status === 'perfect'
                         ? "bg-gradient-to-tr from-[#B8860B] via-[#FCE3A1] to-[#D4AF37] border-[2px] border-[#B8860B] shadow-[0_8px_30px_rgba(212,175,55,0.5)] transform scale-[1.01] hover:scale-[1.03] relative overflow-hidden" 
                         : workout.status === 'partial' 
                         ? "bg-gradient-to-r from-emerald-50/80 to-emerald-50/40 border-emerald-300 hover:border-emerald-400"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
                     }`}
-                    onClick={() => router.push(`/workout?id=${workout.id}`)}
                   >
                     <div>
                       <h3 className={`font-bold text-lg transition-colors ${
@@ -412,7 +413,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                         <Circle className="text-brand-line/60" size={32} />
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="bg-white rounded-xl p-8 shadow-sm border border-brand-line border-dashed flex flex-col items-center justify-center text-center">

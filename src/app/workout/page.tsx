@@ -1,14 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { ArrowLeft, PlayCircle, Check, Plus, Trash2, Clock, X, Target, Link as LinkIcon, TimerReset, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
+import { useSearchParams } from 'next/navigation';
 
-export default function WorkoutExecution() {
+function WorkoutExecutionContent() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const searchParams = useSearchParams();
+  const workoutId = searchParams ? searchParams.get('id') : null;
+    const [saving, setSaving] = useState(false);
   const [workoutData, setWorkoutData] = useState<any>(null);
   const [exercises, setExercises] = useState<any[]>([]);
   
@@ -57,117 +59,129 @@ export default function WorkoutExecution() {
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Lấy dữ liệu thật từ DB
-  useEffect(() => {
-    const fetchWorkout = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const workoutId = urlParams.get('id');
-      if (!workoutId) {
-        router.push("/program");
-        return;
-      }
+  
+  const fetcher = async (id: string) => {
+    if (!id) return null;
 
-      // 🔥 CHẠY SONG SONG: Lấy Buổi tập hiện tại và Danh sách Bài tập cùng lúc (Tốn 1 lượt mạng)
-      const [workoutRes, wExRes] = await Promise.all([
-        supabase.from('workouts').select('id, block_id, order_index, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url').eq('id', workoutId).single(),
-        supabase.from('workout_exercises').select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)').eq('workout_id', workoutId).order('order_index', { ascending: true })
-      ]);
+    const [workoutRes, wExRes] = await Promise.all([
+      supabase.from('workouts').select('id, block_id, order_index, name, week_number, is_completed, rpe_score, joint_pain, notes, coach_video_url').eq('id', id).single(),
+      supabase.from('workout_exercises').select('id, order_index, group_code, custom_name, target_sets, target_reps, target_rpe, exercise_id, coach_notes, exercises(name, youtube_id)').eq('workout_id', id).order('order_index', { ascending: true })
+    ]);
 
-      const workout = workoutRes.data;
-      const wExercises = wExRes.data;
+    const workout = workoutRes.data;
+    const wExercises = wExRes.data;
 
-      setWorkoutData(workout);
-      if (workout?.rpe_score !== null && workout?.rpe_score !== undefined) setRpeScore(workout.rpe_score);
-      if (workout?.joint_pain) setJointPain(workout.joint_pain);
-      if (workout?.notes) setWorkoutNotes(workout.notes);
+    let prevVideoUrl = null;
+    let prevNotesMap: Record<string, string> = {};
+    let prevLogsMap: Record<string, any[]> = {};
+    let currentLogs: any[] = [];
 
-      let prevVideoUrl = null;
-      let prevNotesMap: Record<string, string> = {};
-      let prevLogsMap: Record<string, any[]> = {};
-      let currentLogs: any[] = [];
+    const parallelTasks = [];
 
-      // 🔥 CHẠY SONG SONG: Lấy Lịch sử Tạ hiện tại VÀ Dữ liệu tuần trước (Tốn 1 lượt mạng)
-      const parallelTasks = [];
+    if (wExercises && wExercises.length > 0) {
+      const wExIds = wExercises.map((ex: any) => ex.id);
+      parallelTasks.push(
+        supabase.from('workout_logs').select('*').in('workout_exercise_id', wExIds).then(res => {
+          currentLogs = res.data || [];
+        })
+      );
+    }
 
-      if (wExercises && wExercises.length > 0) {
-        const wExIds = wExercises.map((ex: any) => ex.id);
-        parallelTasks.push(
-          supabase.from('workout_logs').select('*').in('workout_exercise_id', wExIds).then(res => {
-            currentLogs = res.data || [];
-          })
-        );
-      }
+    if (workout?.week_number > 1 && workout?.block_id) {
+      parallelTasks.push(
+        (async () => {
+          const { data: prevWorkout } = await supabase.from('workouts')
+            .select('id, coach_video_url')
+            .eq('block_id', workout.block_id)
+            .eq('order_index', workout.order_index)
+            .eq('week_number', workout.week_number - 1)
+            .single();
 
-      if (workout?.week_number > 1 && workout?.block_id) {
-        parallelTasks.push(
-          (async () => {
-            const { data: prevWorkout } = await supabase.from('workouts')
-              .select('id, coach_video_url')
-              .eq('block_id', workout.block_id)
-              .eq('order_index', workout.order_index)
-              .eq('week_number', workout.week_number - 1)
-              .single();
-
-            if (prevWorkout) {
-              prevVideoUrl = prevWorkout.coach_video_url;
-              const { data: prevExs } = await supabase.from('workout_exercises')
-                .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
-                .eq('workout_id', prevWorkout.id);
-                
-              if (prevExs) {
-                prevExs.forEach(px => {
-                  if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
-                  if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
-                });
-              }
+          if (prevWorkout) {
+            prevVideoUrl = prevWorkout.coach_video_url;
+            const { data: prevExs } = await supabase.from('workout_exercises')
+              .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
+              .eq('workout_id', prevWorkout.id);
+              
+            if (prevExs) {
+              prevExs.forEach((px: any) => {
+                if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
+                if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
+              });
             }
-          })()
-        );
-      }
-
-      await Promise.all(parallelTasks);
-
-      setWorkoutData((prev: any) => prev ? { ...prev, coach_video_url: prevVideoUrl } : null);
-
-      if (wExercises) {
-        const logs = currentLogs;
-        // Biến đổi thành State cho UI
-        const exState = wExercises.map(ex => {
-          const name = ex.custom_name || ex.exercises?.name || "Bài tập";
-          const sets = [];
-          const exLogs = logs?.filter(l => l.workout_exercise_id === ex.id) || [];
-          
-          // Xác định số set cần hiển thị (Nếu trong log có nhiều set hơn target thì render nhiều hơn)
-          const numSets = Math.max(ex.target_sets || 3, exLogs.length);
-          
-          for (let i = 1; i <= numSets; i++) {
-            const log = exLogs.find(l => l.set_number === i);
-            sets.push({
-              id: `${ex.id}-${i}`,
-              set_number: i,
-              target: `${ex.target_reps} reps @${ex.target_rpe}`,
-              weight: log && log.weight !== undefined && log.weight !== null ? (log.weight === 0 ? '' : String(log.weight)) : '',
-              reps: log && log.reps ? String(log.reps) : "",
-              rpe: log && log.rpe ? String(log.rpe) : "",
-              completed: !!log,
-              prev_log: prevLogsMap[ex.exercise_id]?.find((l:any) => l.set_number === i) || null
-            });
           }
-          return {
-            w_ex_id: ex.id,
-            group_code: ex.group_code || String(ex.order_index),
-            name: name,
-            youtube_id: ex.exercises?.youtube_id,
-            coach_notes: prevNotesMap[ex.exercise_id] || null,
-            sets: sets
-          };
-        });
-        setExercises(exState);
-      }
-      setLoading(false);
-    };
-    fetchWorkout();
-  }, []);
+        })()
+      );
+    }
+
+    await Promise.all(parallelTasks);
+
+    if (workout) {
+      workout.coach_video_url = prevVideoUrl;
+    }
+
+    let exState: any[] = [];
+    if (wExercises) {
+      const logs = currentLogs;
+      exState = wExercises.map((ex: any) => {
+        const name = ex.custom_name || ex.exercises?.name || "Bài tập";
+        const sets = [];
+        const exLogs = logs?.filter((l: any) => l.workout_exercise_id === ex.id) || [];
+        
+        const numSets = Math.max(ex.target_sets || 3, exLogs.length);
+        
+        for (let i = 1; i <= numSets; i++) {
+          const log = exLogs.find((l: any) => l.set_number === i);
+          sets.push({
+            id: `${ex.id}-${i}`,
+            set_number: i,
+            target: `${ex.target_reps} reps @${ex.target_rpe}`,
+            weight: log && log.weight !== undefined && log.weight !== null ? (log.weight === 0 ? '' : String(log.weight)) : '',
+            reps: log && log.reps ? String(log.reps) : "",
+            rpe: log && log.rpe ? String(log.rpe) : "",
+            completed: !!log,
+            prev_log: prevLogsMap[ex.exercise_id]?.find((l:any) => l.set_number === i) || null
+          });
+        }
+        return {
+          w_ex_id: ex.id,
+          group_code: ex.group_code || String(ex.order_index),
+          name: name,
+          youtube_id: ex.exercises?.youtube_id,
+          coach_notes: prevNotesMap[ex.exercise_id] || null,
+          sets: sets
+        };
+      });
+    }
+
+    return { workout, exState };
+  };
+
+  const { data: swrData, isLoading: swrLoading } = useSWR(
+    workoutId ? `workout_${workoutId}` : null,
+    () => fetcher(workoutId as string),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
+
+  useEffect(() => {
+    if (!workoutId) {
+      router.push("/program");
+    }
+  }, [workoutId, router]);
+
+  useEffect(() => {
+    if (swrData) {
+      setWorkoutData(swrData.workout);
+      if (swrData.workout?.rpe_score !== null && swrData.workout?.rpe_score !== undefined) setRpeScore(swrData.workout.rpe_score);
+      if (swrData.workout?.joint_pain) setJointPain(swrData.workout.joint_pain);
+      if (swrData.workout?.notes) setWorkoutNotes(swrData.workout.notes);
+      setExercises(swrData.exState);
+    }
+  }, [swrData]);
+
 
   const calculateRestTimeByRPE = (rpeVal: number) => {
     if (rpeVal >= 9) return 240;
@@ -376,7 +390,7 @@ export default function WorkoutExecution() {
     return { total, completed };
   };
 
-  if (loading) {
+  if (swrLoading || !workoutData) {
     return (
       <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-32 animate-pulse">
         {/* Header Skeleton */}
@@ -716,5 +730,14 @@ export default function WorkoutExecution() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function WorkoutExecution() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-brand-paper"></div>}>
+      <WorkoutExecutionContent />
+    </Suspense>
   );
 }
