@@ -537,8 +537,12 @@ function WorkoutExecutionContent() {
                               </span>
                             </div>
                             {set.prev_log && (
-                               <div className="text-[13px] font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-md uppercase tracking-wider border border-gray-200">
-                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}</span>
+                               <div className="text-[15px] font-bold text-brand-moss/80 flex items-center gap-1.5 mt-0.5 pl-0.5">
+                                 <span className="text-brand-moss/60 text-lg leading-none transform -translate-y-[2px]">↳</span> 
+                                 <span>Tuần trước:</span> 
+                                 <span className="text-brand-mossDeep font-black">
+                                   {set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}
+                                 </span>
                                </div>
                             )}
                           </div>
