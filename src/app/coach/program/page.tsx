@@ -1123,12 +1123,12 @@ function ProgramBuilderInner() {
                                 <MessageCircle size={14} />
                               </button>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                               {uniqueLogs.map((l: any) => (
-                                <div key={l.id} className="flex justify-between items-center text-[11px] font-black text-emerald-900 bg-emerald-100/50 px-2 py-1 rounded">
-                                  <span className="text-emerald-700 font-semibold w-4">#{l.set_number}</span>
-                                  <span>{l.weight}kg x {l.reps}</span>
-                                  <span className="text-emerald-600 text-[10px]">@{l.rpe || '?'}</span>
+                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-emerald-900 bg-emerald-100/50 px-2.5 py-1.5 rounded-md">
+                                  <span className="text-emerald-700 font-bold w-4">#{l.set_number}</span>
+                                  <span>{l.weight} x {l.reps}</span>
+                                  <span className="text-emerald-600 text-xs font-bold bg-emerald-200/50 px-1.5 py-0.5 rounded">@{l.rpe || '?'}</span>
                                 </div>
                               ))}
                             </div>
