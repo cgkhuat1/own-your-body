@@ -328,7 +328,7 @@ export default function ClientDashboard() {
                     {/* Weight (Always Level 1) */}
                     <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
                       <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cân nặng</span>
-                      <span className="font-black text-brand-moss">{row?.weight ? `${row.weight} kg` : '--'}</span>
+                      <span className="font-black text-brand-moss">{row?.weight ? `${row.weight}` : '--'}</span>
                     </div>
 
                     {/* Steps (Level 2+) */}
@@ -371,7 +371,7 @@ export default function ClientDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hiện tại</p>
-                <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'} kg</p>
+                <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'}</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mục tiêu</p>
@@ -439,7 +439,7 @@ export default function ClientDashboard() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Cân nặng sáng (kg)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Cân nặng sáng (kg/lbs)</label>
                 <input type="number" step="0.1" value={metricsInput.weight} onChange={e => setMetricsInput({...metricsInput, weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900" placeholder="VD: 65.5" />
               </div>
 

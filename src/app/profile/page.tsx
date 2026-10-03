@@ -157,7 +157,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hiện tại</p>
-              <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'} kg</p>
+              <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'}</p>
             </div>
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mục tiêu</p>
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                   <Tooltip 
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
                     itemStyle={{ color: '#1C2E20' }}
-                    formatter={(value: any) => [`${value} kg`, 'Trung bình']}
+                    formatter={(value: any) => [`${value}`, 'Trung bình']}
                   />
                   <Line 
                     type="monotone" 

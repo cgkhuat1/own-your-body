@@ -514,7 +514,7 @@ function WorkoutExecutionContent() {
 
                 <div className="p-3 bg-brand-paper/20">
                   <div className="flex items-center text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider px-2 mb-2">
-                    <div className="flex-1 text-center">Tạ (kg)</div>
+                    <div className="flex-1 text-center">TẠ</div>
                     <div className="flex-1 text-center">Rep</div>
                     <div className="flex-1 text-center">RPE</div>
                     <div className="w-[45px]"></div>
@@ -548,7 +548,7 @@ function WorkoutExecutionContent() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <input type="number" placeholder="kg" disabled={set.completed} value={set.weight} onChange={(e) => updateSet(ex.w_ex_id, set.id, "weight", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : isError && !set.weight ? "bg-red-100" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="kg/lbs" disabled={set.completed} value={set.weight} onChange={(e) => updateSet(ex.w_ex_id, set.id, "weight", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : isError && !set.weight ? "bg-red-100" : "bg-brand-paper/50"}`} />
                             <input type="number" placeholder="rep" disabled={set.completed} value={set.reps} onChange={(e) => updateSet(ex.w_ex_id, set.id, "reps", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : isError && !set.reps ? "bg-red-100" : "bg-brand-paper/50"}`} />
                             <input type="number" placeholder="rpe" disabled={set.completed} value={set.rpe} onChange={(e) => updateSet(ex.w_ex_id, set.id, "rpe", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-emerald-800" : "bg-brand-paper/50"}`} />
                             <div className="w-[45px] flex justify-end">

@@ -264,7 +264,7 @@ export default function ClientProfileDetail() {
               <input type="number" value={profile.height} onChange={e => setProfile({...profile, height: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Hiện tại (kg)</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Hiện tại (kg/lbs)</label>
               <input type="number" value={profile.current_weight} onChange={e => setProfile({...profile, current_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
             </div>
           </div>
@@ -424,7 +424,7 @@ export default function ClientProfileDetail() {
 
           <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
             <div className="col-span-2">
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Đích Cân Nặng (kg)</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Đích Cân Nặng (kg/lbs)</label>
               <input type="number" value={profile.target_weight_num || ''} onChange={e => setProfile({...profile, target_weight_num: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage font-black text-gray-800" placeholder="VD: 65" />
             </div>
             <div>
@@ -522,7 +522,7 @@ export default function ClientProfileDetail() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cân TB Tuần</p>
-                      <p className="text-xl font-black text-brand-moss">{weightDays > 0 ? (totalWeight / weightDays).toFixed(1) : '--'} <span className="text-sm">kg</span></p>
+                      <p className="text-xl font-black text-brand-moss">{weightDays > 0 ? (totalWeight / weightDays).toFixed(1) : '--'} </p>
                     </div>
                     <div className={`p-3 rounded-xl border ${stepProgress >= 100 ? 'bg-emerald-50 border-emerald-200' : stepProgress >= 80 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
                       <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60">Tiến độ Steps</p>
@@ -547,7 +547,7 @@ export default function ClientProfileDetail() {
                       <thead className="bg-brand-moss text-white font-bold uppercase text-[10px] tracking-wider">
                         <tr>
                           <th className="p-3 border-b border-brand-mossDeep">Ngày</th>
-                          <th className="p-3 border-b border-brand-mossDeep text-center">Cân (kg)</th>
+                          <th className="p-3 border-b border-brand-mossDeep text-center">Cân (kg/lbs)</th>
                           <th className="p-3 border-b border-brand-mossDeep text-center">Bước chân</th>
                           <th className="p-3 border-b border-brand-mossDeep text-center">Calo in</th>
                           <th className="p-3 border-b border-brand-mossDeep text-center">Protein (g)</th>

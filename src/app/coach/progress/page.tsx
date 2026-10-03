@@ -241,7 +241,7 @@ function ClientProgressInner() {
                           {log.max1RM > 0 && (
                             <div className="bg-brand-mossDeep text-brand-sage px-4 py-2 rounded-xl text-center shadow-sm">
                               <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Ước tính 1RM</p>
-                              <p className="text-xl font-black">{log.max1RM} <span className="text-xs font-bold">kg</span></p>
+                              <p className="text-xl font-black">{log.max1RM} </p>
                             </div>
                           )}
                         </div>
@@ -288,7 +288,7 @@ function ClientProgressInner() {
                                     {isTopSet && <span title="Top Set" className="text-[12px]">🔥</span>}
                                   </div>
                                   <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
-                                    {set.weight} <span className="text-xs font-semibold opacity-60 ml-0.5">kg</span>
+                                    {set.weight} 
                                     {wDiffNode}
                                   </div>
                                   <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>

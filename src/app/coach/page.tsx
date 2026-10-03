@@ -376,7 +376,7 @@ export default function CoachDashboard() {
                       <Tooltip 
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
                         itemStyle={{ color: '#1C2E20' }}
-                        formatter={(value) => [`${value} kg`, 'Trung bình tuần']}
+                        formatter={(value) => [`${value}`, 'Trung bình tuần']}
                       />
                       <Line 
                         type="monotone" 
