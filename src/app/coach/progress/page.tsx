@@ -210,53 +210,98 @@ function ClientProgressInner() {
                     Không có dữ liệu cho bài tập này.
                   </div>
                 ) : (
-                  currentLogs.map((log, index) => (
-                    <div key={index} className="bg-white rounded-2xl border border-brand-line p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                      
-                      {/* Dấu hiệu hoàn thành */}
-                      <div className={`absolute top-0 left-0 w-1.5 h-full ${log.isCompleted ? 'bg-emerald-400' : 'bg-brand-sand'}`}></div>
-                      
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-brand-line/50 pb-4 pl-3">
-                        <div>
-                          <h3 className="font-bold text-brand-moss text-lg leading-tight">{log.blockName} • Tuần {log.weekNumber}</h3>
-                          <p className="text-sm font-semibold text-brand-moss/60 mt-1 flex items-center gap-1.5">
-                            <Calendar size={14} /> 
-                            {log.workoutName} 
-                            {log.completedAt ? ` (${new Date(log.completedAt).toLocaleDateString('vi-VN')})` : ''}
-                          </p>
-                        </div>
-                        
-                        {log.max1RM > 0 && (
-                          <div className="bg-brand-mossDeep text-brand-sage px-4 py-2 rounded-xl text-center shadow-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Ước tính 1RM</p>
-                            <p className="text-xl font-black">{log.max1RM} <span className="text-xs font-bold">kg</span></p>
-                          </div>
-                        )}
-                      </div>
+                  currentLogs.map((log, index) => {
+                    let topSetId: string | null = null;
+                    let maxW = -1;
+                    let maxR = -1;
+                    log.sets.forEach((s: any) => {
+                      if (s.weight > maxW || (s.weight === maxW && s.reps > maxR)) {
+                        maxW = s.weight;
+                        maxR = s.reps;
+                        topSetId = s.id;
+                      }
+                    });
 
-                      <div className="pl-3">
-                        <div className="grid grid-cols-4 gap-2 text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider mb-2 px-2">
-                          <div>Set</div>
-                          <div>Trọng lượng</div>
-                          <div>Số Reps</div>
-                          <div>RPE</div>
-                        </div>
+                    return (
+                      <div key={index} className="bg-white rounded-2xl border border-brand-line p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                         
-                        <div className="space-y-1.5">
-                          {log.sets.map((set: any) => (
-                            <div key={set.id} className="grid grid-cols-4 gap-2 items-center text-sm font-bold bg-brand-paper/50 rounded-lg px-2 py-2.5">
-                              <div className="text-brand-moss/60 pl-2">{set.set_number}</div>
-                              <div className="text-brand-moss">{set.weight} <span className="text-xs font-semibold opacity-60">kg</span></div>
-                              <div className="text-brand-moss">{set.reps}</div>
-                              <div className="text-brand-moss">
-                                {set.rpe ? <span className="bg-white px-2 py-0.5 rounded shadow-sm border border-brand-line/50">@{set.rpe}</span> : '-'}
-                              </div>
+                        {/* Dấu hiệu hoàn thành */}
+                        <div className={`absolute top-0 left-0 w-1.5 h-full ${log.isCompleted ? 'bg-emerald-400' : 'bg-brand-sand'}`}></div>
+                        
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-brand-line/50 pb-4 pl-3">
+                          <div>
+                            <h3 className="font-bold text-brand-moss text-lg leading-tight">{log.blockName} • Tuần {log.weekNumber}</h3>
+                            <p className="text-sm font-semibold text-brand-moss/60 mt-1 flex items-center gap-1.5">
+                              <Calendar size={14} /> 
+                              {log.workoutName} 
+                              {log.completedAt ? ` (${new Date(log.completedAt).toLocaleDateString('vi-VN')})` : ''}
+                            </p>
+                          </div>
+                          
+                          {log.max1RM > 0 && (
+                            <div className="bg-brand-mossDeep text-brand-sage px-4 py-2 rounded-xl text-center shadow-sm">
+                              <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Ước tính 1RM</p>
+                              <p className="text-xl font-black">{log.max1RM} <span className="text-xs font-bold">kg</span></p>
                             </div>
-                          ))}
+                          )}
+                        </div>
+
+                        <div className="pl-3">
+                          <div className="grid grid-cols-4 gap-2 text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider mb-2 px-2">
+                            <div>Set</div>
+                            <div>Trọng lượng</div>
+                            <div>Số Reps</div>
+                            <div>RPE</div>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            {log.sets.map((set: any) => {
+                              const prevLog = currentLogs[index + 1];
+                              let diffNode = null;
+                              if (prevLog) {
+                                const prevSet = prevLog.sets.find((s: any) => s.set_number === set.set_number);
+                                if (prevSet) {
+                                  const wDiff = set.weight - prevSet.weight;
+                                  const rDiff = set.reps - prevSet.reps;
+                                  
+                                  if (wDiff > 0) {
+                                    diffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{wDiff}kg</span>;
+                                  } else if (wDiff < 0) {
+                                    diffNode = <span className="ml-1.5 text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded shadow-sm border border-red-100">↓ {Math.abs(wDiff)}kg</span>;
+                                  } else {
+                                    if (rDiff > 0) {
+                                      diffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{rDiff}r</span>;
+                                    } else if (rDiff < 0) {
+                                      diffNode = <span className="ml-1.5 text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">↓ {Math.abs(rDiff)}r</span>;
+                                    }
+                                  }
+                                }
+                              }
+                              
+                              const isTopSet = set.id === topSetId;
+
+                              return (
+                                <div key={set.id} className={`grid grid-cols-4 gap-2 items-center text-sm font-bold rounded-lg px-2 py-2.5 transition-colors ${isTopSet ? 'bg-brand-moss/10 border border-brand-moss/20' : 'bg-brand-paper/50'}`}>
+                                  <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss/60'} pl-2 flex items-center gap-1`}>
+                                    {set.set_number}
+                                    {isTopSet && <span title="Top Set" className="text-[12px]">🔥</span>}
+                                  </div>
+                                  <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
+                                    {set.weight} <span className="text-xs font-semibold opacity-60 ml-0.5">kg</span>
+                                    {diffNode}
+                                  </div>
+                                  <div className={isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'}>{set.reps}</div>
+                                  <div className={isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'}>
+                                    {set.rpe ? <span className="bg-white px-2 py-0.5 rounded shadow-sm border border-brand-line/50">@{set.rpe}</span> : '-'}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
