@@ -257,7 +257,8 @@ function ClientProgressInner() {
                           <div className="space-y-1.5">
                             {log.sets.map((set: any) => {
                               const prevLog = currentLogs[index + 1];
-                              let diffNode = null;
+                              let wDiffNode = null;
+                              let rDiffNode = null;
                               if (prevLog) {
                                 const prevSet = prevLog.sets.find((s: any) => s.set_number === set.set_number);
                                 if (prevSet) {
@@ -265,15 +266,15 @@ function ClientProgressInner() {
                                   const rDiff = set.reps - prevSet.reps;
                                   
                                   if (wDiff > 0) {
-                                    diffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{wDiff}kg</span>;
+                                    wDiffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{wDiff}</span>;
                                   } else if (wDiff < 0) {
-                                    diffNode = <span className="ml-1.5 text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded shadow-sm border border-red-100">↓ {Math.abs(wDiff)}kg</span>;
-                                  } else {
-                                    if (rDiff > 0) {
-                                      diffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{rDiff}r</span>;
-                                    } else if (rDiff < 0) {
-                                      diffNode = <span className="ml-1.5 text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">↓ {Math.abs(rDiff)}r</span>;
-                                    }
+                                    wDiffNode = <span className="ml-1.5 text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded shadow-sm border border-red-100">↓ {Math.abs(wDiff)}</span>;
+                                  }
+                                  
+                                  if (rDiff > 0) {
+                                    rDiffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{rDiff}</span>;
+                                  } else if (rDiff < 0) {
+                                    rDiffNode = <span className="ml-1.5 text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">↓ {Math.abs(rDiff)}</span>;
                                   }
                                 }
                               }
@@ -288,9 +289,12 @@ function ClientProgressInner() {
                                   </div>
                                   <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
                                     {set.weight} <span className="text-xs font-semibold opacity-60 ml-0.5">kg</span>
-                                    {diffNode}
+                                    {wDiffNode}
                                   </div>
-                                  <div className={isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'}>{set.reps}</div>
+                                  <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
+                                    {set.reps}
+                                    {rDiffNode}
+                                  </div>
                                   <div className={isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'}>
                                     {set.rpe ? <span className="bg-white px-2 py-0.5 rounded shadow-sm border border-brand-line/50">@{set.rpe}</span> : '-'}
                                   </div>
