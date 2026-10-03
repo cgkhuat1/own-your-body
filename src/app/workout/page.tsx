@@ -172,15 +172,38 @@ function WorkoutExecutionContent() {
     }
   }, [workoutId, router]);
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    if (swrData) {
+    if (swrData && workoutId && !isInitialized) {
       setWorkoutData(swrData.workout);
       if (swrData.workout?.rpe_score !== null && swrData.workout?.rpe_score !== undefined) setRpeScore(swrData.workout.rpe_score);
       if (swrData.workout?.joint_pain) setJointPain(swrData.workout.joint_pain);
       if (swrData.workout?.notes) setWorkoutNotes(swrData.workout.notes);
-      setExercises(swrData.exState);
+      
+      // Khôi phục bản nháp nếu có
+      const draftStr = localStorage.getItem(`draft_workout_${workoutId}`);
+      if (draftStr) {
+        try {
+          const draftData = JSON.parse(draftStr);
+          setExercises(draftData);
+        } catch(e) {
+          setExercises(swrData.exState);
+        }
+      } else {
+        setExercises(swrData.exState);
+      }
+      
+      setIsInitialized(true);
     }
-  }, [swrData]);
+  }, [swrData, workoutId, isInitialized]);
+
+  // Tự động lưu nháp mỗi khi exercises thay đổi
+  useEffect(() => {
+    if (isInitialized && exercises.length > 0 && workoutId) {
+      localStorage.setItem(`draft_workout_${workoutId}`, JSON.stringify(exercises));
+    }
+  }, [exercises, isInitialized, workoutId]);
 
 
   const calculateRestTimeByRPE = (rpeVal: number) => {
@@ -305,6 +328,7 @@ function WorkoutExecutionContent() {
         if (upError) throw upError;
 
         await mutate('program_dashboard');
+        if (workoutId) localStorage.removeItem(`draft_workout_${workoutId}`);
         router.refresh();
         router.push("/program");
       } catch(e: any) {
@@ -368,6 +392,7 @@ function WorkoutExecutionContent() {
       if (upError) throw upError;
 
       await mutate('program_dashboard');
+      if (workoutId) localStorage.removeItem(`draft_workout_${workoutId}`);
       router.refresh();
       router.push("/program");
     } catch (err: any) {
