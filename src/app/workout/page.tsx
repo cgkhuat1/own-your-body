@@ -483,7 +483,7 @@ function WorkoutExecutionContent() {
                       {ex.group_code}
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-brand-moss leading-tight">{ex.name}</h2>
+                      <h2 className="text-xl font-bold text-brand-mossDeep leading-tight">{ex.name}</h2>
                       {isSuperset && (
                         <span className="text-[10px] font-bold text-brand-sand bg-brand-moss px-2 py-0.5 rounded-md mt-1 inline-flex items-center gap-1">
                           <LinkIcon size={10}/> Superset
@@ -529,16 +529,16 @@ function WorkoutExecutionContent() {
                         }`}>
                           <div className="mb-3 px-1 flex justify-between items-end">
                             <div>
-                              <span className={`text-sm font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
+                              <span className={`text-base font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
                                 Set {set.set_number}:
                               </span>
-                              <span className={`text-sm font-bold ml-1.5 ${set.completed ? "text-emerald-600/90" : "text-brand-moss/70"}`}>
+                              <span className={`text-base font-bold ml-1.5 ${set.completed ? "text-emerald-600/90" : "text-brand-moss/70"}`}>
                                 {set.target}
                               </span>
                             </div>
                             {set.prev_log && (
-                               <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded uppercase tracking-wider border border-gray-200">
-                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}kg`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}</span>
+                               <div className="text-[13px] font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-md uppercase tracking-wider border border-gray-200">
+                                 T.Trước: <span className="text-gray-500 font-black">{set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}</span>
                                </div>
                             )}
                           </div>
