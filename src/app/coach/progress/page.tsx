@@ -266,15 +266,15 @@ function ClientProgressInner() {
                                   const rDiff = set.reps - prevSet.reps;
                                   
                                   if (wDiff > 0) {
-                                    wDiffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{wDiff}</span>;
+                                    wDiffNode = <span className="ml-2 text-sm font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md shadow-sm border border-emerald-100">↑ +{wDiff}</span>;
                                   } else if (wDiff < 0) {
-                                    wDiffNode = <span className="ml-1.5 text-[10px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded shadow-sm border border-red-100">↓ {Math.abs(wDiff)}</span>;
+                                    wDiffNode = <span className="ml-2 text-sm font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-md shadow-sm border border-red-100">↓ {Math.abs(wDiff)}</span>;
                                   }
                                   
                                   if (rDiff > 0) {
-                                    rDiffNode = <span className="ml-1.5 text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm border border-emerald-100">↑ +{rDiff}</span>;
+                                    rDiffNode = <span className="ml-2 text-sm font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md shadow-sm border border-emerald-100">↑ +{rDiff}</span>;
                                   } else if (rDiff < 0) {
-                                    rDiffNode = <span className="ml-1.5 text-[10px] font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">↓ {Math.abs(rDiff)}</span>;
+                                    rDiffNode = <span className="ml-2 text-sm font-black text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">↓ {Math.abs(rDiff)}</span>;
                                   }
                                 }
                               }
