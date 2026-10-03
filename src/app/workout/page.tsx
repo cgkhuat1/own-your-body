@@ -527,7 +527,7 @@ function WorkoutExecutionContent() {
                         <div key={set.id} className={`flex flex-col p-3 rounded-xl border shadow-sm transition-all ${
                           set.completed ? "bg-emerald-50 border-emerald-200" : isError ? "bg-red-50/80 border-red-300" : "bg-white border-brand-line"
                         }`}>
-                          <div className="mb-3 px-1 flex justify-between items-end">
+                          <div className="mb-3 px-1 flex flex-col gap-2 items-start">
                             <div>
                               <span className={`text-base font-black ${set.completed ? "text-emerald-800" : "text-brand-moss"}`}>
                                 Set {set.set_number}:
