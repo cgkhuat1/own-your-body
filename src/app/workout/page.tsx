@@ -328,6 +328,7 @@ function WorkoutExecutionContent() {
         if (upError) throw upError;
 
         await mutate('program_dashboard');
+        await mutate(`workout_${workoutData.id}`);
         if (workoutId) localStorage.removeItem(`draft_workout_${workoutId}`);
         router.refresh();
         router.push("/program");
@@ -392,6 +393,7 @@ function WorkoutExecutionContent() {
       if (upError) throw upError;
 
       await mutate('program_dashboard');
+      await mutate(`workout_${workoutData.id}`);
       if (workoutId) localStorage.removeItem(`draft_workout_${workoutId}`);
       router.refresh();
       router.push("/program");
