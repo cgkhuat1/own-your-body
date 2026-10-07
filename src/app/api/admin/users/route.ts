@@ -40,8 +40,12 @@ export async function POST(req: Request) {
         assigned_coach_id: assigned_coach_id || null
       });
 
+    // 3. ROLLBACK if DB insert fails
     if (upsertError) {
-      return NextResponse.json({ error: 'Tạo Auth thành công nhưng lỗi Upsert public.users: ' + upsertError.message }, { status: 500 });
+      console.error("DB Upsert failed, rolling back Auth user:", upsertError);
+      // Clean up the auth user so we don't leave zombie accounts
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      return NextResponse.json({ error: 'Lỗi đồng bộ Dữ liệu: ' + upsertError.message + '. Đã hoàn tác tài khoản.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, user: authData.user });
