@@ -208,7 +208,7 @@ export default function CoachDashboard() {
       <aside className="w-64 bg-brand-mossDeep text-brand-sage hidden md:flex flex-col shadow-2xl z-10 fixed h-screen">
         <div className="p-6 border-b border-brand-sage/10">
           <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/80 rounded-md shadow-sm mb-2">
-            <span className="text-brand-sand text-[12px] font-bold uppercase tracking-[0.15em]">CK Coaching</span>
+            <span className="text-brand-sand text-[12px] font-bold uppercase tracking-[0.15em]">OwnYourBody</span>
           </div>
           <p className="text-[11px] font-semibold opacity-60 uppercase tracking-widest text-brand-sage">Trang Quản Trị</p>
         </div>

@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'CK Coaching',
-    short_name: 'CK Coaching',
+    name: 'OwnYourBody',
+    short_name: 'OwnYourBody',
     description: 'Nền tảng quản lý tập luyện',
     start_url: '/',
     display: 'standalone',

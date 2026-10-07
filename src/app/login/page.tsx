@@ -70,7 +70,7 @@ export default function LoginPage() {
         <div className="flex justify-center mb-10">
           <div className="inline-flex items-center px-5 py-2 border-2 border-brand-sand rounded-lg shadow-lg bg-brand-mossDeep">
             <span className="text-brand-sand text-[18px] font-black uppercase tracking-[0.2em] drop-shadow-sm">
-              CK Coaching
+              OwnYourBody
             </span>
           </div>
         </div>

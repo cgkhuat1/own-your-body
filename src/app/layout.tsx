@@ -2,12 +2,12 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CK Coaching",
+  title: "OwnYourBody",
   description: "App quản lý tập luyện 12 tuần",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "CK Coaching",
+    title: "OwnYourBody",
   },
   formatDetection: {
     telephone: false,
