@@ -154,7 +154,7 @@ function ProgramBuilderInner() {
       setIsAddPhaseModalOpen(false);
       setNewPhaseName("");
     } else {
-      showToast("Lỗi khi tạo Phase", "error");
+      showToast("Lỗi: " + (error?.message || "Unknown error"), "error");
     }
     setSavingPhase(false);
   };
