@@ -14,9 +14,10 @@ export default function CoachSidebar() {
 
   return (
     <aside className="w-64 bg-brand-mossDeep text-white hidden md:flex flex-col shadow-2xl z-50 fixed h-screen top-0 left-0 border-r border-[#31251c]">
-      <div className="p-6 border-b border-white/10 flex flex-col justify-center">
-        <h2 className="text-white text-[18px] font-black tracking-[0.05em] mb-0.5">OWNYOURBODY</h2>
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/60">Trang Quản Trị</p>
+      <div className="p-6 border-b border-white/10 flex items-center justify-center">
+        <div className="inline-flex items-center px-4 py-2 border border-white/30 rounded-lg shadow-sm">
+          <span className="text-white text-[18px] font-black uppercase tracking-[0.1em]">OwnYourBody</span>
+        </div>
       </div>
       
       <nav className="flex-1 p-4 space-y-2 mt-2">
