@@ -7,22 +7,17 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Nền tảng quản lý tập luyện',
     start_url: '/',
     display: 'standalone',
-    background_color: '#F4F2EB',
-    theme_color: '#2A3C24',
+    background_color: '#F4F1EA',
+    theme_color: '#382C24',
     icons: [
       {
-        src: '/icon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
-      {
-        src: '/icon-192.png',
-        sizes: '192x192',
+        src: '/icon',
+        sizes: '512x512',
         type: 'image/png',
       },
       {
-        src: '/icon-512.png',
-        sizes: '512x512',
+        src: '/apple-icon',
+        sizes: '180x180',
         type: 'image/png',
       }
     ],
