@@ -1112,12 +1112,12 @@ function ProgramBuilderInner() {
                         </div>
 
                         {uniqueLogs.length > 0 ? (
-                          <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                          <div className="bg-brand-mossDeep p-2.5 rounded-lg border border-brand-mossDeep">
                             <div className="flex justify-between items-center mb-1.5">
-                              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">✅ Thực tế tập</p>
+                              <p className="text-[10px] font-bold text-brand-sand uppercase tracking-wider">✅ Thực tế tập</p>
                               <button 
                                 onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
-                                className={`p-1 rounded hover:bg-emerald-200 transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-emerald-300'}`}
+                                className={`p-1 rounded hover:bg-brand-moss transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-brand-sand/50'}`}
                                 title="Ghi chú kỹ thuật cho bài này"
                               >
                                 <MessageCircle size={14} />
@@ -1125,10 +1125,10 @@ function ProgramBuilderInner() {
                             </div>
                             <div className="space-y-1.5">
                               {uniqueLogs.map((l: any) => (
-                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-emerald-900 bg-emerald-100/50 px-2.5 py-1.5 rounded-md">
-                                  <span className="text-emerald-700 font-bold w-4">#{l.set_number}</span>
+                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-white bg-white/10 px-2.5 py-1.5 rounded-md">
+                                  <span className="text-brand-sand font-bold w-4">#{l.set_number}</span>
                                   <span>{l.weight} x {l.reps}</span>
-                                  <span className="text-emerald-600 text-xs font-bold bg-emerald-200/50 px-1.5 py-0.5 rounded">@{l.rpe || '?'}</span>
+                                  <span className="text-brand-mossDeep text-xs font-bold bg-brand-sand px-1.5 py-0.5 rounded">@{l.rpe || '?'}</span>
                                 </div>
                               ))}
                             </div>

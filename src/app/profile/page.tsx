@@ -174,9 +174,9 @@ export default function ProfilePage() {
           )}
 
           {profile?.action_plan && (
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
-              <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">🎯 Phương án xử lý</h3>
-              <p className="text-xs text-emerald-700 font-medium whitespace-pre-line">{profile.action_plan}</p>
+            <div className="bg-brand-mossDeep border border-brand-mossDeep p-4 rounded-xl space-y-2">
+              <h3 className="text-sm font-bold text-brand-sand flex items-center gap-2">🎯 Phương án xử lý</h3>
+              <p className="text-xs text-white font-medium whitespace-pre-line">{profile.action_plan}</p>
             </div>
           )}
         </div>
