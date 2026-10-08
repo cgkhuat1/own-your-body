@@ -458,7 +458,7 @@ function WorkoutExecutionContent() {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-32">
       {/* Header */}
-      <div className="bg-brand-mossDeep text-white p-5 rounded-b-2xl shadow-md sticky top-0 z-20">
+      <div className="bg-brand-mossDeep text-white px-5 pb-5 pt-[max(env(safe-area-inset-top),32px)] rounded-b-2xl shadow-md sticky top-0 z-20">
         <div className="flex items-center justify-between mb-2">
           <button onClick={() => router.push('/program')} className="text-brand-sage hover:text-white transition-colors">
             <ArrowLeft size={24} />
