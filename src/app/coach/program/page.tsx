@@ -1112,7 +1112,7 @@ function ProgramBuilderInner() {
                         </div>
 
                         {uniqueLogs.length > 0 ? (
-                          <div className="bg-brand-mossDeep p-2.5 rounded-lg border border-brand-mossDeep">
+                          <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] p-2.5 rounded-lg border border-[#524136] shadow-[0_0_10px_rgba(230,218,200,0.2)]">
                             <div className="flex justify-between items-center mb-1.5">
                               <p className="text-[10px] font-bold text-brand-sand uppercase tracking-wider">✅ Thực tế tập</p>
                               <button 

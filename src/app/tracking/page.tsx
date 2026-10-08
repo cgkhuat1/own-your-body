@@ -290,7 +290,7 @@ export default function ClientDashboard() {
                  </div>
                )}
                {remainingSteps === 0 && (
-                 <div className="bg-brand-mossDeep border border-brand-mossDeep p-3 rounded-xl flex gap-3 items-start text-white text-sm font-bold">
+                 <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] border border-[#524136] shadow-[0_0_15px_rgba(230,218,200,0.3)] p-3 rounded-xl flex gap-3 items-start text-white text-sm font-bold">
                    🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!
                  </div>
                )}

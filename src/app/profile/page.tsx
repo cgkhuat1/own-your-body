@@ -174,7 +174,7 @@ export default function ProfilePage() {
           )}
 
           {profile?.action_plan && (
-            <div className="bg-brand-mossDeep border border-brand-mossDeep p-4 rounded-xl space-y-2">
+            <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] border border-[#524136] shadow-[0_0_15px_rgba(230,218,200,0.3)] p-4 rounded-xl space-y-2">
               <h3 className="text-sm font-bold text-brand-sand flex items-center gap-2">🎯 Phương án xử lý</h3>
               <p className="text-xs text-white font-medium whitespace-pre-line">{profile.action_plan}</p>
             </div>
