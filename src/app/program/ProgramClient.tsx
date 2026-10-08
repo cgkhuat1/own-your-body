@@ -388,13 +388,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                       workout.status === 'perfect'
                         ? "bg-gradient-to-tr from-[#B8860B] via-[#FCE3A1] to-[#D4AF37] border-[2px] border-[#B8860B] shadow-[0_8px_30px_rgba(212,175,55,0.5)] transform scale-[1.01] hover:scale-[1.03] relative overflow-hidden" 
                         : workout.status === 'partial' 
-                        ? "bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] border-[#524136] shadow-[0_0_15px_rgba(230,218,200,0.3)] hover:shadow-[0_0_20px_rgba(230,218,200,0.5)] hover:border-brand-sand/50"
+                        ? "bg-brand-sand border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.5)] hover:shadow-[0_0_20px_rgba(230,218,200,0.7)]"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
                     }`}
                   >
                     <div>
                       <h3 className={`font-bold text-lg transition-colors ${
-                        workout.status === 'perfect' ? 'text-brand-mossDeep drop-shadow-sm' : workout.status === 'partial' ? 'text-white' : 'text-brand-moss group-hover:text-brand-mossDeep'
+                        workout.status === 'perfect' ? 'text-brand-mossDeep drop-shadow-sm' : workout.status === 'partial' ? 'text-brand-mossDeep' : 'text-brand-moss group-hover:text-brand-mossDeep'
                       }`}>
                         {workout.name}
                       </h3>
@@ -408,7 +408,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                           <CheckCircle2 className="text-brand-mossDeep relative z-10" fill="#FCE3A1" size={32} />
                         </>
                       ) : workout.status === 'partial' ? (
-                        <CheckCircle2 className="text-brand-mossDeep" fill="#E6DAC8" size={32} />
+                        <CheckCircle2 className="text-brand-sand" fill="#382C24" size={32} />
                       ) : (
                         <Circle className="text-brand-line/60" size={32} />
                       )}

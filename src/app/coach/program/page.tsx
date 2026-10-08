@@ -1112,9 +1112,9 @@ function ProgramBuilderInner() {
                         </div>
 
                         {uniqueLogs.length > 0 ? (
-                          <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] p-2.5 rounded-lg border border-[#524136] shadow-[0_0_10px_rgba(230,218,200,0.2)]">
+                          <div className="bg-brand-sand p-2.5 rounded-lg border border-brand-sand shadow-[0_0_10px_rgba(230,218,200,0.5)]">
                             <div className="flex justify-between items-center mb-1.5">
-                              <p className="text-[10px] font-bold text-brand-sand uppercase tracking-wider">✅ Thực tế tập</p>
+                              <p className="text-[10px] font-bold text-brand-mossDeep uppercase tracking-wider">✅ Thực tế tập</p>
                               <button 
                                 onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
                                 className={`p-1 rounded hover:bg-brand-moss transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-brand-sand/50'}`}
@@ -1125,8 +1125,8 @@ function ProgramBuilderInner() {
                             </div>
                             <div className="space-y-1.5">
                               {uniqueLogs.map((l: any) => (
-                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-white bg-white/10 px-2.5 py-1.5 rounded-md">
-                                  <span className="text-brand-sand font-bold w-4">#{l.set_number}</span>
+                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-brand-mossDeep bg-white/50 px-2.5 py-1.5 rounded-md">
+                                  <span className="text-brand-mossDeep font-bold w-4">#{l.set_number}</span>
                                   <span>{l.weight} x {l.reps}</span>
                                   <span className="text-brand-mossDeep text-xs font-bold bg-brand-sand px-1.5 py-0.5 rounded">@{l.rpe || '?'}</span>
                                 </div>

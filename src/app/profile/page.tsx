@@ -129,7 +129,7 @@ export default function ProfilePage() {
       <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
           <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/40 rounded-lg bg-white/5">
-            <span className="text-brand-sand text-[10px] font-black uppercase tracking-[0.2em]">OwnYourBody</span>
+            <span className="text-brand-mossDeep text-[10px] font-black uppercase tracking-[0.2em]">OwnYourBody</span>
           </div>
         </div>
         
@@ -140,8 +140,8 @@ export default function ProfilePage() {
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
-            <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
+            <h1 className="text-[28px] font-black text-brand-mossDeep/90 tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
+            <p className="text-brand-mossDeep text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
               Hồ Sơ Thể Chất
             </p>
           </div>
@@ -174,9 +174,9 @@ export default function ProfilePage() {
           )}
 
           {profile?.action_plan && (
-            <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] border border-[#524136] shadow-[0_0_15px_rgba(230,218,200,0.3)] p-4 rounded-xl space-y-2">
-              <h3 className="text-sm font-bold text-brand-sand flex items-center gap-2">🎯 Phương án xử lý</h3>
-              <p className="text-xs text-white font-medium whitespace-pre-line">{profile.action_plan}</p>
+            <div className="bg-brand-sand border border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.4)] p-4 rounded-xl space-y-2">
+              <h3 className="text-sm font-bold text-brand-mossDeep flex items-center gap-2">🎯 Phương án xử lý</h3>
+              <p className="text-xs text-brand-mossDeep/90 font-medium whitespace-pre-line">{profile.action_plan}</p>
             </div>
           )}
         </div>

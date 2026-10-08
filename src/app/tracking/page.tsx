@@ -290,7 +290,7 @@ export default function ClientDashboard() {
                  </div>
                )}
                {remainingSteps === 0 && (
-                 <div className="bg-gradient-to-tr from-[#382C24] via-[#524136] to-[#382C24] border border-[#524136] shadow-[0_0_15px_rgba(230,218,200,0.3)] p-3 rounded-xl flex gap-3 items-start text-white text-sm font-bold">
+                 <div className="bg-brand-sand border border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.4)] p-3 rounded-xl flex gap-3 items-start text-brand-mossDeep text-sm font-bold">
                    🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!
                  </div>
                )}
@@ -317,7 +317,7 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     {row ? (
-                      <CheckCircle2 className="text-brand-sand w-5 h-5" />
+                      <CheckCircle2 className="text-brand-mossDeep w-5 h-5" />
                     ) : (
                       <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">+ Nhập</span>
                     )}
@@ -409,7 +409,7 @@ export default function ClientDashboard() {
                              <span className="font-bold text-brand-moss">{w.name}</span>
                            </div>
                            {w.is_completed ? (
-                             <CheckCircle2 className="text-brand-sand w-5 h-5" />
+                             <CheckCircle2 className="text-brand-mossDeep w-5 h-5" />
                            ) : (
                              <ArrowRight className="text-brand-sage w-5 h-5" />
                            )}
