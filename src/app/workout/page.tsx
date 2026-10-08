@@ -552,14 +552,14 @@ function WorkoutExecutionContent() {
                       const isError = errorSetId === set.id;
                       return (
                         <div key={set.id} className={`flex flex-col p-3 rounded-xl border shadow-sm transition-all ${
-                          set.completed ? "bg-brand-sand border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.6)]" : isError ? "bg-red-50/80 border-red-300" : "bg-white border-brand-line"
+                          set.completed ? "bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)]" : isError ? "bg-red-50/80 border-red-300" : "bg-white border-brand-line"
                         }`}>
                           <div className="mb-3 px-1 flex flex-col gap-2 items-start">
                             <div>
-                              <span className={`text-base font-black ${set.completed ? "text-brand-mossDeep" : "text-brand-moss"}`}>
+                              <span className={`text-base font-black ${set.completed ? "text-orange-950" : "text-brand-moss"}`}>
                                 Set {set.set_number}:
                               </span>
-                              <span className={`text-base font-bold ml-1.5 ${set.completed ? "text-brand-mossDeep/80" : "text-brand-moss/70"}`}>
+                              <span className={`text-base font-bold ml-1.5 ${set.completed ? "text-orange-900" : "text-brand-moss/70"}`}>
                                 {set.target}
                               </span>
                             </div>
@@ -575,11 +575,11 @@ function WorkoutExecutionContent() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <input type="number" placeholder="kg/lbs" disabled={set.completed} value={set.weight} onChange={(e) => updateSet(ex.w_ex_id, set.id, "weight", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-brand-mossDeep" : isError && !set.weight ? "bg-red-100" : "bg-brand-paper/50"}`} />
-                            <input type="number" placeholder="rep" disabled={set.completed} value={set.reps} onChange={(e) => updateSet(ex.w_ex_id, set.id, "reps", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-brand-mossDeep" : isError && !set.reps ? "bg-red-100" : "bg-brand-paper/50"}`} />
-                            <input type="number" placeholder="rpe" disabled={set.completed} value={set.rpe} onChange={(e) => updateSet(ex.w_ex_id, set.id, "rpe", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-brand-mossDeep" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="kg/lbs" disabled={set.completed} value={set.weight} onChange={(e) => updateSet(ex.w_ex_id, set.id, "weight", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-orange-950" : isError && !set.weight ? "bg-red-100" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="rep" disabled={set.completed} value={set.reps} onChange={(e) => updateSet(ex.w_ex_id, set.id, "reps", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-orange-950" : isError && !set.reps ? "bg-red-100" : "bg-brand-paper/50"}`} />
+                            <input type="number" placeholder="rpe" disabled={set.completed} value={set.rpe} onChange={(e) => updateSet(ex.w_ex_id, set.id, "rpe", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-orange-950" : "bg-brand-paper/50"}`} />
                             <div className="w-[45px] flex justify-end">
-                              <button onClick={() => toggleComplete(ex.w_ex_id, set.id)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${set.completed ? "bg-brand-mossDeep text-brand-sand shadow-lg scale-105" : "bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md"}`}>
+                              <button onClick={() => toggleComplete(ex.w_ex_id, set.id)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${set.completed ? "bg-orange-950 text-orange-200 shadow-lg scale-105" : "bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md"}`}>
                                 <Check size={24} strokeWidth={set.completed ? 3 : 2.5} />
                               </button>
                             </div>

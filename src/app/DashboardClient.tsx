@@ -394,7 +394,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                  </div>
                )}
                {remainingSteps === 0 && (
-                 <div className="bg-brand-sand border border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.4)] p-3 rounded-xl flex gap-3 items-start text-brand-mossDeep text-sm font-bold">
+                 <div className="bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)] p-3 rounded-xl flex gap-3 items-start text-brand-mossDeep text-sm font-bold">
                    🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!
                  </div>
                )}
@@ -410,7 +410,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
               const hasData = !!row;
               let bgClass = "bg-white border-gray-100 hover:border-brand-sand";
               if (hasData) {
-                bgClass = "bg-brand-sand border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.5)] hover:shadow-[0_0_20px_rgba(230,218,200,0.7)]";
+                bgClass = "bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)] hover:shadow-[0_0_20px_rgba(253,186,116,0.8)]";
               }
               if (isToday) {
                 bgClass += " border-2 border-brand-moss shadow-md";

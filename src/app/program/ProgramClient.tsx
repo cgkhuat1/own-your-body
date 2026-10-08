@@ -388,13 +388,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                       workout.status === 'perfect'
                         ? "bg-gradient-to-tr from-[#B8860B] via-[#FCE3A1] to-[#D4AF37] border-[2px] border-[#B8860B] shadow-[0_8px_30px_rgba(212,175,55,0.5)] transform scale-[1.01] hover:scale-[1.03] relative overflow-hidden" 
                         : workout.status === 'partial' 
-                        ? "bg-brand-sand border-brand-sand shadow-[0_0_15px_rgba(230,218,200,0.5)] hover:shadow-[0_0_20px_rgba(230,218,200,0.7)]"
+                        ? "bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)] hover:shadow-[0_0_20px_rgba(253,186,116,0.8)]"
                         : "bg-white border-brand-line hover:border-brand-sand hover:shadow-md"
                     }`}
                   >
                     <div>
                       <h3 className={`font-bold text-lg transition-colors ${
-                        workout.status === 'perfect' ? 'text-brand-mossDeep drop-shadow-sm' : workout.status === 'partial' ? 'text-brand-mossDeep' : 'text-brand-moss group-hover:text-brand-mossDeep'
+                        workout.status === 'perfect' ? 'text-brand-mossDeep drop-shadow-sm' : workout.status === 'partial' ? 'text-orange-950' : 'text-brand-moss group-hover:text-brand-mossDeep'
                       }`}>
                         {workout.name}
                       </h3>
