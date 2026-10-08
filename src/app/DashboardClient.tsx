@@ -429,7 +429,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                       </div>
                     </div>
                     {row ? (
-                      <CheckCircle2 className="text-brand-sand w-5 h-5" />
+                      <CheckCircle2 className="text-orange-600 w-5 h-5" />
                     ) : (
                       <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">+ Nhập</span>
                     )}
