@@ -317,7 +317,7 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     {row ? (
-                      <CheckCircle2 className="text-orange-600 w-5 h-5 drop-shadow-sm" />
+                      <CheckCircle2 className="text-orange-300 w-5 h-5 drop-shadow-sm" />
                     ) : (
                       <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">+ Nhập</span>
                     )}
@@ -409,7 +409,7 @@ export default function ClientDashboard() {
                              <span className="font-bold text-brand-moss">{w.name}</span>
                            </div>
                            {w.is_completed ? (
-                             <CheckCircle2 className="text-orange-600 w-5 h-5 drop-shadow-sm" />
+                             <CheckCircle2 className="text-orange-300 w-5 h-5 drop-shadow-sm" />
                            ) : (
                              <ArrowRight className="text-brand-sage w-5 h-5" />
                            )}
