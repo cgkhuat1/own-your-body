@@ -144,12 +144,8 @@ export default function ProgramTemplates() {
       <header className="bg-white border-b border-brand-line px-6 py-6 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => window.location.href = '/coach'} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">
-              <ArrowLeft size={24} />
-            </button>
             <div>
               <h1 className="text-2xl font-black text-brand-moss tracking-tight">Giáo Án Mẫu (Templates)</h1>
-              <p className="text-brand-moss/60 text-sm font-semibold mt-1">Sao chép (Clone) các giáo án cũ cho học viên mới</p>
             </div>
           </div>
         </div>
@@ -195,7 +191,7 @@ export default function ProgramTemplates() {
                 
                 <div className="mt-5 pt-4 border-t border-brand-line/50 flex justify-end">
                   <button onClick={() => openCloneModal(prog)} className="px-4 py-2 bg-brand-moss text-white text-sm font-bold rounded-xl flex items-center gap-2 hover:bg-brand-mossDeep transition-colors shadow-sm">
-                    <Copy size={16} /> Dùng làm Mẫu (Clone)
+                    <Copy size={16} /> Dùng làm Mẫu
                   </button>
                 </div>
               </div>

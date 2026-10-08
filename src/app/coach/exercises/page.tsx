@@ -142,9 +142,6 @@ export default function ExerciseLibrary() {
       <header className="bg-white border-b border-brand-line px-6 py-6 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => window.location.href = '/coach'} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">
-              <ArrowLeft size={24} />
-            </button>
             <div>
               <h1 className="text-2xl font-black text-brand-moss tracking-tight">Kho Bài Tập</h1>
               <p className="text-brand-moss/60 text-sm font-semibold mt-1">Quản lý danh sách bài tập và video hướng dẫn</p>
