@@ -379,7 +379,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
             </div>
 
             <div className="space-y-3">
-              {programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.length > 0 ? (
+              {programData.weeks.find((w: any) => w.id === activeWeek)?.workouts?.length > 0 ? (
                 programData.weeks.find((w: any) => w.id === activeWeek)?.workouts.map((workout: any) => (
                   <Link 
                     href={`/workout?id=${workout.id}`}
@@ -433,7 +433,6 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
           </div>
         )}
       </div>
-      <ClientNav />
       <ClientNav />
     </div>
   );

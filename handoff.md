@@ -1,7 +1,7 @@
-# Project Handoff: CK Coaching App
+# Project Handoff: OwnYourBody App
 
 ## 1. Project Overview
-- **App Name:** CK Coaching (Premium Fitness Coaching Platform)
+- **App Name:** OwnYourBody (Premium Fitness Coaching Platform)
 - **Tech Stack:** Next.js 14/15 (App Router, Client Components mostly), Tailwind CSS, Supabase (PostgreSQL + Auth), Lucide React, SWR (for caching).
 - **Core Concept:** A luxury, mobile-first web app for high-end fitness coaching. Clients get 12-week highly personalized tracking and workout blocks.
 

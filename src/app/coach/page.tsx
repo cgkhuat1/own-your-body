@@ -205,28 +205,28 @@ export default function CoachDashboard() {
   return (
     <div className="min-h-screen bg-brand-paper flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-brand-mossDeep text-brand-sage hidden md:flex flex-col shadow-2xl z-10 fixed h-screen">
-        <div className="p-6 border-b border-brand-sage/10">
-          <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/80 rounded-md shadow-sm mb-2">
-            <span className="text-brand-sand text-[12px] font-bold uppercase tracking-[0.15em]">OwnYourBody</span>
+      <aside className="w-64 bg-brand-mossDeep text-white hidden md:flex flex-col shadow-2xl z-10 fixed h-screen border-r border-[#31251c]">
+        <div className="p-6 border-b border-white/10">
+          <div className="inline-flex items-center px-3 py-1.5 border border-white/20 rounded-md shadow-sm mb-2">
+            <span className="text-white text-[12px] font-bold uppercase tracking-[0.15em]">OwnYourBody</span>
           </div>
-          <p className="text-[11px] font-semibold opacity-60 uppercase tracking-widest text-brand-sage">Trang Quản Trị</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white">Trang Quản Trị</p>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
-          <a href="/coach" className="flex items-center space-x-3 bg-brand-moss text-white px-4 py-3 rounded-xl font-bold shadow-md">
+          <a href="/coach" className="flex items-center space-x-3 bg-white/20 text-white border border-white/10 px-4 py-3 rounded-xl font-bold shadow-md">
             <Users size={20} /><span>Khách hàng</span>
           </a>
-          <a href="/coach/templates" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
+          <a href="/coach/templates" className="flex items-center space-x-3 text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all font-medium">
             <BookOpen size={20} /><span>Giáo án mẫu</span>
           </a>
-          <a href="/coach/exercises" className="flex items-center space-x-3 text-brand-sage/70 hover:text-white hover:bg-brand-moss/30 px-4 py-3 rounded-xl transition-all">
+          <a href="/coach/exercises" className="flex items-center space-x-3 text-white hover:bg-white/10 px-4 py-3 rounded-xl transition-all font-medium">
             <Dumbbell size={20} /><span>Kho bài tập</span>
           </a>
         </nav>
 
-        <div className="p-4 border-t border-brand-sage/10">
-          <button onClick={handleLogout} className="flex w-full items-center space-x-3 text-brand-sage/70 hover:text-red-400 px-4 py-2 transition-colors">
+        <div className="p-4 border-t border-white/10">
+          <button onClick={handleLogout} className="flex w-full items-center space-x-3 text-white hover:text-red-400 hover:bg-white/10 px-4 py-3 rounded-xl transition-colors font-medium">
             <LogOut size={20} /><span>Đăng xuất</span>
           </button>
         </div>

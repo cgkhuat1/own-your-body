@@ -173,7 +173,7 @@ function ProgramBuilderInner() {
     const { data: allPrograms } = await supabase.from('programs')
       .select('id, name, created_at')
       .eq('client_id', clientId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
     
     setPhases(allPrograms || []);
 
