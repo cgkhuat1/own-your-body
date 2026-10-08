@@ -579,7 +579,7 @@ function WorkoutExecutionContent() {
                             <input type="number" placeholder="rep" disabled={set.completed} value={set.reps} onChange={(e) => updateSet(ex.w_ex_id, set.id, "reps", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-orange-950" : isError && !set.reps ? "bg-red-100" : "bg-brand-paper/50"}`} />
                             <input type="number" placeholder="rpe" disabled={set.completed} value={set.rpe} onChange={(e) => updateSet(ex.w_ex_id, set.id, "rpe", e.target.value)} className={`flex-1 w-full text-center py-3 rounded-lg font-black text-lg ${set.completed ? "bg-transparent text-orange-950" : "bg-brand-paper/50"}`} />
                             <div className="w-[45px] flex justify-end">
-                              <button onClick={() => toggleComplete(ex.w_ex_id, set.id)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${set.completed ? "bg-orange-950 text-orange-200 shadow-lg scale-105" : "bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md"}`}>
+                              <button onClick={() => toggleComplete(ex.w_ex_id, set.id)} className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${set.completed ? "bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.8)] scale-110 ring-2 ring-orange-200 scale-105" : "bg-brand-moss text-white hover:bg-brand-mossDeep shadow-md"}`}>
                                 <Check size={24} strokeWidth={set.completed ? 3 : 2.5} />
                               </button>
                             </div>
