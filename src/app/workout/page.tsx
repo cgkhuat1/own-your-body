@@ -117,7 +117,7 @@ function WorkoutExecutionContent() {
     await Promise.all(parallelTasks);
 
     if (workout) {
-      workout.coach_video_url = workout.coach_video_url || prevVideoUrl;
+      workout.coach_video_url = prevVideoUrl;
     }
 
     let exState: any[] = [];
@@ -148,7 +148,7 @@ function WorkoutExecutionContent() {
           group_code: ex.group_code || String(ex.order_index),
           name: name,
           youtube_id: ex.exercises?.youtube_id,
-          coach_notes: ex.coach_notes || prevNotesMap[ex.exercise_id] || null,
+          coach_notes: prevNotesMap[ex.exercise_id] || null,
           sets: sets
         };
       });
