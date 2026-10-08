@@ -408,7 +408,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                           <CheckCircle2 className="text-brand-mossDeep relative z-10" fill="#FCE3A1" size={32} />
                         </>
                       ) : workout.status === 'partial' ? (
-                        <CheckCircle2 className="text-white drop-shadow-md" fill="#EA580C" size={32} />
+                        <CheckCircle2 className="text-white drop-shadow-sm" fill="#EA580C" size={32} />
                       ) : (
                         <Circle className="text-brand-line/60" size={32} />
                       )}
