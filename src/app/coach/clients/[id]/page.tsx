@@ -113,7 +113,6 @@ export default function ClientProfileDetail() {
       target_weight_num: profile.target_weight_num || null,
       coaching_start_date: profile.coaching_start_date || null,
       coaching_duration_weeks: profile.coaching_duration_weeks || 12,
-      updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
     setSaving(false);
