@@ -129,19 +129,19 @@ export default function ProfilePage() {
       <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
           <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/40 rounded-lg bg-white/5">
-            <span className="text-orange-950 text-[10px] font-black uppercase tracking-[0.2em]">OwnYourBody</span>
+            <span className="text-brand-sand text-[10px] font-black uppercase tracking-[0.2em]">OwnYourBody</span>
           </div>
         </div>
         
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-[52px] h-[52px] bg-brand-paper rounded-full border-[3px] border-brand-paper/20 flex items-center justify-center shadow-md shrink-0">
-            <span className="text-orange-950 text-2xl font-black">
+            <span className="text-brand-mossDeep text-2xl font-black">
               {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'B'}
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-orange-950/90 tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
-            <p className="text-orange-950 text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
+            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
+            <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
               Hồ Sơ Thể Chất
             </p>
           </div>
