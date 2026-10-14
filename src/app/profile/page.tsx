@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from "@/lib/supabase";
 import { Loader2, UserCircle, Activity, LogOut, Lock } from "lucide-react";
+import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
 
 export default function ProfilePage() {
   const fetcher = async () => {
@@ -64,7 +65,7 @@ export default function ProfilePage() {
     };
   };
 
-  const { data, isLoading: loading } = useSWR('profile_page', fetcher, { revalidateOnFocus: true });
+  const { data, isLoading: loading, mutate } = useSWR('profile_page', fetcher, { revalidateOnFocus: true });
   const user = data?.user;
   const profile = data?.profile;
   const chartData = data?.chartData || [];
@@ -216,6 +217,18 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Tiến độ số đo các vòng */}
+        {user?.id && (
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <BodyMeasurementsTable
+              clientId={user.id}
+              initialMeasurements={profile?.measurements}
+              coachingDurationWeeks={profile?.coaching_duration_weeks || 12}
+              onMeasurementsUpdated={() => mutate()}
+            />
+          </div>
+        )}
 
         {/* Tài khoản */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">

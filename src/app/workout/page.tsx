@@ -90,23 +90,41 @@ function WorkoutExecutionContent() {
     if (workout?.week_number > 1 && workout?.block_id) {
       parallelTasks.push(
         (async () => {
-          const { data: prevWorkout } = await supabase.from('workouts')
+          let { data: prevWorkout } = await supabase.from('workouts')
             .select('id, coach_video_url')
             .eq('block_id', workout.block_id)
             .eq('order_index', workout.order_index)
             .eq('week_number', workout.week_number - 1)
-            .single();
+            .maybeSingle();
+
+          // Fallback: Tìm theo tên buổi tập trong block ở tuần trước nếu order_index bị lệch
+          if (!prevWorkout && workout.name) {
+            const { data: fallbackW } = await supabase.from('workouts')
+              .select('id, coach_video_url')
+              .eq('block_id', workout.block_id)
+              .eq('name', workout.name)
+              .eq('week_number', workout.week_number - 1)
+              .maybeSingle();
+            if (fallbackW) prevWorkout = fallbackW;
+          }
 
           if (prevWorkout) {
             prevVideoUrl = prevWorkout.coach_video_url;
             const { data: prevExs } = await supabase.from('workout_exercises')
-              .select('exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
+              .select('id, order_index, group_code, custom_name, exercise_id, coach_notes, workout_logs(set_number, weight, reps, rpe)')
               .eq('workout_id', prevWorkout.id);
               
             if (prevExs) {
               prevExs.forEach((px: any) => {
-                if (px.coach_notes && px.exercise_id) prevNotesMap[px.exercise_id] = px.coach_notes;
-                if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
+                if (px.coach_notes) {
+                  if (px.exercise_id) prevNotesMap[`ex_${px.exercise_id}`] = px.coach_notes;
+                  if (px.group_code) prevNotesMap[`grp_${px.group_code}`] = px.coach_notes;
+                  if (px.order_index !== undefined && px.order_index !== null) prevNotesMap[`ord_${px.order_index}`] = px.coach_notes;
+                  if (px.custom_name) prevNotesMap[`name_${px.custom_name.trim().toLowerCase()}`] = px.coach_notes;
+                }
+                if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) {
+                  prevLogsMap[px.exercise_id] = px.workout_logs;
+                }
               });
             }
           }
@@ -143,12 +161,25 @@ function WorkoutExecutionContent() {
             prev_log: prevLogsMap[ex.exercise_id]?.find((l:any) => l.set_number === i) || null
           });
         }
+
+        // Feedback của buổi này ở tuần này CHỈ được phép hiển thị ở buổi đó của TUẦN SAU (Tuần W+1)
+        // Buổi tập ở Tuần W luôn luôn hiển thị feedback của Tuần W-1 (inheritedNote)
+        const inheritedNote = (ex.exercise_id && prevNotesMap[`ex_${ex.exercise_id}`])
+          || (ex.group_code && prevNotesMap[`grp_${ex.group_code}`])
+          || (ex.order_index !== undefined && prevNotesMap[`ord_${ex.order_index}`])
+          || (ex.custom_name && prevNotesMap[`name_${ex.custom_name.trim().toLowerCase()}`])
+          || null;
+
+        const effectiveCoachNote = (inheritedNote && inheritedNote.trim()) 
+          ? inheritedNote.trim() 
+          : null;
+
         return {
           w_ex_id: ex.id,
           group_code: ex.group_code || String(ex.order_index),
           name: name,
           youtube_id: ex.exercises?.youtube_id,
-          coach_notes: prevNotesMap[ex.exercise_id] || null,
+          coach_notes: effectiveCoachNote,
           sets: sets
         };
       });
@@ -161,8 +192,8 @@ function WorkoutExecutionContent() {
     workoutId ? `workout_${workoutId}` : null,
     () => fetcher(workoutId as string),
     {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
     }
   );
 
@@ -175,18 +206,41 @@ function WorkoutExecutionContent() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (swrData && workoutId && !isInitialized) {
+    if (swrData && workoutId) {
       setWorkoutData(swrData.workout);
       if (swrData.workout?.rpe_score !== null && swrData.workout?.rpe_score !== undefined) setRpeScore(swrData.workout.rpe_score);
       if (swrData.workout?.joint_pain) setJointPain(swrData.workout.joint_pain);
       if (swrData.workout?.notes) setWorkoutNotes(swrData.workout.notes);
       
-      // Khôi phục bản nháp nếu có
+      // Khôi phục bản nháp thông minh: Chỉ khôi phục số tạ/rep/rpe đang gõ dở, KHÔNG ĐÈ LÊN coach_notes và metadata bài tập từ server
       const draftStr = localStorage.getItem(`draft_workout_${workoutId}`);
       if (draftStr) {
         try {
           const draftData = JSON.parse(draftStr);
-          setExercises(draftData);
+          if (Array.isArray(draftData) && draftData.length > 0) {
+            const merged = swrData.exState.map((freshEx: any) => {
+              const draftEx = draftData.find((d: any) => d.w_ex_id === freshEx.w_ex_id);
+              if (!draftEx) return freshEx;
+
+              return {
+                ...freshEx, // LUÔN GIỮ coach_notes, name, youtube_id MỚI NHẤT TỪ SERVER
+                sets: freshEx.sets.map((freshSet: any) => {
+                  const draftSet = draftEx.sets?.find((ds: any) => ds.set_number === freshSet.set_number);
+                  if (!draftSet) return freshSet;
+                  return {
+                    ...freshSet,
+                    weight: draftSet.weight !== undefined && draftSet.weight !== '' ? draftSet.weight : freshSet.weight,
+                    reps: draftSet.reps !== undefined && draftSet.reps !== '' ? draftSet.reps : freshSet.reps,
+                    rpe: draftSet.rpe !== undefined && draftSet.rpe !== '' ? draftSet.rpe : freshSet.rpe,
+                    completed: draftSet.completed !== undefined ? draftSet.completed : freshSet.completed
+                  };
+                })
+              };
+            });
+            setExercises(merged);
+          } else {
+            setExercises(swrData.exState);
+          }
         } catch(e) {
           setExercises(swrData.exState);
         }
@@ -196,7 +250,7 @@ function WorkoutExecutionContent() {
       
       setIsInitialized(true);
     }
-  }, [swrData, workoutId, isInitialized]);
+  }, [swrData, workoutId]);
 
   // Tự động lưu nháp mỗi khi exercises thay đổi
   useEffect(() => {

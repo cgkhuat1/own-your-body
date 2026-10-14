@@ -4,8 +4,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus, Activity, X, TrendingUp } from "lucide-react";
+import { Users, Search, BookOpen, Settings, LogOut, ArrowRight, Loader2, Dumbbell, Plus, Activity, X, TrendingUp, Ruler } from "lucide-react";
 import Link from "next/link";
+import { checkNeedsMeasurement } from "@/lib/measurements";
+import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
 
 export default function CoachDashboard() {
   const [clients, setClients] = useState<any[]>([]);
@@ -19,6 +21,11 @@ export default function CoachDashboard() {
   const [newClient, setNewClient] = useState({ full_name: '', email: '', password: '' });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
+
+  // Metrics & Measurements Modal State
+  const [metricsModalClient, setMetricsModalClient] = useState<any>(null);
+  const [metricsActiveTab, setMetricsActiveTab] = useState<'weight' | 'measurements'>('weight');
+  const [metricsTargetWeek, setMetricsTargetWeek] = useState<number>(1);
 
   useEffect(() => {
     checkSessionAndFetch();
@@ -50,13 +57,18 @@ export default function CoachDashboard() {
     const { data: usersData } = await query;
     
     if (usersData) {
-      // For each user, fetch their latest program to get stats
+      // For each user, fetch their latest program and profile to get stats
       const clientStats = await Promise.all(usersData.map(async (u) => {
-        const { data: programs } = await supabase
-          .from('programs')
-          .select('id, name, blocks( workouts(id, is_completed) )')
-          .eq('client_id', u.id)
-          .order('created_at', { ascending: false });
+        const [{ data: programs }, { data: profile }] = await Promise.all([
+          supabase.from('programs')
+            .select('id, name, blocks( workouts(id, is_completed) )')
+            .eq('client_id', u.id)
+            .order('created_at', { ascending: false }),
+          supabase.from('client_profiles')
+            .select('*')
+            .eq('id', u.id)
+            .single()
+        ]);
 
         const totalPrograms = programs ? programs.length : 0;
         const latestProgram = programs && programs.length > 0 ? programs[0] : null;
@@ -79,6 +91,12 @@ export default function CoachDashboard() {
           badgeText = compliance >= 80 ? "Phong độ cao" : compliance < 30 ? "Cần nhắc nhở" : "Ổn định";
         }
 
+        const measurementCheck = checkNeedsMeasurement(
+          profile?.measurements,
+          profile?.coaching_start_date,
+          profile?.coaching_duration_weeks || 12
+        );
+
         return {
           id: u.id,
           name: u.full_name || "Học viên",
@@ -88,7 +106,10 @@ export default function CoachDashboard() {
           latestProgramName: latestProgram ? latestProgram.name : "Chưa có giáo án",
           weekStats: latestProgram ? `${completedWorkouts}/${totalWorkouts}` : "0/0",
           status,
-          badgeText
+          badgeText,
+          profile,
+          needsMeasurement: measurementCheck.needsMeasurement,
+          measurementTargetWeek: measurementCheck.targetWeek
         };
       }));
 
@@ -102,23 +123,25 @@ export default function CoachDashboard() {
     window.location.href = "/login";
   };
 
-  
-  const [chartClient, setChartClient] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [yDomain, setYDomain] = useState<any[]>(['auto', 'auto']);
   const [isChartLoading, setIsChartLoading] = useState(false);
 
-  const openChartModal = async (client: any) => {
-    setChartClient(client);
+  const openMetricsModal = async (client: any, tab: 'weight' | 'measurements' = 'weight', targetWeek: number = 1) => {
+    setMetricsModalClient(client);
+    setMetricsActiveTab(tab);
+    setMetricsTargetWeek(targetWeek);
     setIsChartLoading(true);
     setChartData([]);
     
     try {
-      // Fetch coaching_start_date from client_profiles (not available in client list)
-      const [{ data: profileData }, { data: metrics }] = await Promise.all([
-        supabase.from('client_profiles').select('coaching_start_date').eq('id', client.id).single(),
-        supabase.from('daily_metrics').select('date, weight').eq('client_id', client.id).gt('weight', 0).order('date', { ascending: true })
-      ]);
+      const profileData = client.profile;
+      const { data: metrics } = await supabase
+        .from('daily_metrics')
+        .select('date, weight')
+        .eq('client_id', client.id)
+        .gt('weight', 0)
+        .order('date', { ascending: true });
 
       if (metrics && metrics.length > 0) {
         let start = profileData?.coaching_start_date ? dayjs(profileData.coaching_start_date).startOf('day') : dayjs(metrics[0].date).startOf('day');
@@ -247,11 +270,19 @@ export default function CoachDashboard() {
                   {client.name ? String(client.name).split(" ").pop()?.charAt(0) : "H"}
                 </div>
                 
-                {/* Badge Trạng Thái */}
+                {/* Badge Trạng Thái & Cảnh báo số đo */}
                 {!client.isActive ? (
                   <div className="px-3 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm bg-gray-100 text-gray-500 border-gray-200">
                     Đã ngưng tập
                   </div>
+                ) : client.needsMeasurement ? (
+                  <button
+                    onClick={() => openMetricsModal(client, 'measurements', client.measurementTargetWeek)}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 flex items-center gap-1 transition-all"
+                    title="Bấm để cập nhật số đo ngay"
+                  >
+                    ⚠️ Cần cập nhật số đo tuần {client.measurementTargetWeek}
+                  </button>
                 ) : (
                   <div className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border shadow-sm ${
                     client.status === 'excellent' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
@@ -282,10 +313,11 @@ export default function CoachDashboard() {
               <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-brand-line/50">
                 
                 <button 
-                  onClick={() => openChartModal(client)}
-                  className="text-center py-2 text-xs font-bold text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-lg transition-colors flex flex-col items-center justify-center gap-1"
+                  onClick={() => openMetricsModal(client, 'weight')}
+                  className="text-center py-2 px-1 text-[11px] font-bold text-brand-sage bg-brand-paper hover:bg-brand-sand/30 border border-brand-line rounded-lg transition-colors flex flex-col items-center justify-center gap-1 leading-tight"
+                  title="Xem Cân nặng & Số đo"
                 >
-                  <TrendingUp size={16} /> Cân nặng
+                  <TrendingUp size={15} /> Cân nặng & Chỉ số
                 </button>
                 <Link 
                   href={`/coach/clients/${client.id}`}
@@ -312,59 +344,112 @@ export default function CoachDashboard() {
       </main>
 
       
-      {/* Biểu đồ Modal */}
-      {chartClient && (
+      {/* Modal Cân Nặng & Chỉ Số 6 Vòng */}
+      {metricsModalClient && (
         <div className="fixed inset-0 bg-brand-mossDeep/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-brand-line/50 flex justify-between items-center bg-brand-paper/30">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-5 border-b border-brand-line/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-brand-paper/30">
               <div>
-                <h3 className="font-bold text-xl text-brand-moss flex items-center gap-2">
-                  <Activity className="text-brand-moss" size={24} />
-                  Tiến độ Cân nặng
+                <h3 className="font-bold text-lg text-brand-moss flex items-center gap-2">
+                  {metricsActiveTab === 'weight' ? <TrendingUp size={20} /> : <Ruler size={20} />}
+                  Chỉ số & Cân nặng
                 </h3>
-                <p className="text-sm font-semibold text-brand-moss/60 mt-1">
-                  Học viên: {chartClient.name || chartClient.full_name}
+                <p className="text-xs font-semibold text-brand-moss/60 mt-0.5">
+                  Học viên: {metricsModalClient.name || metricsModalClient.full_name}
                 </p>
               </div>
-              <button 
-                onClick={() => setChartClient(null)}
-                className="w-10 h-10 flex items-center justify-center bg-white border border-brand-line rounded-full hover:bg-brand-sand transition-colors"
-              >
-                <X size={20} className="text-brand-moss" />
-              </button>
-            </div>
-            <div className="p-8">
-              {isChartLoading ? (
-                <div className="flex justify-center items-center py-20">
-                  <Loader2 className="animate-spin text-brand-moss/40" size={32} />
+
+              <div className="flex items-center gap-2">
+                <div className="inline-flex p-1 bg-brand-paper rounded-xl border border-brand-line text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setMetricsActiveTab('weight')}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${metricsActiveTab === 'weight' ? 'bg-white text-brand-moss shadow-sm' : 'text-brand-moss/60 hover:text-brand-moss'}`}
+                  >
+                    <TrendingUp size={14} /> Cân nặng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMetricsActiveTab('measurements')}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${metricsActiveTab === 'measurements' ? 'bg-white text-brand-moss shadow-sm' : 'text-brand-moss/60 hover:text-brand-moss'}`}
+                  >
+                    <Ruler size={14} /> Số đo 6 vòng
+                  </button>
                 </div>
-              ) : chartData.length > 0 ? (
-                <div className="h-[300px] w-full -ml-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 'bold' }} dy={10} />
-                      <YAxis domain={yDomain} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 'bold' }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
-                        itemStyle={{ color: '#1C2E20' }}
-                        formatter={(value) => [`${value}`, 'Trung bình tuần']}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="weight" 
-                        stroke="#1C2E20" 
-                        strokeWidth={3} 
-                        dot={{ r: 4, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
-                        activeDot={{ r: 6, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+
+                <button 
+                  onClick={() => setMetricsModalClient(null)}
+                  className="w-9 h-9 flex items-center justify-center bg-white border border-brand-line rounded-full hover:bg-brand-sand transition-colors shrink-0"
+                >
+                  <X size={18} className="text-brand-moss" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-90px)]">
+              {metricsActiveTab === 'weight' ? (
+                <div>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-bold text-brand-moss">Biểu đồ Cân nặng Trung bình tuần</h4>
+                    <p className="text-xs text-brand-moss/60">Theo dõi xu hướng cân nặng qua từng tuần</p>
+                  </div>
+
+                  {isChartLoading ? (
+                    <div className="flex justify-center items-center py-20">
+                      <Loader2 className="animate-spin text-brand-moss/40" size={32} />
+                    </div>
+                  ) : chartData.length > 0 ? (
+                    <div className="h-[280px] w-full -ml-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 'bold' }} dy={10} />
+                          <YAxis domain={yDomain} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 'bold' }} />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
+                            itemStyle={{ color: '#1C2E20' }}
+                            formatter={(value) => [`${value}`, 'Trung bình tuần']}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="weight" 
+                            stroke="#1C2E20" 
+                            strokeWidth={3} 
+                            dot={{ r: 4, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
+                            activeDot={{ r: 6, fill: '#1C2E20', strokeWidth: 2, stroke: '#FFF' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center text-brand-moss/50 bg-brand-paper/50 rounded-2xl font-bold border border-dashed border-brand-line/80">
+                      Học viên này chưa nhập đủ dữ liệu cân nặng.
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="py-20 text-center text-brand-moss/50 bg-brand-paper/50 rounded-2xl font-bold border border-dashed border-brand-line/80">
-                  Học viên này chưa nhập đủ dữ liệu cân nặng.
-                </div>
+                <BodyMeasurementsTable
+                  clientId={metricsModalClient.id}
+                  initialMeasurements={metricsModalClient.profile?.measurements}
+                  coachingDurationWeeks={metricsModalClient.profile?.coaching_duration_weeks || 12}
+                  initialTargetWeek={metricsTargetWeek}
+                  isCoachView={true}
+                  onMeasurementsUpdated={(newMeasurements) => {
+                    setClients(prev => prev.map(c => {
+                      if (c.id === metricsModalClient.id) {
+                        const updatedProfile = { ...(c.profile || {}), measurements: newMeasurements };
+                        const check = checkNeedsMeasurement(newMeasurements, updatedProfile.coaching_start_date, updatedProfile.coaching_duration_weeks || 12);
+                        return {
+                          ...c,
+                          profile: updatedProfile,
+                          needsMeasurement: check.needsMeasurement,
+                          measurementTargetWeek: check.targetWeek
+                        };
+                      }
+                      return c;
+                    }));
+                  }}
+                />
               )}
             </div>
           </div>

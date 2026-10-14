@@ -3,11 +3,13 @@ import ClientNav from '@/components/ClientNav';
 import { useState, useEffect } from "react";
 import useSWR from 'swr';
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Loader2, UserCircle, Target, Activity, Dumbbell, Calendar, Flame, Footprints, Lock, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, UserCircle, Target, Activity, Dumbbell, Calendar, Flame, Footprints, Lock, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Ruler, X } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import updateLocale from "dayjs/plugin/updateLocale";
+import { checkNeedsMeasurement } from "@/lib/measurements";
+import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
 
 dayjs.extend(isoWeek);
 dayjs.extend(updateLocale);
@@ -15,6 +17,7 @@ dayjs.updateLocale('en', { weekStart: 1 }); // Monday is the first day of the we
 
 export default function ClientDashboard({ initialData }: { initialData?: any }) {
   const [saving, setSaving] = useState(false);
+  const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   
   // Tab Navigation
   const [activeTab, setActiveTab] = useState<'log' | 'workout'>('log');
@@ -177,6 +180,12 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
     }
   }
 
+  const measurementCheck = checkNeedsMeasurement(
+    profile?.measurements,
+    profile?.coaching_start_date,
+    profile?.coaching_duration_weeks || 12
+  );
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
@@ -305,6 +314,32 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
 
       <div className="p-5 space-y-6">
           
+          {/* Measurement Reminder Banner */}
+          {measurementCheck.needsMeasurement && (
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 shrink-0">
+                  <Ruler size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900 leading-tight">
+                    Cập nhật số đo Tuần {measurementCheck.targetWeek}!
+                  </h4>
+                  <p className="text-[11px] text-amber-700 font-medium mt-0.5">
+                    Đã đến lịch đo 6 vòng để đánh giá tiến độ cơ thể.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMeasurementModal(true)}
+                className="px-3.5 py-2 bg-brand-moss text-white text-xs font-bold rounded-xl shadow hover:bg-brand-mossDeep transition-colors shrink-0"
+              >
+                Đo ngay
+              </button>
+            </div>
+          )}
+
           {/* Grace Period Warning */}
           {isInGracePeriod && (
             <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex gap-3 items-start shadow-sm animate-in fade-in slide-in-from-top-4">
@@ -518,6 +553,44 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
           </div>
         </div>
       )}
+
+      {/* Measurement Modal for Client */}
+      {showMeasurementModal && user && (
+        <div className="fixed inset-0 bg-brand-mossDeep/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95">
+            <div className="p-5 border-b border-brand-line/50 flex justify-between items-center bg-brand-paper/30">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <Ruler size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-brand-moss">Cập nhật số đo 6 vòng</h3>
+                  <p className="text-xs text-brand-moss/60">Theo dõi sự biến chuyển vóc dáng</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMeasurementModal(false)}
+                className="w-8 h-8 flex items-center justify-center bg-white border border-brand-line rounded-full hover:bg-brand-sand transition-colors"
+              >
+                <X size={16} className="text-brand-moss" />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto max-h-[calc(90vh-80px)]">
+              <BodyMeasurementsTable
+                clientId={user.id}
+                initialMeasurements={profile?.measurements}
+                coachingDurationWeeks={profile?.coaching_duration_weeks || 12}
+                initialTargetWeek={measurementCheck.targetWeek}
+                onMeasurementsUpdated={() => {
+                  mutate();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <ClientNav />
     </div>
   );

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, UserCircle, Target, Activity, CheckCircle, Dumbbell, Power, PowerOff, Gamepad2, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import dayjs from "dayjs";
 import Link from "next/link";
+import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
 
 export default function ClientProfileDetail() {
   const params = useParams();
@@ -179,13 +180,6 @@ export default function ClientProfileDetail() {
     }
   };
 
-  const handleMeasurementChange = (key: string, value: string) => {
-    setProfile({
-      ...profile,
-      measurements: { ...profile.measurements, [key]: value }
-    });
-  };
-
   if (loading) return <div className="min-h-screen bg-brand-paper flex items-center justify-center p-8 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-sage" /></div>;
   if (!user) return <div className="min-h-screen bg-brand-paper flex items-center justify-center p-8 text-center text-red-500">Không tìm thấy thông tin học viên.</div>;
 
@@ -274,28 +268,17 @@ export default function ClientProfileDetail() {
         </div>
 
         {/* Số đo các vòng */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-          <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-            <Target className="w-5 h-5 text-brand-sage" /> Số đo các vòng (cm)
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Ngực</label>
-              <input type="number" value={profile.measurements.chest} onChange={e => handleMeasurementChange('chest', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Eo</label>
-              <input type="number" value={profile.measurements.waist} onChange={e => handleMeasurementChange('waist', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Mông</label>
-              <input type="number" value={profile.measurements.hips} onChange={e => handleMeasurementChange('hips', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Vòng Đùi</label>
-              <input type="number" value={profile.measurements.thigh} onChange={e => handleMeasurementChange('thigh', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
-            </div>
-          </div>
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <BodyMeasurementsTable
+            clientId={clientId}
+            initialMeasurements={profile.measurements}
+            coachingDurationWeeks={profile.coaching_duration_weeks || 12}
+            initialTargetWeek={currentRealWeek}
+            isCoachView={true}
+            onMeasurementsUpdated={(newMeasurements) => {
+              setProfile((prev: any) => ({ ...prev, measurements: newMeasurements }));
+            }}
+          />
         </div>
       </div>
 

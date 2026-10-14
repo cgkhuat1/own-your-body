@@ -238,7 +238,7 @@ function ProgramBuilderInner() {
       const newDays = dayIndices.map((dayIndex: number) => {
         const dayWorkouts = allWorkouts.filter((w: any) => w.order_index === dayIndex);
         const masterExercises = new Map();
-        const feedbackByWeek = {};
+        const feedbackByWeek: Record<string | number, any> = {};
         dayWorkouts.forEach((w: any) => {
           if (w.rpe_score || w.joint_pain || w.notes) {
             feedbackByWeek[w.week_number] = {
