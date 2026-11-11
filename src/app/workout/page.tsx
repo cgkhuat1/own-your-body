@@ -74,6 +74,7 @@ function WorkoutExecutionContent() {
     let prevVideoUrl = null;
     let prevNotesMap: Record<string, string> = {};
     let prevLogsMap: Record<string, any[]> = {};
+    let isCrossBlock = false;
     let currentLogs: any[] = [];
 
     const parallelTasks = [];
@@ -87,25 +88,71 @@ function WorkoutExecutionContent() {
       );
     }
 
-    if (workout?.week_number > 1 && workout?.block_id) {
+    if (workout?.block_id) {
       parallelTasks.push(
         (async () => {
-          let { data: prevWorkout } = await supabase.from('workouts')
-            .select('id, coach_video_url')
-            .eq('block_id', workout.block_id)
-            .eq('order_index', workout.order_index)
-            .eq('week_number', workout.week_number - 1)
-            .maybeSingle();
+          let prevWorkout: any = null;
 
-          // Fallback: Tìm theo tên buổi tập trong block ở tuần trước nếu order_index bị lệch
-          if (!prevWorkout && workout.name) {
-            const { data: fallbackW } = await supabase.from('workouts')
+          if (workout.week_number > 1) {
+            // Trường hợp 1: Trong cùng Block (Tuần 2, 3, 4 -> lấy Tuần 1, 2, 3 tương ứng)
+            const { data: sameBlockPrev } = await supabase.from('workouts')
               .select('id, coach_video_url')
               .eq('block_id', workout.block_id)
-              .eq('name', workout.name)
+              .eq('order_index', workout.order_index)
               .eq('week_number', workout.week_number - 1)
               .maybeSingle();
-            if (fallbackW) prevWorkout = fallbackW;
+            prevWorkout = sameBlockPrev;
+
+            // Fallback: Tìm theo tên buổi tập trong block ở tuần trước nếu order_index bị lệch
+            if (!prevWorkout && workout.name) {
+              const { data: fallbackW } = await supabase.from('workouts')
+                .select('id, coach_video_url')
+                .eq('block_id', workout.block_id)
+                .eq('name', workout.name)
+                .eq('week_number', workout.week_number - 1)
+                .maybeSingle();
+              if (fallbackW) prevWorkout = fallbackW;
+            }
+          } else if (workout.week_number === 1) {
+            // Trường hợp 2: Tuần 1 của Block mới -> Tìm về Tuần cuối (thường là Tuần 4) của Block liền trước
+            const { data: curBlock } = await supabase.from('blocks')
+              .select('id, program_id, order_index')
+              .eq('id', workout.block_id)
+              .maybeSingle();
+
+            if (curBlock && curBlock.program_id) {
+              const { data: prevBlock } = await supabase.from('blocks')
+                .select('id')
+                .eq('program_id', curBlock.program_id)
+                .lt('order_index', curBlock.order_index)
+                .order('order_index', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (prevBlock) {
+                isCrossBlock = true;
+                const { data: crossPrev } = await supabase.from('workouts')
+                  .select('id, coach_video_url')
+                  .eq('block_id', prevBlock.id)
+                  .eq('order_index', workout.order_index)
+                  .order('week_number', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                prevWorkout = crossPrev;
+
+                // Fallback: Tìm theo tên buổi tập trong block trước nếu order_index bị lệch
+                if (!prevWorkout && workout.name) {
+                  const { data: fallbackCross } = await supabase.from('workouts')
+                    .select('id, coach_video_url')
+                    .eq('block_id', prevBlock.id)
+                    .eq('name', workout.name)
+                    .order('week_number', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  if (fallbackCross) prevWorkout = fallbackCross;
+                }
+              }
+            }
           }
 
           if (prevWorkout) {
@@ -122,8 +169,9 @@ function WorkoutExecutionContent() {
                   if (px.order_index !== undefined && px.order_index !== null) prevNotesMap[`ord_${px.order_index}`] = px.coach_notes;
                   if (px.custom_name) prevNotesMap[`name_${px.custom_name.trim().toLowerCase()}`] = px.coach_notes;
                 }
-                if (px.workout_logs && px.workout_logs.length > 0 && px.exercise_id) {
-                  prevLogsMap[px.exercise_id] = px.workout_logs;
+                if (px.workout_logs && px.workout_logs.length > 0) {
+                  if (px.exercise_id) prevLogsMap[px.exercise_id] = px.workout_logs;
+                  if (px.custom_name) prevLogsMap[`name_${px.custom_name.trim().toLowerCase()}`] = px.workout_logs;
                 }
               });
             }
@@ -148,6 +196,10 @@ function WorkoutExecutionContent() {
         
         const numSets = Math.max(ex.target_sets || 3, exLogs.length);
         
+        const exLogsSource = (ex.exercise_id && prevLogsMap[ex.exercise_id])
+          || (ex.custom_name && prevLogsMap[`name_${ex.custom_name.trim().toLowerCase()}`])
+          || null;
+
         for (let i = 1; i <= numSets; i++) {
           const log = exLogs.find((l: any) => l.set_number === i);
           sets.push({
@@ -158,17 +210,21 @@ function WorkoutExecutionContent() {
             reps: log && log.reps ? String(log.reps) : "",
             rpe: log && log.rpe ? String(log.rpe) : "",
             completed: !!log,
-            prev_log: prevLogsMap[ex.exercise_id]?.find((l:any) => l.set_number === i) || null
+            prev_log: exLogsSource?.find((l:any) => l.set_number === i) || null
           });
         }
 
-        // Feedback của buổi này ở tuần này CHỈ được phép hiển thị ở buổi đó của TUẦN SAU (Tuần W+1)
-        // Buổi tập ở Tuần W luôn luôn hiển thị feedback của Tuần W-1 (inheritedNote)
-        const inheritedNote = (ex.exercise_id && prevNotesMap[`ex_${ex.exercise_id}`])
-          || (ex.group_code && prevNotesMap[`grp_${ex.group_code}`])
-          || (ex.order_index !== undefined && prevNotesMap[`ord_${ex.order_index}`])
-          || (ex.custom_name && prevNotesMap[`name_${ex.custom_name.trim().toLowerCase()}`])
-          || null;
+        // Feedback của buổi này ở tuần này CHỈ được phép hiển thị ở buổi đó của TUẦN SAU (Tuần W+1 hoặc Tuần 1 Block tiếp theo)
+        // Nếu chuyển giao giữa các Block: CHỈ so khớp chính xác theo bài tập (exercise_id hoặc cùng tên bài)
+        const inheritedNote = isCrossBlock
+          ? ((ex.exercise_id && prevNotesMap[`ex_${ex.exercise_id}`])
+              || (ex.custom_name && prevNotesMap[`name_${ex.custom_name.trim().toLowerCase()}`])
+              || null)
+          : ((ex.exercise_id && prevNotesMap[`ex_${ex.exercise_id}`])
+              || (ex.custom_name && prevNotesMap[`name_${ex.custom_name.trim().toLowerCase()}`])
+              || (ex.group_code && prevNotesMap[`grp_${ex.group_code}`])
+              || (ex.order_index !== undefined && prevNotesMap[`ord_${ex.order_index}`])
+              || null);
 
         const effectiveCoachNote = (inheritedNote && inheritedNote.trim()) 
           ? inheritedNote.trim() 
