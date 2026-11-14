@@ -86,9 +86,12 @@ function ClientProgressInner() {
                       exId,
                       exName,
                       programName: prog.name,
-                      blockName: block.name,
+                      progCreatedAt: prog.created_at,
+                      blockName: block.name || 'Block 1',
+                      blockOrderIndex: block.order_index ?? 0,
                       workoutName: workout.name,
-                      weekNumber: workout.week_number,
+                      weekNumber: workout.week_number ?? 1,
+                      workoutOrderIndex: workout.order_index ?? 0,
                       isCompleted: workout.is_completed,
                       completedAt: workout.completed_at,
                       max1RM,
@@ -104,8 +107,26 @@ function ClientProgressInner() {
         const exArray = Array.from(exMap.values()).sort((a, b) => a.name.localeCompare(b.name));
         setExercisesList(exArray);
         
-        // Sort logs theo thứ tự (giả định theo block -> week -> day)
-        flatLogs.reverse(); // Đảo ngược để hiển thị mới nhất lên trên
+        // Sắp xếp logs nghiêm ngặt theo thời gian: Mới nhất lên trên đầu
+        flatLogs.sort((a, b) => {
+          const timeA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+          const timeB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+          if (timeA > 0 && timeB > 0 && timeA !== timeB) {
+            return timeB - timeA; // Mới nhất lên trước (ví dụ 06/11 xếp trên 19/10)
+          }
+          if (timeA > 0 && timeB === 0) return -1;
+          if (timeB > 0 && timeA === 0) return 1;
+
+          // Fallback nếu chưa hoàn thành hoặc cùng ngày: dựa theo program, block, tuần, thứ tự buổi
+          const progA = a.progCreatedAt ? new Date(a.progCreatedAt).getTime() : 0;
+          const progB = b.progCreatedAt ? new Date(b.progCreatedAt).getTime() : 0;
+          if (progA !== progB) return progB - progA;
+
+          if (b.blockOrderIndex !== a.blockOrderIndex) return (b.blockOrderIndex || 0) - (a.blockOrderIndex || 0);
+          if (b.weekNumber !== a.weekNumber) return (b.weekNumber || 0) - (a.weekNumber || 0);
+          return (b.workoutOrderIndex || 0) - (a.workoutOrderIndex || 0);
+        });
+
         setLogsData(flatLogs);
 
         if (exArray.length > 0) {
@@ -230,7 +251,7 @@ function ClientProgressInner() {
                         
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-brand-line/50 pb-4 pl-3">
                           <div>
-                            <h3 className="font-bold text-brand-moss text-lg leading-tight">{log.blockName} • Tuần {log.weekNumber}</h3>
+                            <h3 className="font-bold text-brand-moss text-lg leading-tight">{log.blockName || 'Block 1'} • Tuần {log.weekNumber || 1}</h3>
                             <p className="text-sm font-semibold text-brand-moss/60 mt-1 flex items-center gap-1.5">
                               <Calendar size={14} /> 
                               {log.workoutName} 

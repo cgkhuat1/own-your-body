@@ -1,58 +1,109 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Save, Plus, MessageSquareText, Loader2, PlayCircle, MessageCircle, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat } from "lucide-react";
+import { ArrowLeft, Save, Plus, MessageSquareText, Loader2, PlayCircle, MessageCircle, Trash2, X, Search, Dumbbell, GripVertical, AlertTriangle, Pencil, Check, Copy, Repeat, CheckCircle2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
-// === HELPER: Gom bài tập thành các cụm kéo thả (Drag Units) ===
-function groupIntoDragUnits(exercises: any[]) {
-  const units: any[] = [];
-  const visited = new Set();
+// Formula Epley: 1RM = W * (1 + R/30)
+const estimate1RM = (weight: number, reps: number) => {
+  if (!weight || !reps) return 0;
+  return Math.round(weight * (1 + reps / 30));
+};
 
-  for (const ex of exercises) {
-    if (visited.has(ex.key)) continue;
-    const hasLetter = /[a-zA-Z]/.test(String(ex.group_code || ''));
-    const numPrefix = parseInt(String(ex.group_code || '99').replace(/\D/g, '')) || 99;
-
-    if (hasLetter) {
-      const group = exercises.filter(e => {
-        const eNum = parseInt(String(e.group_code || '').replace(/\D/g, '')) || -1;
-        const eLetter = /[a-zA-Z]/.test(String(e.group_code || ''));
-        return eLetter && eNum === numPrefix;
-      });
-      group.forEach((e: any) => visited.add(e.key));
-      units.push({ type: 'group', exercises: group });
-    } else {
-      visited.add(ex.key);
-      units.push({ type: 'single', exercises: [ex] });
-    }
-  }
-  return units;
-}
-
-// === HELPER: Tự động đánh lại số sau khi sắp xếp ===
-function renumberUnits(units: any[]) {
-  let counter = 1;
-  const allExercises: any[] = [];
+// === HELPER: Đánh lại số thông minh bảo toàn Superset (1, 2A, 2B, 3A, 3B, 3C...) ===
+function renumberSmart(exercises: any[]) {
   const letters = 'ABCDEFGHIJ';
+  let unitCounter = 1;
+  let i = 0;
+  const result: any[] = [];
 
-  for (const unit of units) {
-    if (unit.type === 'single') {
-      const ex = { ...unit.exercises[0], group_code: String(counter) };
-      if (ex.base_ex) ex.base_ex.group_code = String(counter);
-      unit.exercises[0] = ex;
-      allExercises.push(ex);
+  while (i < exercises.length) {
+    const cur = exercises[i];
+    const curCode = String(cur.group_code || cur.base_ex?.group_code || '').trim();
+    const curHasLetter = /[a-zA-Z]/.test(curCode);
+
+    if (curHasLetter) {
+      // Nhóm này có chữ cái (Superset / Triset)
+      // Tìm xem có bao nhiêu bài liền tiếp cùng nhóm chữ cái (cùng số prefix)
+      const curNumPrefix = parseInt(curCode.replace(/\D/g, '')) || 0;
+      let j = i + 1;
+      while (j < exercises.length) {
+        const nextCode = String(exercises[j].group_code || exercises[j].base_ex?.group_code || '').trim();
+        const nextHasLetter = /[a-zA-Z]/.test(nextCode);
+        const nextNumPrefix = parseInt(nextCode.replace(/\D/g, '')) || 0;
+
+        // Nếu bài tiếp theo cũng có chữ và cùng số prefix (hoặc prefix = 0)
+        if (nextHasLetter && (nextNumPrefix === curNumPrefix || nextNumPrefix === 0 || curNumPrefix === 0)) {
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      const count = j - i;
+      if (count > 1) {
+        // Cụm Superset / Triset từ 2 bài trở lên
+        for (let k = 0; k < count; k++) {
+          const ex = exercises[i + k];
+          const newCode = `${unitCounter}${letters[k] || ''}`;
+          const newOrder = result.length + 1;
+          ex.order_index = newOrder;
+          ex.group_code = newCode;
+          if (ex.base_ex) {
+            ex.base_ex.order_index = newOrder;
+            ex.base_ex.group_code = newCode;
+          }
+          if (ex.weeks) {
+            Object.values(ex.weeks).forEach((wEx: any) => {
+              wEx.order_index = newOrder;
+              wEx.group_code = newCode;
+            });
+          }
+          result.push(ex);
+        }
+        i = j;
+      } else {
+        // Đứng một mình không có bạn đồng hành: chuyển thành bài đơn bình thường
+        const newCode = String(unitCounter);
+        const newOrder = result.length + 1;
+        cur.order_index = newOrder;
+        cur.group_code = newCode;
+        if (cur.base_ex) {
+          cur.base_ex.order_index = newOrder;
+          cur.base_ex.group_code = newCode;
+        }
+        if (cur.weeks) {
+          Object.values(cur.weeks).forEach((wEx: any) => {
+            wEx.order_index = newOrder;
+            wEx.group_code = newCode;
+          });
+        }
+        result.push(cur);
+        i++;
+      }
     } else {
-      unit.exercises.forEach((exOld: any, i: number) => {
-        const ex = { ...exOld, group_code: `${counter}${letters[i]}` };
-        if (ex.base_ex) ex.base_ex.group_code = `${counter}${letters[i]}`;
-        unit.exercises[i] = ex;
-        allExercises.push(ex);
-      });
+      // Bài đơn thuần túy (không có chữ cái)
+      const newCode = String(unitCounter);
+      const newOrder = result.length + 1;
+      cur.order_index = newOrder;
+      cur.group_code = newCode;
+      if (cur.base_ex) {
+        cur.base_ex.order_index = newOrder;
+        cur.base_ex.group_code = newCode;
+      }
+      if (cur.weeks) {
+        Object.values(cur.weeks).forEach((wEx: any) => {
+          wEx.order_index = newOrder;
+          wEx.group_code = newCode;
+        });
+      }
+      result.push(cur);
+      i++;
     }
-    counter++;
+    unitCounter++;
   }
-  return { units, allExercises };
+
+  return result;
 }
 
 function ProgramBuilderInner() {
@@ -101,20 +152,28 @@ function ProgramBuilderInner() {
   const [newDayName, setNewDayName] = useState("");
   const [addingExercise, setAddingExercise] = useState(false);
 
-  // Trạng thái Swap (Thay thế 1 bài tập cụ thể trong 1 tuần)
+  // Trạng thái Swap riêng lẻ cho 1 tuần
   const [swapTarget, setSwapTarget] = useState<{ wExId: string, weekNum: number } | null>(null);
+  // Trạng thái Swap TOÀN BỘ Phase (Đổi hẳn bài tập cho tất cả 4 tuần)
+  const [swapGlobalTarget, setSwapGlobalTarget] = useState<{ exKey: string; baseEx: any; ex: any } | null>(null);
+  // Trạng thái Chèn bài tập ở trên / ở dưới (Giống Google Sheets)
+  const [insertTarget, setInsertTarget] = useState<{ targetIndex: number; placement: 'above' | 'below'; refEx: any } | null>(null);
+
+  // Modal Tiến độ mức tạ qua các tuần 📈
+  const [progressModal, setProgressModal] = useState<{ exId: string; exName: string } | null>(null);
+  const [progressLogs, setProgressLogs] = useState<any[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+
   const [modifiedWExIds, setModifiedWExIds] = useState<Set<string>>(new Set());
+  const [modifiedLogWExIds, setModifiedLogWExIds] = useState<Set<string>>(new Set());
 
   // Inline edit state
   const [editingDayName, setEditingDayName] = useState(false);
   const [editDayValue, setEditDayValue] = useState("");
   const [editingExKey, setEditingExKey] = useState<string | null>(null);
   const [editExValue, setEditExValue] = useState("");
-
-  // Drag state
-  const dragUnit = useRef<number | null>(null);
-  const dragOverUnit = useRef<number | null>(null);
-  const [dragUnitIndex, setDragUnitIndex] = useState<number | null>(null);
+  const [editingGroupCodeKey, setEditingGroupCodeKey] = useState<string | null>(null);
+  const [editGroupCodeValue, setEditGroupCodeValue] = useState("");
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -154,7 +213,7 @@ function ProgramBuilderInner() {
       setIsAddPhaseModalOpen(false);
       setNewPhaseName("");
     } else {
-      showToast("Lỗi: " + (error?.message || "Unknown error"), "error");
+      showToast("Lỗi khi tạo Phase", "error");
     }
     setSavingPhase(false);
   };
@@ -173,7 +232,7 @@ function ProgramBuilderInner() {
     const { data: allPrograms } = await supabase.from('programs')
       .select('id, name, created_at')
       .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
     
     setPhases(allPrograms || []);
 
@@ -238,7 +297,7 @@ function ProgramBuilderInner() {
       const newDays = dayIndices.map((dayIndex: number) => {
         const dayWorkouts = allWorkouts.filter((w: any) => w.order_index === dayIndex);
         const masterExercises = new Map();
-        const feedbackByWeek: Record<string | number, any> = {};
+        const feedbackByWeek: Record<number, any> = {};
         dayWorkouts.forEach((w: any) => {
           if (w.rpe_score || w.joint_pain || w.notes) {
             feedbackByWeek[w.week_number] = {
@@ -310,6 +369,46 @@ function ProgramBuilderInner() {
         };
       });
 
+      // Khôi phục bản nháp nếu Coach lỡ ấn Back hoặc F5
+      if (clientId) {
+        try {
+          const draftKey = `coach_draft_logs_${clientId}`;
+          const draftStr = typeof window !== 'undefined' ? localStorage.getItem(draftKey) : null;
+          if (draftStr) {
+            const draftData = JSON.parse(draftStr);
+            let hasAnyDraft = false;
+            newDays.forEach((day: any) => {
+              day.exercises.forEach((ex: any) => {
+                Object.values(ex.weeks).forEach((wEx: any) => {
+                  if (draftData[wEx.id]) {
+                    hasAnyDraft = true;
+                    setModifiedLogWExIds(prev => new Set(prev).add(wEx.id));
+                    const draftLogs = draftData[wEx.id];
+                    const logsMap = new Map();
+                    (wEx.workout_logs || []).forEach((l: any) => logsMap.set(l.set_number, l));
+                    draftLogs.forEach((dl: any) => {
+                      const existing = logsMap.get(dl.set_number) || { id: `temp-${wEx.id}-${dl.set_number}`, set_number: dl.set_number };
+                      logsMap.set(dl.set_number, {
+                        ...existing,
+                        weight: dl.weight !== undefined ? dl.weight : existing.weight,
+                        reps: dl.reps !== undefined ? dl.reps : existing.reps,
+                        rpe: dl.rpe !== undefined ? dl.rpe : existing.rpe
+                      });
+                    });
+                    wEx.workout_logs = Array.from(logsMap.values()).sort((a: any, b: any) => a.set_number - b.set_number);
+                  }
+                });
+              });
+            });
+            if (hasAnyDraft) {
+              console.log("Đã khôi phục bản nháp số tạ từ localStorage!");
+            }
+          }
+        } catch (e) {
+          console.error("Lỗi đọc draft:", e);
+        }
+      }
+
       setDays(newDays);
       if (newDays.length > 0 && !newDays.find(d => d.dayIndex === activeDay)) {
         setActiveDay(newDays[0].dayIndex);
@@ -351,49 +450,183 @@ function ProgramBuilderInner() {
     }));
   };
 
+  const handleLogChange = (dayIndex: number, exKey: string, weekNum: number, setNumber: number, field: 'weight' | 'reps' | 'rpe', value: string) => {
+    let targetWExId = '';
+    let updatedWExLogs: any[] = [];
+
+    setDays(prevDays => prevDays.map(day => {
+      if (day.dayIndex !== dayIndex) return day;
+      return {
+        ...day,
+        exercises: day.exercises.map((ex: any) => {
+          if (ex.key !== exKey) return ex;
+          const newWeeks = { ...ex.weeks };
+          if (newWeeks[weekNum]) {
+            const wEx = newWeeks[weekNum];
+            targetWExId = wEx.id;
+            const currentLogs = [...(wEx.workout_logs || [])];
+            const logIdx = currentLogs.findIndex((l: any) => l.set_number === setNumber);
+            if (logIdx >= 0) {
+              currentLogs[logIdx] = { ...currentLogs[logIdx], [field]: value };
+            } else {
+              currentLogs.push({
+                id: `temp-${wEx.id}-${setNumber}`,
+                workout_exercise_id: wEx.id,
+                set_number: setNumber,
+                weight: field === 'weight' ? value : '',
+                reps: field === 'reps' ? value : '',
+                rpe: field === 'rpe' ? value : ''
+              });
+            }
+            updatedWExLogs = currentLogs;
+            newWeeks[weekNum] = { ...wEx, workout_logs: currentLogs };
+            setModifiedLogWExIds(prev => new Set(prev).add(wEx.id));
+          }
+          return { ...ex, weeks: newWeeks };
+        })
+      };
+    }));
+
+    // Lớp 1: Lưu nháp tức thời vào localStorage (0 request, 0 byte Supabase)
+    if (clientId && targetWExId) {
+      try {
+        const draftKey = `coach_draft_logs_${clientId}`;
+        const currentDraft = JSON.parse(localStorage.getItem(draftKey) || '{}');
+        currentDraft[targetWExId] = updatedWExLogs;
+        localStorage.setItem(draftKey, JSON.stringify(currentDraft));
+      } catch (e) {
+        console.error("Lỗi lưu draft:", e);
+      }
+    }
+  };
+
   const handleSave = async () => {
-    if (modifiedWExIds.size === 0) {
+    if (modifiedWExIds.size === 0 && modifiedLogWExIds.size === 0) {
       showToast("Không có thay đổi nào cần lưu!");
       return;
     }
     
     setSaving(true);
-    const updates: any[] = [];
-    days.forEach(day => {
-      day.exercises.forEach((ex: any) => {
-        Object.values(ex.weeks).forEach((wEx: any) => {
-          if (modifiedWExIds.has(wEx.id)) {
-            updates.push({ id: wEx.id, target_sets: parseInt(wEx.target_sets) || 3, target_reps: wEx.target_reps, target_rpe: wEx.target_rpe });
-          }
-        });
-      });
-    });
-
     let hasError = false;
     let errorMsg = "";
-    
-    // Gửi tuần tự để không làm quá tải Supabase
-    for (const u of updates) {
-      const { error } = await supabase.from('workout_exercises').update({ 
-        target_sets: u.target_sets, 
-        target_reps: u.target_reps, 
-        target_rpe: u.target_rpe 
-      }).eq('id', u.id);
-      
-      if (error) {
-        hasError = true;
-        errorMsg = error.message;
-        break;
+
+    try {
+      // 1. Lưu Mục tiêu (targets) nếu có thay đổi
+      if (modifiedWExIds.size > 0) {
+        const targetUpdates: any[] = [];
+        days.forEach(day => {
+          day.exercises.forEach((ex: any) => {
+            Object.values(ex.weeks).forEach((wEx: any) => {
+              if (modifiedWExIds.has(wEx.id)) {
+                targetUpdates.push({
+                  id: wEx.id,
+                  target_sets: parseInt(wEx.target_sets) || 3,
+                  target_reps: wEx.target_reps,
+                  target_rpe: wEx.target_rpe
+                });
+              }
+            });
+          });
+        });
+
+        for (const u of targetUpdates) {
+          const { error } = await supabase.from('workout_exercises').update({ 
+            target_sets: u.target_sets, 
+            target_reps: u.target_reps, 
+            target_rpe: u.target_rpe 
+          }).eq('id', u.id);
+          
+          if (error) throw error;
+        }
       }
+
+      // 2. Lưu Kết quả tập thực tế (workout_logs) nếu có thay đổi
+      if (modifiedLogWExIds.size > 0) {
+        const workoutsToComplete = new Set<string>();
+
+        for (const day of days) {
+          for (const ex of day.exercises) {
+            for (const [wStr, wEx] of Object.entries<any>(ex.weeks)) {
+              if (modifiedLogWExIds.has(wEx.id)) {
+                const weekNum = parseInt(wStr);
+                const workoutId = day.workoutIds ? day.workoutIds[weekNum] : null;
+
+                const logs = wEx.workout_logs || [];
+                let hasFilledSets = false;
+
+                for (const l of logs) {
+                  const hasWeight = l.weight !== undefined && l.weight !== null && String(l.weight).trim() !== '';
+                  const hasReps = l.reps !== undefined && l.reps !== null && String(l.reps).trim() !== '';
+                  const hasRpe = l.rpe !== undefined && l.rpe !== null && String(l.rpe).trim() !== '';
+
+                  if (hasWeight || hasReps || hasRpe) {
+                    hasFilledSets = true;
+                    const logPayload = {
+                      workout_exercise_id: wEx.id,
+                      set_number: l.set_number,
+                      weight: hasWeight ? (parseFloat(l.weight) || 0) : 0,
+                      reps: hasReps ? (parseInt(l.reps) || 0) : 0,
+                      rpe: hasRpe ? (parseFloat(l.rpe) || null) : null
+                    };
+
+                    if (l.id && !String(l.id).startsWith('temp-')) {
+                      // Đã có id trong DB -> update
+                      const { error: upErr } = await supabase.from('workout_logs')
+                        .update({ weight: logPayload.weight, reps: logPayload.reps, rpe: logPayload.rpe })
+                        .eq('id', l.id);
+                      if (upErr) throw upErr;
+                    } else {
+                      // Chưa có id -> insert
+                      const { data: insData, error: insErr } = await supabase.from('workout_logs')
+                        .insert(logPayload)
+                        .select('id')
+                        .single();
+                      if (insErr) throw insErr;
+                      if (insData) l.id = insData.id;
+                    }
+                  } else if (l.id && !String(l.id).startsWith('temp-')) {
+                    // Nếu người dùng xóa trắng dữ liệu của set đã có trước đó -> xóa khỏi DB
+                    await supabase.from('workout_logs').delete().eq('id', l.id);
+                  }
+                }
+
+                // Nếu có bài tập được điền kết quả, đánh dấu buổi tập là hoàn thành
+                if (hasFilledSets && workoutId) {
+                  workoutsToComplete.add(workoutId);
+                }
+              }
+            }
+          }
+        }
+
+        // Tự động cập nhật is_completed: true cho các buổi tập đã điền tạ
+        for (const wId of workoutsToComplete) {
+          await supabase.from('workouts')
+            .update({ 
+              is_completed: true, 
+              completed_at: new Date().toISOString() 
+            })
+            .eq('id', wId)
+            .eq('is_completed', false);
+        }
+      }
+
+      // Xóa bản nháp trong localStorage sau khi lưu thành công
+      if (clientId) {
+        localStorage.removeItem(`coach_draft_logs_${clientId}`);
+      }
+
+      setModifiedWExIds(new Set());
+      setModifiedLogWExIds(new Set());
+      showToast("Đã lưu thành công tất cả thay đổi!");
+      await fetchData();
+
+    } catch (e: any) {
+      console.error("handleSave error:", e);
+      window.alert(`🛑 LỖI LƯU DỮ LIỆU:\n\n${e.message || e}\n\nVui lòng thử lại hoặc báo lại nhé!`);
+    } finally {
+      setSaving(false);
     }
-    
-    if (hasError) {
-      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng báo lại cho Antigravity nhé!`);
-    } else {
-      showToast(`Đã lưu thành công ${updates.length} ô thay đổi!`);
-      setModifiedWExIds(new Set()); // Reset bộ đếm sau khi lưu thành công
-    }
-    setSaving(false);
   };
 
   const handleDeleteExerciseGroup = async (exKey: string) => {
@@ -517,28 +750,181 @@ function ProgramBuilderInner() {
     await fetchData();
   };
 
-  // === THÊM BÀI TẬP HOẶC SWAP ===
+  const startEditGroupCode = (ex: any) => {
+    setEditingGroupCodeKey(ex.key);
+    setEditGroupCodeValue(String(ex.base_ex?.group_code || ex.group_code || ''));
+  };
+
+  const saveGroupCode = async (ex: any) => {
+    if (!editingGroupCodeKey) return;
+    const newCode = editGroupCodeValue.trim().toUpperCase();
+    if (!newCode) {
+      setEditingGroupCodeKey(null);
+      return;
+    }
+
+    setSaving(true);
+    // Cập nhật local state
+    setDays(prevDays => prevDays.map(day => {
+      if (day.dayIndex !== activeDay) return day;
+      const updatedExercises = day.exercises.map((item: any) => {
+        if (item.key !== ex.key) return item;
+        const updatedWeeks = { ...item.weeks };
+        Object.keys(updatedWeeks).forEach(weekNum => {
+          updatedWeeks[weekNum] = { ...updatedWeeks[weekNum], group_code: newCode };
+        });
+        return {
+          ...item,
+          group_code: newCode,
+          base_ex: item.base_ex ? { ...item.base_ex, group_code: newCode } : item.base_ex,
+          weeks: updatedWeeks
+        };
+      });
+      return { ...day, exercises: updatedExercises };
+    }));
+
+    // Cập nhật Supabase cho tất cả các tuần của bài tập này
+    const wExList = Object.values(ex.weeks) as any[];
+    for (const wEx of wExList) {
+      await supabase.from('workout_exercises').update({ group_code: newCode }).eq('id', wEx.id);
+    }
+
+    setEditingGroupCodeKey(null);
+    setSaving(false);
+    showToast(`Đã đổi mã nhóm thành "${newCode}"`);
+    await fetchData();
+  };
+
+  // === THÊM BÀI TẬP / ĐỔI BÀI TOÀN PHASE / CHÈN BÀI / SWAP TUẦN ===
   const handleAddOrSwapExercise = async () => {
     if (!selectedExercise) return;
     setAddingExercise(true);
     setSaving(true);
 
-    if (swapTarget) {
-      // Logic: Swap chỉ cho 1 tuần duy nhất
+    if (swapGlobalTarget) {
+      // 1. Đổi hẳn bài tập cho toàn bộ 4 tuần của Phase
+      const currentDay = days.find(d => d.dayIndex === activeDay);
+      if (!currentDay) { setAddingExercise(false); setSaving(false); return; }
+
+      const targetEx = currentDay.exercises.find((e: any) => e.key === swapGlobalTarget.exKey);
+      if (targetEx) {
+        const wExList = Object.values(targetEx.weeks) as any[];
+        const codeToUse = newGroupCode.trim().toUpperCase() || targetEx.group_code || targetEx.base_ex?.group_code || '';
+        const setsToUse = parseInt(newSets) || 3;
+        const repsToUse = newReps;
+        const rpeToUse = newRpe;
+
+        for (const wEx of wExList) {
+          await supabase.from('workout_exercises').update({
+            exercise_id: selectedExercise.id,
+            custom_name: null, // reset custom_name để hiển thị tên gốc từ bảng exercises
+            group_code: codeToUse,
+            target_sets: setsToUse,
+            target_reps: repsToUse,
+            target_rpe: rpeToUse
+          }).eq('id', wEx.id);
+        }
+      }
+      showToast(`Đã đổi bài tập thành "${selectedExercise.name}" cho toàn bộ Phase`);
+      setSwapGlobalTarget(null);
+    } else if (insertTarget) {
+      // 2. Chèn bài tập ở trên hoặc ở dưới (Google Sheets style)
+      const currentDay = days.find(d => d.dayIndex === activeDay);
+      if (!currentDay) { setAddingExercise(false); setSaving(false); return; }
+
+      const exercises = [...currentDay.exercises];
+      const targetIndex = insertTarget.targetIndex;
+      const insertIndex = insertTarget.placement === 'above' ? targetIndex : targetIndex + 1;
+
+      // Đảm bảo workouts tồn tại cho cả 4 tuần
+      for (let week = 1; week <= 4; week++) {
+        if (!currentDay.workoutIds[week]) {
+          const { data: newWorkout } = await supabase.from('workouts').insert({
+            block_id: activeBlockId,
+            name: currentDay.name,
+            week_number: week,
+            order_index: activeDay,
+            is_completed: false
+          }).select('id').single();
+          if (newWorkout) currentDay.workoutIds[week] = newWorkout.id;
+        }
+      }
+
+      const codeToUse = newGroupCode.trim().toUpperCase() || String(insertIndex + 1);
+
+      // Tạo workout_exercises mới cho cả 4 tuần
+      const createdWExIds: { week: number; id: string }[] = [];
+      for (let week = 1; week <= 4; week++) {
+        const { data: newWEx } = await supabase.from('workout_exercises').insert({
+          workout_id: currentDay.workoutIds[week],
+          exercise_id: selectedExercise.id,
+          group_code: codeToUse,
+          order_index: 9990 + week,
+          target_sets: parseInt(newSets) || 3,
+          target_reps: newReps,
+          target_rpe: newRpe
+        }).select('id').single();
+        if (newWEx) createdWExIds.push({ week, id: newWEx.id });
+      }
+
+      // Cập nhật cấu trúc local
+      const newWeeksMap: any = {};
+      createdWExIds.forEach(item => {
+        newWeeksMap[item.week] = {
+          id: item.id,
+          exercise_id: selectedExercise.id,
+          exercises: { id: selectedExercise.id, name: selectedExercise.name },
+          group_code: codeToUse,
+          order_index: insertIndex + 1,
+          target_sets: parseInt(newSets) || 3,
+          target_reps: newReps,
+          target_rpe: newRpe,
+          workout_logs: []
+        };
+      });
+
+      const newExerciseItem = {
+        key: `ex_new_${Date.now()}`,
+        order_index: insertIndex + 1,
+        group_code: codeToUse,
+        base_ex: newWeeksMap[1] || Object.values(newWeeksMap)[0],
+        weeks: newWeeksMap
+      };
+
+      exercises.splice(insertIndex, 0, newExerciseItem);
+
+      // Đánh lại số thông minh bảo toàn Superset
+      const renumbered = renumberSmart(exercises);
+
+      // Cập nhật database Supabase
+      for (const ex of renumbered) {
+        for (const wEx of Object.values(ex.weeks) as any[]) {
+          await supabase.from('workout_exercises').update({
+            order_index: ex.order_index,
+            group_code: ex.group_code
+          }).eq('id', wEx.id);
+        }
+      }
+
+      showToast(`Đã chèn "${selectedExercise.name}" vào giáo án`);
+      setInsertTarget(null);
+    } else if (swapTarget) {
+      // 3. Logic: Swap chỉ cho 1 tuần duy nhất
       await supabase.from('workout_exercises').update({
         exercise_id: selectedExercise.id,
-        custom_name: null // reset custom_name để nó hiển thị tên gốc từ exercises table
+        custom_name: null
       }).eq('id', swapTarget.wExId);
       
       showToast(`Đã thay thế thành "${selectedExercise.name}" cho Tuần ${swapTarget.weekNum}`);
+      setSwapTarget(null);
     } else {
-      // Logic: Thêm mới cho cả 4 tuần
-      if (!newGroupCode.trim()) { setAddingExercise(false); setSaving(false); return; }
+      // 4. Logic: Thêm mới ở cuối danh sách cho cả 4 tuần
       const currentDay = days.find(d => d.dayIndex === activeDay);
       if (!currentDay) { setAddingExercise(false); setSaving(false); return; }
   
       const maxOrder = currentDay.exercises.reduce((max: number, ex: any) => Math.max(max, ex.order_index || 0), 0);
-  
+      const codeToUse = newGroupCode.trim().toUpperCase() || String(maxOrder + 1);
+
       for (let week = 1; week <= 4; week++) {
         if (!currentDay.workoutIds[week]) {
           const { data: newWorkout } = await supabase.from('workouts').insert({
@@ -548,14 +934,14 @@ function ProgramBuilderInner() {
         }
         await supabase.from('workout_exercises').insert({
           workout_id: currentDay.workoutIds[week], exercise_id: selectedExercise.id,
-          group_code: newGroupCode.trim().toUpperCase(), order_index: maxOrder + 1,
+          group_code: codeToUse, order_index: maxOrder + 1,
           target_sets: parseInt(newSets) || 3, target_reps: newReps, target_rpe: newRpe
         });
       }
       showToast(`Đã thêm "${selectedExercise.name}"`);
     }
 
-    setShowAddExercise(false); setSelectedExercise(null); setSwapTarget(null);
+    setShowAddExercise(false); setSelectedExercise(null); setSwapTarget(null); setSwapGlobalTarget(null); setInsertTarget(null);
     setNewGroupCode(""); setNewSets("3"); setNewReps("8-10"); setNewRpe("8"); setSearchQuery(""); setAddingExercise(false);
     setSaving(false);
     await fetchData();
@@ -629,10 +1015,9 @@ function ProgramBuilderInner() {
     setDays(prevDays => prevDays.map(day => {
       if (day.dayIndex !== activeDay) return day;
       const remainingExercises = day.exercises.filter((e: any) => e.key !== ex.key);
-      const units = groupIntoDragUnits(remainingExercises);
-      const { allExercises } = renumberUnits(units);
-      updatedAllExercises = allExercises;
-      return { ...day, exercises: allExercises.map((e: any, i: number) => ({ ...e, order_index: i + 1 })) };
+      const renumbered = renumberSmart(remainingExercises);
+      updatedAllExercises = renumbered;
+      return { ...day, exercises: renumbered };
     }));
     setExerciseToDelete(null); // Đóng modal ngay lập tức
 
@@ -658,98 +1043,208 @@ function ProgramBuilderInner() {
       return;
     }
 
-    // 1. Chỉ lọc ra những bài bị thay đổi thứ tự hoặc group_code
-    const updatesNeeded: any[] = [];
-    updatedAllExercises.forEach((e: any, i: number) => {
-      const newOrder = i + 1;
-      Object.values(e.weeks).forEach((wEx: any) => {
-        if (wEx.order_index !== newOrder || wEx.group_code !== e.group_code) {
-          updatesNeeded.push({ id: wEx.id, newOrder, newGroupCode: e.group_code });
-        }
-      });
-    });
-
-    // 2. Cập nhật tuần tự để chống nghẽn mạng Supabase
-    let hasError = false;
-    let errorMsg = "";
-    for (const update of updatesNeeded) {
-      const { error } = await supabase.from('workout_exercises').update({ 
-        order_index: update.newOrder, 
-        group_code: update.newGroupCode 
-      }).eq('id', update.id);
-      
-      if (error) {
-        hasError = true;
-        errorMsg = error.message;
-        break;
+    // 3. Cập nhật thứ tự và group_code cho các bài còn lại
+    for (const item of updatedAllExercises) {
+      for (const wEx of Object.values(item.weeks) as any[]) {
+        await supabase.from('workout_exercises').update({ 
+          order_index: item.order_index, 
+          group_code: item.group_code 
+        }).eq('id', wEx.id);
       }
     }
 
-    if (hasError) {
-      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng báo lại cho Antigravity nhé!`);
-    } else {
-      showToast(`Đã xóa bài tập`);
-    }
+    showToast(`Đã xóa bài tập`);
     await fetchData(); // Fetch lại ngầm để đồng bộ
     setSaving(false);
   };
 
-  const handleDragStart = (unitIndex: number) => { dragUnit.current = unitIndex; setDragUnitIndex(unitIndex); };
-  const handleDragEnter = (unitIndex: number) => { dragOverUnit.current = unitIndex; };
-  const handleDragEnd = async () => {
-    if (dragUnit.current === null || dragOverUnit.current === null || dragUnit.current === dragOverUnit.current) {
-      setDragUnitIndex(null); return;
-    }
+  // === DI CHUYỂN BÀI TẬP LÊN / XUỐNG (THAY CHO KÉO THẢ) ===
+  const handleMoveExercise = async (index: number, direction: 'up' | 'down') => {
     const currentDay = days.find(d => d.dayIndex === activeDay);
     if (!currentDay) return;
-    
+    const exercises = [...currentDay.exercises];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= exercises.length) return;
+
     setSaving(true);
-    let units = groupIntoDragUnits(currentDay.exercises);
-    const draggedUnit = units.splice(dragUnit.current, 1)[0];
-    units.splice(dragOverUnit.current, 0, draggedUnit);
+    const temp = exercises[index];
+    exercises[index] = exercises[targetIndex];
+    exercises[targetIndex] = temp;
 
-    const { allExercises } = renumberUnits(units);
-    setDays(prevDays => prevDays.map(day => {
-      if (day.dayIndex !== activeDay) return day;
-      return { ...day, exercises: allExercises.map((ex: any, i: number) => ({ ...ex, order_index: i + 1 })) };
-    }));
-    setDragUnitIndex(null); dragUnit.current = null; dragOverUnit.current = null;
+    // Đánh lại số thông minh bảo toàn Superset (1, 2A, 2B, 3A, 3B...)
+    const renumbered = renumberSmart(exercises);
 
-    // 1. Chỉ lọc ra những bài bị thay đổi thứ tự hoặc group_code
-    const updatesNeeded: any[] = [];
-    allExercises.forEach((ex: any, i: number) => {
-      const newOrder = i + 1;
-      Object.values(ex.weeks).forEach((wEx: any) => {
-        if (wEx.order_index !== newOrder || wEx.group_code !== ex.group_code) {
-          updatesNeeded.push({ id: wEx.id, newOrder, newGroupCode: ex.group_code });
-        }
-      });
-    });
+    setDays(prevDays => prevDays.map(d => d.dayIndex === activeDay ? { ...d, exercises: renumbered } : d));
 
-    // 2. Chạy cập nhật tuần tự (hoặc chunk nhỏ) để không làm Supabase quá tải (tránh Statement Timeout)
-    let hasError = false;
-    let errorMsg = "";
-    for (const update of updatesNeeded) {
-      const { error } = await supabase.from('workout_exercises').update({ 
-        order_index: update.newOrder, 
-        group_code: update.newGroupCode 
-      }).eq('id', update.id);
-      
-      if (error) {
-        hasError = true;
-        errorMsg = error.message;
-        break; // Dừng ngay nếu có lỗi
+    // Cập nhật Supabase
+    for (const ex of renumbered) {
+      for (const wEx of Object.values(ex.weeks) as any[]) {
+        await supabase.from('workout_exercises').update({
+          order_index: ex.order_index,
+          group_code: ex.group_code
+        }).eq('id', wEx.id);
       }
     }
-    
-    if (hasError) {
-      window.alert(`🛑 LỖI HỆ THỐNG SUPABASE:\n\n${errorMsg}\n\nVui lòng chụp màn hình cái bảng này gửi cho Antigravity nhé!`);
-    } else {
-      showToast("Đã sắp xếp lại thứ tự bài tập");
-    }
-    
-    await fetchData();
+
     setSaving(false);
+    showToast("Đã di chuyển vị trí bài tập");
+    await fetchData();
+  };
+
+  // === MỞ MODAL CHÈN BÀI TẬP TRÊN / DƯỚI ===
+  const handleStartInsert = (index: number, placement: 'above' | 'below', ex: any) => {
+    setInsertTarget({ targetIndex: index, placement, refEx: ex });
+    setSwapGlobalTarget(null);
+    setSwapTarget(null);
+    setSelectedExercise(null);
+    setSearchQuery("");
+    setNewSets("3");
+    setNewReps("8-10");
+    setNewRpe("8");
+
+    // Gợi ý mã nhóm thông minh:
+    const refCode = String(ex.base_ex?.group_code || ex.group_code || '');
+    const refHasLetter = /[a-zA-Z]/.test(refCode);
+    const refNum = parseInt(refCode.replace(/\D/g, '')) || (index + 1);
+
+    if (refHasLetter) {
+      if (placement === 'below') {
+        const match = refCode.match(/([0-9]+)([a-zA-Z]+)/);
+        if (match) {
+          const letter = match[2].toUpperCase();
+          const nextLetter = String.fromCharCode(letter.charCodeAt(0) + 1);
+          setNewGroupCode(`${match[1]}${nextLetter}`);
+        } else {
+          setNewGroupCode(`${refNum}B`);
+        }
+      } else {
+        setNewGroupCode(`${refNum}A`);
+      }
+    } else {
+      setNewGroupCode(placement === 'above' ? String(refNum) : String(refNum + 1));
+    }
+
+    setShowAddExercise(true);
+  };
+
+  // === MỞ MODAL ĐỔI HẲN BÀI TẬP (TOÀN PHASE) ===
+  const handleStartGlobalSwap = (ex: any) => {
+    setSwapGlobalTarget({ exKey: ex.key, baseEx: ex.base_ex, ex });
+    setInsertTarget(null);
+    setSwapTarget(null);
+    setSelectedExercise(null);
+    setSearchQuery("");
+
+    // Pre-fill từ bài tập hiện tại
+    const currentCode = String(ex.base_ex?.group_code || ex.group_code || '');
+    const currentSets = String(ex.base_ex?.target_sets ?? 3);
+    const currentReps = String(ex.base_ex?.target_reps ?? "8-10");
+    const currentRpe = String(ex.base_ex?.target_rpe ?? "8");
+
+    setNewGroupCode(currentCode);
+    setNewSets(currentSets);
+    setNewReps(currentReps);
+    setNewRpe(currentRpe);
+
+    setShowAddExercise(true);
+  };
+
+  // === MỞ MODAL XEM TIẾN ĐỘ BÀI TẬP QUA CÁC TUẦN 📈 ===
+  const handleOpenProgress = async (ex: any) => {
+    const exId = ex.base_ex?.exercise_id || ex.base_ex?.exercises?.id;
+    const exName = ex.base_ex?.custom_name || ex.base_ex?.exercises?.name || 'Bài tập';
+    setProgressModal({ exId, exName });
+    setLoadingProgress(true);
+
+    try {
+      const { data: progs } = await supabase.from('programs')
+        .select(`
+          name, created_at,
+          blocks (
+            name, order_index,
+            workouts (
+              name, week_number, order_index, completed_at, is_completed,
+              workout_exercises (
+                custom_name, exercise_id,
+                exercises (id, name),
+                workout_logs (id, set_number, weight, reps, rpe)
+              )
+            )
+          )
+        `)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: true });
+
+      if (progs) {
+        const list: any[] = [];
+        progs.forEach((prog: any) => {
+          prog.blocks?.forEach((block: any) => {
+            block.workouts?.forEach((workout: any) => {
+              workout.workout_exercises?.forEach((wex: any) => {
+                const thisExId = wex.exercise_id || wex.exercises?.id;
+                const thisExName = wex.custom_name || wex.exercises?.name;
+                const matches = (thisExId && exId && thisExId === exId) ||
+                  (exName && thisExName && thisExName.trim().toLowerCase() === exName.trim().toLowerCase());
+
+                if (matches) {
+                  const logs = (wex.workout_logs || []).filter((l: any) => 
+                    (l.weight !== undefined && l.weight !== null && String(l.weight).trim() !== '') ||
+                    (l.reps !== undefined && l.reps !== null && String(l.reps).trim() !== '')
+                  );
+                  if (logs.length > 0) {
+                    const sortedSets = logs.sort((a: any, b: any) => a.set_number - b.set_number);
+                    let max1RM = 0;
+                    sortedSets.forEach((l: any) => {
+                      const rm = estimate1RM(Number(l.weight) || 0, Number(l.reps) || 0);
+                      if (rm > max1RM) max1RM = rm;
+                    });
+
+                    list.push({
+                      programName: prog.name,
+                      progCreatedAt: prog.created_at,
+                      blockName: block.name || 'Block 1',
+                      blockOrderIndex: block.order_index ?? 0,
+                      workoutName: workout.name,
+                      weekNumber: workout.week_number ?? 1,
+                      workoutOrderIndex: workout.order_index ?? 0,
+                      isCompleted: workout.is_completed,
+                      completedAt: workout.completed_at,
+                      max1RM,
+                      sets: sortedSets
+                    });
+                  }
+                }
+              });
+            });
+          });
+        });
+
+        // Sắp xếp lịch sử theo thứ tự thời gian: Mới nhất lên đầu
+        list.sort((a, b) => {
+          const timeA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+          const timeB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+          if (timeA > 0 && timeB > 0 && timeA !== timeB) {
+            return timeB - timeA;
+          }
+          if (timeA > 0 && timeB === 0) return -1;
+          if (timeB > 0 && timeA === 0) return 1;
+
+          const progA = a.progCreatedAt ? new Date(a.progCreatedAt).getTime() : 0;
+          const progB = b.progCreatedAt ? new Date(b.progCreatedAt).getTime() : 0;
+          if (progA !== progB) return progB - progA;
+
+          if (b.blockOrderIndex !== a.blockOrderIndex) return (b.blockOrderIndex || 0) - (a.blockOrderIndex || 0);
+          if (b.weekNumber !== a.weekNumber) return (b.weekNumber || 0) - (a.weekNumber || 0);
+          return (b.workoutOrderIndex || 0) - (a.workoutOrderIndex || 0);
+        });
+
+        setProgressLogs(list);
+      }
+    } catch (err) {
+      console.error("Lỗi tải tiến độ bài tập:", err);
+    } finally {
+      setLoadingProgress(false);
+    }
   };
 
   // === TẠO PHASE KẾ TIẾP (SAO CHÉP BLOCK) ===
@@ -815,11 +1310,10 @@ function ProgramBuilderInner() {
 
   const activeDayData = days.find(d => d.dayIndex === activeDay);
   const filteredExercises = exerciseLibrary.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const dragUnits = activeDayData ? groupIntoDragUnits(activeDayData.exercises) : [];
   const sortedBlocks = programInfo?.blocks?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
 
   return (
-    <div className="h-screen overflow-hidden bg-brand-paper flex flex-col">
+    <div className="flex-1 h-full overflow-hidden bg-brand-paper flex flex-col">
       <header className="bg-white border-b border-brand-line px-6 py-4 flex items-center justify-between z-40 relative shadow-sm">
         <div className="flex items-center gap-4">
           <button onClick={() => window.history.back()} className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/60 hover:text-brand-moss transition-colors">
@@ -929,9 +1423,22 @@ function ProgramBuilderInner() {
             </div>
           </div>
         </div>
-        <button onClick={handleSave} disabled={saving} className="bg-brand-moss text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-mossDeep transition-colors shadow-md disabled:opacity-70">
+        <button 
+          onClick={handleSave} 
+          disabled={saving} 
+          className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-md disabled:opacity-70 ${
+            (modifiedWExIds.size > 0 || modifiedLogWExIds.size > 0)
+              ? 'bg-brand-moss hover:bg-brand-mossDeep text-white ring-2 ring-brand-sand shadow-lg' 
+              : 'bg-brand-moss text-white hover:bg-brand-mossDeep'
+          }`}
+        >
           {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
-          {saving ? "Đang lưu..." : "Lưu Thay Đổi"}
+          {saving 
+            ? "Đang lưu..." 
+            : (modifiedWExIds.size > 0 || modifiedLogWExIds.size > 0)
+              ? `Lưu Thay Đổi (${modifiedWExIds.size + modifiedLogWExIds.size})`
+              : "Lưu Thay Đổi"
+          }
         </button>
       </header>
 
@@ -969,9 +1476,9 @@ function ProgramBuilderInner() {
       </div>
 
       {/* Spreadsheet */}
-      <main className="flex-1 overflow-auto bg-brand-paper relative z-0">
-        <div className="min-w-[1200px] min-h-full pb-20">
-          <div className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
+      <main className="flex-1 overflow-y-auto bg-brand-paper relative z-0">
+        <div className="w-full min-h-full pb-20">
+          <div className="grid grid-cols-[260px_1fr_1fr_1fr_1fr] bg-brand-mossDeep text-brand-sage font-bold text-sm sticky top-0 z-20 shadow-md">
             <div className="p-4 border-r border-brand-sage/20">Bài tập (Template)</div>
             {[1,2,3,4].map(w => {
               const activeDayData = days.find(d => d.dayIndex === activeDay);
@@ -1014,7 +1521,7 @@ function ProgramBuilderInner() {
             })}
           </div>
 
-          {dragUnits.length === 0 && (
+          {activeDayData && activeDayData.exercises.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-brand-moss/40">
               <Dumbbell size={48} className="mb-4 opacity-30" />
               <p className="font-bold text-lg">Chưa có bài tập nào</p>
@@ -1022,38 +1529,156 @@ function ProgramBuilderInner() {
             </div>
           )}
 
-          {dragUnits.map((unit: any, unitIndex: number) => (
-            <div key={unit.exercises.map((e: any) => e.key).join('-')} draggable onDragStart={() => handleDragStart(unitIndex)} onDragEnter={() => handleDragEnter(unitIndex)} onDragEnd={handleDragEnd} onDragOver={(e) => e.preventDefault()}
-              className={`transition-all ${dragUnitIndex === unitIndex ? 'opacity-40 bg-brand-sand/20' : ''} ${unit.type === 'group' ? 'border-l-4 border-l-brand-sand' : ''}`}>
-              {unit.exercises.map((ex: any, exInUnit: number) => (
-                <div key={ex.key} className="grid grid-cols-[280px_1fr_1fr_1fr_1fr] min-w-[1200px] border-b border-brand-line group hover:bg-white/50 transition-colors cursor-grab active:cursor-grabbing">
-                  {/* Cột Tên bài tập (Template Base) */}
-                  <div className="p-4 border-r border-brand-line bg-white/30 flex items-center gap-2">
-                    {exInUnit === 0 && <div className="text-brand-moss/20 group-hover:text-brand-moss/50 transition-colors flex-shrink-0"><GripVertical size={16} /></div>}
-                    {exInUnit > 0 && <div className="w-4 flex-shrink-0" />}
-                    
-                    <div className="flex-1 min-w-0 pr-2">
-                      {editingExKey === ex.key ? (
-                        <div className="flex items-center gap-1 w-full">
-                          <input type="text" value={editExValue} onChange={(e) => setEditExValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveExName(ex)} onBlur={() => saveExName(ex)}
-                            className="flex-1 min-w-0 px-2 py-1.5 border-2 border-brand-sand rounded-lg text-sm font-bold focus:outline-none focus:ring-4 focus:ring-brand-sand/20" autoFocus />
-                          <button onMouseDown={(e) => { e.preventDefault(); saveExName(ex); }} className="p-1.5 bg-brand-moss text-white rounded-lg hover:bg-brand-mossDeep flex-shrink-0"><Check size={14} /></button>
+          {activeDayData?.exercises.map((ex: any, exIndex: number) => {
+            const hasLetter = /[a-zA-Z]/.test(String(ex.group_code || ''));
+            return (
+              <div key={ex.key} className={`grid grid-cols-[260px_1fr_1fr_1fr_1fr] w-full border-b border-brand-line group hover:bg-white/40 transition-colors ${hasLetter ? 'border-l-4 border-l-brand-sand' : ''}`}>
+                {/* Cột Tên bài tập (Template Base) */}
+                <div className="p-3.5 border-r border-brand-line bg-white/40 flex flex-col justify-between gap-2.5">
+                  {/* Dòng 1: STT, Tên bài, Nút Tiến độ 📈 */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0 flex items-start gap-1.5">
+                      {/* Badge / Ô sửa Mã Nhóm (group_code) */}
+                      {editingGroupCodeKey === ex.key ? (
+                        <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editGroupCodeValue}
+                            onChange={(e) => setEditGroupCodeValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveGroupCode(ex);
+                              if (e.key === 'Escape') setEditingGroupCodeKey(null);
+                            }}
+                            onBlur={() => saveGroupCode(ex)}
+                            className="w-12 px-1 py-0.5 border-2 border-brand-sand rounded bg-white text-xs font-black uppercase text-center focus:outline-none shadow-xs"
+                            placeholder="VD: 2A"
+                            autoFocus
+                          />
+                          <button
+                            onMouseDown={(e) => { e.preventDefault(); saveGroupCode(ex); }}
+                            className="p-1 bg-brand-moss text-white rounded hover:bg-brand-mossDeep"
+                          >
+                            <Check size={11} />
+                          </button>
                         </div>
                       ) : (
-                        <p className="font-bold text-brand-moss truncate group/name">
-                          <span className="text-brand-moss/50 font-semibold">{ex.base_ex.group_code ? `${ex.base_ex.group_code}. ` : ''}</span>
-                          <span onClick={() => startEditExName(ex)} className="cursor-pointer hover:text-brand-sand transition-colors" title="Click để sửa tên">
-                            {ex.base_ex.custom_name || ex.base_ex.exercises?.name}
-                          </span>
-                        </p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); startEditGroupCode(ex); }}
+                          className="px-1.5 py-0.5 rounded bg-brand-moss/10 hover:bg-brand-sand/50 text-brand-moss font-black text-xs cursor-pointer transition-colors flex-shrink-0 border border-brand-moss/10 hover:border-brand-sand mt-0.5"
+                          title="Click để đổi mã nhóm (VD: 1, 1A, 1B, 2A, 2B...)"
+                        >
+                          {ex.base_ex.group_code ? `${ex.base_ex.group_code}.` : `${exIndex + 1}.`}
+                        </button>
                       )}
+
+                      {/* Tên bài tập (bấm để đổi tên) */}
+                      <div className="flex-1 min-w-0">
+                        {editingExKey === ex.key ? (
+                          <div className="flex items-center gap-1 w-full">
+                            <input 
+                              type="text" 
+                              value={editExValue} 
+                              onChange={(e) => setEditExValue(e.target.value)} 
+                              onKeyDown={(e) => e.key === 'Enter' && saveExName(ex)} 
+                              onBlur={() => saveExName(ex)}
+                              className="flex-1 min-w-0 px-2 py-1 border-2 border-brand-sand rounded-lg text-xs font-bold focus:outline-none" 
+                              autoFocus 
+                            />
+                            <button 
+                              onMouseDown={(e) => { e.preventDefault(); saveExName(ex); }} 
+                              className="p-1 bg-brand-moss text-white rounded hover:bg-brand-mossDeep flex-shrink-0"
+                            >
+                              <Check size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div 
+                            className="font-bold text-brand-moss text-sm group/name flex items-start gap-1 cursor-pointer"
+                            onClick={() => startEditExName(ex)}
+                            title="Bấm để sửa tên hiển thị bài tập"
+                          >
+                            <span className="hover:text-brand-sand transition-colors break-words leading-tight line-clamp-2">
+                              {ex.base_ex.custom_name || ex.base_ex.exercises?.name}
+                            </span>
+                            <Pencil size={11} className="text-brand-moss/30 opacity-0 group-hover/name:opacity-100 transition-opacity mt-0.5 flex-shrink-0" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {editingExKey !== ex.key && (
-                      <button onClick={() => setExerciseToDelete(ex)} className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-all flex-shrink-0" title="Xóa bài tập này khỏi toàn bộ Phase">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+
+                    {/* Nút Xem Tiến Độ Mức Tạ 📈 */}
+                    <button
+                      onClick={() => handleOpenProgress(ex)}
+                      className="p-1.5 rounded-lg bg-brand-moss/10 hover:bg-brand-moss hover:text-white text-brand-moss transition-all flex-shrink-0 shadow-2xs"
+                      title="Xem tiến độ mức tạ qua từng tuần"
+                    >
+                      <TrendingUp size={15} />
+                    </button>
                   </div>
+
+                  {/* Dòng 2: Thanh công cụ thao tác bài tập (Chèn trên/dưới, Đổi bài, Di chuyển, Xóa) */}
+                  <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-brand-line/40">
+                    <div className="flex items-center gap-1">
+                      {/* Nút Chèn trên */}
+                      <button
+                        onClick={() => handleStartInsert(exIndex, 'above', ex)}
+                        className="px-1.5 py-1 rounded bg-brand-paper hover:bg-brand-sand/40 text-brand-moss/70 hover:text-brand-moss text-[10px] font-bold flex items-center gap-0.5 transition-colors"
+                        title="Chèn bài tập ở trên bài này (như Google Sheet)"
+                      >
+                        <Plus size={11} /> <span>Trên</span>
+                      </button>
+
+                      {/* Nút Chèn dưới */}
+                      <button
+                        onClick={() => handleStartInsert(exIndex, 'below', ex)}
+                        className="px-1.5 py-1 rounded bg-brand-paper hover:bg-brand-sand/40 text-brand-moss/70 hover:text-brand-moss text-[10px] font-bold flex items-center gap-0.5 transition-colors"
+                        title="Chèn bài tập ở dưới bài này (như Google Sheet)"
+                      >
+                        <Plus size={11} /> <span>Dưới</span>
+                      </button>
+
+                      {/* Nút Đổi hẳn bài tập */}
+                      <button
+                        onClick={() => handleStartGlobalSwap(ex)}
+                        className="px-1.5 py-1 rounded bg-brand-paper hover:bg-amber-100 text-brand-moss/70 hover:text-amber-800 text-[10px] font-bold flex items-center gap-0.5 transition-colors"
+                        title="Đổi hẳn bài tập này thành bài khác cho cả 4 tuần"
+                      >
+                        <Repeat size={11} /> <span>Đổi</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {/* Nút Move Up */}
+                      <button
+                        onClick={() => handleMoveExercise(exIndex, 'up')}
+                        disabled={exIndex === 0}
+                        className="p-1 rounded hover:bg-brand-paper text-brand-moss/50 hover:text-brand-moss disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                        title="Di chuyển lên trên"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+
+                      {/* Nút Move Down */}
+                      <button
+                        onClick={() => handleMoveExercise(exIndex, 'down')}
+                        disabled={!activeDayData || exIndex === activeDayData.exercises.length - 1}
+                        className="p-1 rounded hover:bg-brand-paper text-brand-moss/50 hover:text-brand-moss disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                        title="Di chuyển xuống dưới"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+
+                      {/* Nút Xóa bài tập */}
+                      <button
+                        onClick={() => setExerciseToDelete(ex)}
+                        className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors ml-0.5"
+                        title="Xóa bài tập này khỏi toàn bộ Phase"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                   {/* Cột Tuần 1 -> 4 */}
                   {[1, 2, 3, 4].map(weekNum => {
@@ -1068,6 +1693,10 @@ function ProgramBuilderInner() {
                     const uniqueLogsMap = new Map();
                     rawLogs.forEach((l: any) => { uniqueLogsMap.set(l.set_number, l); });
                     const uniqueLogs = Array.from(uniqueLogsMap.values()).sort((a: any, b: any) => a.set_number - b.set_number);
+
+                    const targetSetsCount = parseInt(wEx.target_sets) || 1;
+                    const numSetRows = Math.max(targetSetsCount, uniqueLogs.length);
+                    const hasAnyLogged = uniqueLogs.some((l: any) => (l.weight !== undefined && l.weight !== null && String(l.weight).trim() !== '') || (l.reps !== undefined && l.reps !== null && String(l.reps).trim() !== ''));
                     
                     return (
                       <div key={weekNum} className="p-4 border-r border-brand-line flex flex-col gap-2 group/cell">
@@ -1111,57 +1740,87 @@ function ProgramBuilderInner() {
                           </div>
                         </div>
 
-                        {uniqueLogs.length > 0 ? (
-                          <div className="bg-orange-100 p-2.5 rounded-lg border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)]">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <p className="text-[10px] font-bold text-orange-950 uppercase tracking-wider">✅ Thực tế tập</p>
+                        {/* Khung Thực tế tập - Cho phép Coach điền/sửa trực tiếp Inline */}
+                        <div className={`p-2 rounded-lg border transition-all ${
+                          hasAnyLogged ? 'bg-emerald-50/70 border-emerald-200' : 'bg-gray-50/70 border-gray-200 border-dashed'
+                        }`}>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <p className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                              hasAnyLogged ? 'text-emerald-700' : 'text-brand-moss/50'
+                            }`}>
+                              {hasAnyLogged ? <CheckCircle2 size={11} className="text-emerald-600" /> : null}
+                              <span>Thực tế tập</span>
+                            </p>
+                            {wEx && (
                               <button 
                                 onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
-                                className={`p-1 rounded hover:bg-brand-moss transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-brand-sand/50'}`}
+                                className={`p-1 rounded hover:bg-black/5 transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-brand-moss/30'}`}
                                 title="Ghi chú kỹ thuật cho bài này"
                               >
-                                <MessageCircle size={14} />
+                                <MessageCircle size={13} />
                               </button>
-                            </div>
-                            <div className="space-y-1.5">
-                              {uniqueLogs.map((l: any) => (
-                                <div key={l.id} className="flex justify-between items-center text-sm font-black text-orange-950 bg-orange-200/50 px-2.5 py-1.5 rounded-md">
-                                  <span className="text-orange-950 font-bold w-4">#{l.set_number}</span>
-                                  <span>{l.weight} x {l.reps}</span>
-                                  <span className="text-brand-mossDeep text-xs font-bold bg-brand-sand px-1.5 py-0.5 rounded">@{l.rpe || '?'}</span>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {Array.from({ length: numSetRows }, (_, idx) => {
+                              const setNum = idx + 1;
+                              const log = uniqueLogsMap.get(setNum) || {};
+                              const weightVal = log.weight !== undefined && log.weight !== null ? (log.weight === 0 ? '' : String(log.weight)) : '';
+                              const repsVal = log.reps !== undefined && log.reps !== null ? String(log.reps) : '';
+                              const rpeVal = log.rpe !== undefined && log.rpe !== null ? String(log.rpe) : '';
+
+                              return (
+                                <div key={setNum} className="flex items-center gap-1 text-xs">
+                                  <span className={`w-5 font-black text-[10px] shrink-0 ${hasAnyLogged ? 'text-emerald-700' : 'text-brand-moss/50'}`}>
+                                    #{setNum}
+                                  </span>
+                                  <div className="flex items-center flex-1 bg-white border border-brand-line focus-within:border-brand-moss focus-within:ring-1 ring-brand-sand/30 rounded px-1 py-0.5 shadow-2xs">
+                                    <input 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      placeholder="kg" 
+                                      value={weightVal} 
+                                      onChange={(e) => handleLogChange(activeDayData!.dayIndex, ex.key, weekNum, setNum, 'weight', e.target.value)}
+                                      className="w-full text-center font-bold text-brand-moss outline-none text-xs bg-transparent" 
+                                    />
+                                  </div>
+                                  <span className="text-brand-moss/40 text-[10px] shrink-0">x</span>
+                                  <div className="flex items-center w-12 bg-white border border-brand-line focus-within:border-brand-moss focus-within:ring-1 ring-brand-sand/30 rounded px-1 py-0.5 shadow-2xs">
+                                    <input 
+                                      type="text" 
+                                      inputMode="numeric"
+                                      placeholder="rep" 
+                                      value={repsVal} 
+                                      onChange={(e) => handleLogChange(activeDayData!.dayIndex, ex.key, weekNum, setNum, 'reps', e.target.value)}
+                                      className="w-full text-center font-bold text-brand-moss outline-none text-xs bg-transparent" 
+                                    />
+                                  </div>
+                                  <div className="flex items-center w-11 bg-white border border-brand-line focus-within:border-brand-moss focus-within:ring-1 ring-brand-sand/30 rounded px-1 py-0.5 shadow-2xs">
+                                    <span className="text-[9px] text-brand-moss/40 font-bold pl-0.5 shrink-0">@</span>
+                                    <input 
+                                      type="text" 
+                                      inputMode="decimal"
+                                      placeholder="rpe" 
+                                      value={rpeVal} 
+                                      onChange={(e) => handleLogChange(activeDayData!.dayIndex, ex.key, weekNum, setNum, 'rpe', e.target.value)}
+                                      className="w-full text-center font-bold text-brand-moss outline-none text-xs bg-transparent" 
+                                    />
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
-
-                        ) : (
-                          <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 border-dashed text-gray-400">
-                            <div className="flex justify-between items-center mb-0.5">
-                              <p className="text-[10px] font-bold uppercase tracking-wider">Thực tế tập</p>
-                              {wEx && (
-                                <button 
-                                  onClick={() => setEditingNotes({wExId: wEx.id, notes: wEx.coach_notes || ''})}
-                                  className={`p-1 rounded hover:bg-gray-200 transition-colors ${wEx.coach_notes ? 'text-amber-500' : 'text-gray-300'}`}
-                                  title="Ghi chú kỹ thuật cho bài này"
-                                >
-                                  <MessageCircle size={14} />
-                                </button>
-                              )}
-                            </div>
-                            <p className="text-xs italic font-medium">Chưa tập...</p>
-                          </div>
-
-                        )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              ))}
-            </div>
-          ))}
+              );
+            })}
 
           <div className="p-4 border-t border-brand-line">
-            <button onClick={() => { setSwapTarget(null); setShowAddExercise(true); }}
+            <button onClick={() => { setSwapTarget(null); setSwapGlobalTarget(null); setInsertTarget(null); setSelectedExercise(null); setShowAddExercise(true); }}
               className="px-5 py-2.5 text-sm font-bold text-brand-moss bg-white border-2 border-dashed border-brand-moss/20 hover:border-brand-moss/40 hover:bg-brand-sand/10 rounded-lg flex items-center gap-2 transition-all">
               <Plus size={16} /> Thêm bài tập vào {activeDayData?.name || 'buổi này'}
             </button>
@@ -1193,26 +1852,78 @@ function ProgramBuilderInner() {
         </div>
       )}
 
-      {/* ===== MODAL: THÊM / THAY THẾ BÀI TẬP ===== */}
+      {/* ===== MODAL: THÊM / THAY THẾ / ĐỔI / CHÈN BÀI TẬP ===== */}
       {showAddExercise && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => {setShowAddExercise(false); setSwapTarget(null);}}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs" 
+          onClick={() => { setShowAddExercise(false); setSwapTarget(null); setSwapGlobalTarget(null); setInsertTarget(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-brand-line">
-              <h2 className="text-lg font-bold text-brand-moss">{swapTarget ? `Thay thế bài tập Tuần ${swapTarget.weekNum}` : "Thêm bài tập (Template)"}</h2>
-              <button onClick={() => {setShowAddExercise(false); setSwapTarget(null);}} className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors"><X size={20} /></button>
+              <div>
+                <h2 className="text-lg font-bold text-brand-moss flex items-center gap-2">
+                  {swapGlobalTarget ? (
+                    <>
+                      <Repeat size={18} className="text-amber-600" />
+                      <span>Đổi hẳn bài tập (Toàn Phase)</span>
+                    </>
+                  ) : insertTarget ? (
+                    <>
+                      <Plus size={18} className="text-brand-moss" />
+                      <span>{insertTarget.placement === 'above' ? 'Chèn bài tập ở trên' : 'Chèn bài tập ở dưới'}</span>
+                    </>
+                  ) : swapTarget ? (
+                    <>
+                      <Repeat size={18} className="text-brand-moss" />
+                      <span>Thay thế bài tập Tuần {swapTarget.weekNum}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={18} className="text-brand-moss" />
+                      <span>Thêm bài tập mới (Template)</span>
+                    </>
+                  )}
+                </h2>
+                {swapGlobalTarget && (
+                  <p className="text-xs text-brand-moss/60 mt-0.5">
+                    Đang đổi bài: <span className="font-bold text-brand-moss">{swapGlobalTarget.baseEx.custom_name || swapGlobalTarget.baseEx.exercises?.name}</span>
+                  </p>
+                )}
+                {insertTarget && (
+                  <p className="text-xs text-brand-moss/60 mt-0.5">
+                    Chèn {insertTarget.placement === 'above' ? 'trên' : 'dưới'} bài: <span className="font-bold text-brand-moss">{insertTarget.refEx.base_ex.custom_name || insertTarget.refEx.base_ex.exercises?.name}</span>
+                  </p>
+                )}
+              </div>
+              <button 
+                onClick={() => { setShowAddExercise(false); setSwapTarget(null); setSwapGlobalTarget(null); setInsertTarget(null); }} 
+                className="p-1.5 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
+
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               <div>
-                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">1. Chọn bài tập mới</label>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">
+                  {swapGlobalTarget ? '1. Chọn bài tập thay thế mới' : '1. Chọn bài tập từ thư viện'}
+                </label>
                 <div className="relative mb-3">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-moss/30" />
-                  <input type="text" placeholder="Tìm kiếm bài tập..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 border border-brand-line rounded-xl text-sm focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" />
+                  <input 
+                    type="text" 
+                    placeholder="Tìm kiếm bài tập..." 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 border border-brand-line rounded-xl text-sm focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" 
+                    autoFocus
+                  />
                 </div>
-                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-2">
+                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-2">
                   {filteredExercises.map(ex => (
-                    <button key={ex.id} onClick={() => setSelectedExercise(ex)}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${selectedExercise?.id === ex.id ? 'bg-brand-sand text-brand-mossDeep shadow-md ring-2 ring-brand-sand' : 'bg-brand-paper/50 text-brand-moss hover:bg-brand-paper'}`}>
+                    <button 
+                      key={ex.id} 
+                      onClick={() => setSelectedExercise(ex)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${selectedExercise?.id === ex.id ? 'bg-brand-sand text-brand-mossDeep shadow-md ring-2 ring-brand-sand' : 'bg-brand-paper/50 text-brand-moss hover:bg-brand-paper'}`}
+                    >
                       <span className="flex items-center gap-2"><Dumbbell size={14} className="opacity-50" />{ex.name}</span>
                     </button>
                   ))}
@@ -1220,22 +1931,31 @@ function ProgramBuilderInner() {
                 </div>
               </div>
               
+              {/* Nếu là Swap Tuần thì không cần nhập Sets/Reps/GroupCode, chỉ đổi bài tập cho riêng tuần đó */}
               {!swapTarget && (
                 <>
                   <div>
                     <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">2. Mã nhóm (Group Code)</label>
-                    <input type="text" placeholder="VD: 1, 1A, 1B, 2A..." value={newGroupCode} onChange={(e) => setNewGroupCode(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-brand-line rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none" />
+                    <input 
+                      type="text" 
+                      placeholder="VD: 1, 1A, 1B, 2A..." 
+                      value={newGroupCode} 
+                      onChange={(e) => setNewGroupCode(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-brand-line rounded-xl text-sm font-bold focus:ring-2 focus:ring-brand-sand/30 focus:border-brand-sand outline-none uppercase" 
+                    />
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <span className="text-[10px] font-bold text-brand-moss/40 uppercase mr-1 self-center">Gợi ý:</span>
                       {['1', '2', '3', '1A', '1B', '2A', '2B', '3A', '3B', '3C'].map(code => (
-                        <button key={code} onClick={() => setNewGroupCode(code)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${newGroupCode === code ? 'bg-brand-sand text-brand-mossDeep' : 'bg-brand-paper text-brand-moss/60 hover:bg-brand-sand/30'}`}>{code}</button>
+                        <button key={code} type="button" onClick={() => setNewGroupCode(code)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${newGroupCode.toUpperCase() === code ? 'bg-brand-sand text-brand-mossDeep' : 'bg-brand-paper text-brand-moss/60 hover:bg-brand-sand/30'}`}>{code}</button>
                       ))}
                     </div>
                   </div>
+
                   <div>
-                    <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">3. Mục tiêu (áp dụng cho cả 4 tuần)</label>
+                    <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider mb-2 block">
+                      3. Mục tiêu (áp dụng cho cả 4 tuần)
+                    </label>
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
                         <label className="text-[10px] font-semibold text-brand-moss/40 mb-0.5 block">Sets</label>
@@ -1256,11 +1976,30 @@ function ProgramBuilderInner() {
                 </>
               )}
             </div>
+
             <div className="px-6 py-4 border-t border-brand-line bg-brand-paper/30">
-              <button onClick={handleAddOrSwapExercise} disabled={!selectedExercise || (!swapTarget && !newGroupCode.trim()) || addingExercise}
-                className="w-full bg-brand-moss text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-mossDeep transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                {addingExercise ? <Loader2 size={16} className="animate-spin" /> : (swapTarget ? <Repeat size={16} /> : <Plus size={16} />)}
-                {addingExercise ? "Đang xử lý..." : (swapTarget ? "Xác nhận Thay Thế" : "Thêm vào Giáo án")}
+              <button 
+                onClick={handleAddOrSwapExercise} 
+                disabled={!selectedExercise || (!swapTarget && !newGroupCode.trim()) || addingExercise}
+                className="w-full bg-brand-moss text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-mossDeep transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+              >
+                {addingExercise ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : swapGlobalTarget ? (
+                  <Repeat size={16} />
+                ) : insertTarget ? (
+                  <Plus size={16} />
+                ) : swapTarget ? (
+                  <Repeat size={16} />
+                ) : (
+                  <Plus size={16} />
+                )}
+                {addingExercise ? "Đang xử lý..." : (
+                  swapGlobalTarget ? "Xác nhận Đổi Bài (Toàn Phase)" :
+                  insertTarget ? "Xác nhận Chèn Bài Tập" :
+                  swapTarget ? "Xác nhận Thay Thế" : 
+                  "Thêm vào Giáo án"
+                )}
               </button>
             </div>
           </div>
@@ -1485,6 +2224,168 @@ function ProgramBuilderInner() {
         </div>
       )}
       
+      {/* ===== MODAL: TIẾN ĐỘ MỨC TẠ QUA TỪNG TUẦN 📈 ===== */}
+      {progressModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-xs" onClick={() => setProgressModal(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-brand-line" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-brand-line flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-moss/10 text-brand-moss flex items-center justify-center flex-shrink-0">
+                  <TrendingUp size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-brand-moss leading-tight">Tiến độ: {progressModal.exName}</h2>
+                  <p className="text-xs font-semibold text-brand-moss/60 mt-0.5">Lịch sử mức tạ và số rep qua từng tuần của học viên</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setProgressModal(null)} 
+                className="p-2 hover:bg-brand-paper rounded-full text-brand-moss/40 hover:text-brand-moss transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {loadingProgress ? (
+                <div className="py-20 flex flex-col items-center justify-center text-brand-moss/50 gap-3">
+                  <Loader2 size={32} className="animate-spin text-brand-moss" />
+                  <p className="text-sm font-bold">Đang tải lịch sử bài tập...</p>
+                </div>
+              ) : progressLogs.length === 0 ? (
+                <div className="py-16 text-center text-brand-moss/50 bg-brand-paper/50 rounded-2xl border border-brand-line border-dashed p-8">
+                  <Dumbbell size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="font-bold text-base text-brand-moss">Chưa có dữ liệu tập luyện</p>
+                  <p className="text-xs text-brand-moss/60 mt-1">Học viên chưa có buổi tập nào được lưu kết quả cho bài này.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {progressLogs.map((log: any, index: number) => {
+                    let topSetId: string | null = null;
+                    let maxW = -1;
+                    let maxR = -1;
+                    log.sets.forEach((s: any) => {
+                      const w = Number(s.weight) || 0;
+                      const r = Number(s.reps) || 0;
+                      if (w > maxW || (w === maxW && r > maxR)) {
+                        maxW = w;
+                        maxR = r;
+                        topSetId = s.id;
+                      }
+                    });
+
+                    // So sánh với buổi tập liền trước theo thời gian
+                    const prevLog = progressLogs[index + 1];
+
+                    return (
+                      <div key={index} className="bg-white rounded-2xl border border-brand-line p-4 shadow-sm hover:shadow transition-shadow relative overflow-hidden">
+                        <div className={`absolute top-0 left-0 w-1.5 h-full ${log.isCompleted ? 'bg-emerald-500' : 'bg-brand-sand'}`} />
+
+                        <div className="flex items-center justify-between gap-3 mb-3 pl-2 pb-2.5 border-b border-brand-line/50">
+                          <div>
+                            <h3 className="font-bold text-brand-moss text-base flex items-center gap-2">
+                              <span>{log.blockName || 'Block 1'} • Tuần {log.weekNumber || 1}</span>
+                              {log.isCompleted && (
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                                  ✓ Đã hoàn thành
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-xs font-semibold text-brand-moss/60 mt-0.5 flex items-center gap-1.5">
+                              {log.workoutName}
+                              {log.completedAt && (
+                                <span className="text-brand-moss/40">
+                                  ({new Date(log.completedAt).toLocaleDateString('vi-VN')})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          {log.max1RM > 0 && (
+                            <div className="bg-brand-mossDeep text-brand-sage px-3 py-1.5 rounded-xl text-center shadow-xs">
+                              <p className="text-[9px] font-bold uppercase tracking-wider opacity-80">1RM ước tính</p>
+                              <p className="text-base font-black">{log.max1RM} kg</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Danh sách Set */}
+                        <div className="pl-2 space-y-1.5">
+                          <div className="grid grid-cols-4 gap-2 text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider px-2">
+                            <div>Set</div>
+                            <div>Trọng lượng</div>
+                            <div>Số Reps</div>
+                            <div>RPE</div>
+                          </div>
+
+                          {log.sets.map((set: any) => {
+                            let wDiffNode = null;
+                            let rDiffNode = null;
+                            if (prevLog) {
+                              const prevSet = prevLog.sets.find((s: any) => s.set_number === set.set_number);
+                              if (prevSet) {
+                                const wDiff = (Number(set.weight) || 0) - (Number(prevSet.weight) || 0);
+                                const rDiff = (Number(set.reps) || 0) - (Number(prevSet.reps) || 0);
+
+                                if (wDiff > 0) {
+                                  wDiffNode = <span className="ml-1.5 text-xs font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+{wDiff}</span>;
+                                } else if (wDiff < 0) {
+                                  wDiffNode = <span className="ml-1.5 text-xs font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">{wDiff}</span>;
+                                }
+
+                                if (rDiff > 0) {
+                                  rDiffNode = <span className="ml-1.5 text-xs font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+{rDiff}</span>;
+                                } else if (rDiff < 0) {
+                                  rDiffNode = <span className="ml-1.5 text-xs font-black text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{rDiff}</span>;
+                                }
+                              }
+                            }
+
+                            const isTopSet = set.id === topSetId;
+
+                            return (
+                              <div key={set.id} className={`grid grid-cols-4 gap-2 items-center text-xs font-bold rounded-lg px-2 py-2 ${isTopSet ? 'bg-brand-moss/10 border border-brand-moss/20' : 'bg-brand-paper/50'}`}>
+                                <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss/70'} flex items-center gap-1`}>
+                                  Set {set.set_number}
+                                  {isTopSet && <span title="Top Set" className="text-xs">🔥</span>}
+                                </div>
+                                <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
+                                  {set.weight} kg
+                                  {wDiffNode}
+                                </div>
+                                <div className={`${isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'} flex items-center`}>
+                                  {set.reps} reps
+                                  {rDiffNode}
+                                </div>
+                                <div className={isTopSet ? 'text-brand-mossDeep' : 'text-brand-moss'}>
+                                  {set.rpe ? <span className="bg-white px-2 py-0.5 rounded shadow-2xs border border-brand-line/50">@{set.rpe}</span> : '-'}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-brand-line bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => setProgressModal(null)} 
+                className="px-5 py-2.5 bg-brand-moss text-white rounded-xl font-bold text-sm hover:bg-brand-mossDeep transition-colors shadow-sm"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {saving && <div className="fixed inset-0 z-[9999] cursor-wait" />}
     </div>
   );

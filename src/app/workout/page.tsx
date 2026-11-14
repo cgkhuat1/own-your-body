@@ -283,6 +283,15 @@ function WorkoutExecutionContent() {
                 sets: freshEx.sets.map((freshSet: any) => {
                   const draftSet = draftEx.sets?.find((ds: any) => ds.set_number === freshSet.set_number);
                   if (!draftSet) return freshSet;
+
+                  // Nếu server đã có kết quả tập (Coach đã điền hoặc đã nộp), luôn ưu tiên dữ liệu server và bao xanh
+                  if (freshSet.completed) {
+                    return {
+                      ...freshSet,
+                      completed: true
+                    };
+                  }
+
                   return {
                     ...freshSet,
                     weight: draftSet.weight !== undefined && draftSet.weight !== '' ? draftSet.weight : freshSet.weight,
