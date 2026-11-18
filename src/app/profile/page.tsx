@@ -70,7 +70,11 @@ export default function ProfilePage() {
   const { data, isLoading: loading, mutate } = useSWR('profile_page', fetcher, { revalidateOnFocus: true });
   const user = data?.user;
   const profile = data?.profile;
-  const chartData = data?.chartData || [];
+  const rawChartData = data?.chartData || [];
+  const chartData = rawChartData.map((item: any) => ({
+    ...item,
+    name: item.name.replace(/^Tuần\s+/, `${t('week')} `)
+  }));
   const yDomain: any[] = data?.yDomain || ['auto', 'auto'];
 
   const handleLogout = async () => {
