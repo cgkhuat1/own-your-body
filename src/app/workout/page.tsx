@@ -5,9 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate } from 'swr';
 import { useSearchParams } from 'next/navigation';
+import { useLanguage } from "@/lib/LanguageContext";
 
 function WorkoutExecutionContent() {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const searchParams = useSearchParams();
   const workoutId = searchParams ? searchParams.get('id') : null;
     const [saving, setSaving] = useState(false);
@@ -389,7 +391,7 @@ function WorkoutExecutionContent() {
     setExercises(newExercises);
     
     if (showSupersetToast) {
-      setToastMessage("🔥 Hít thở 15s rồi qua bài tiếp theo luôn nhé!");
+      setToastMessage(t('superset_next'));
       setRestTime(null);
     } else if (nextRestTime > 0 && !errorSetId) {
       setRestTime(nextRestTime);
@@ -403,7 +405,7 @@ function WorkoutExecutionContent() {
       const newSet = {
         id: `${exId}-${newNum}-${Date.now()}`,
         set_number: newNum,
-        target: "Tùy chọn",
+        target: language === 'vi' ? "Tùy chọn" : "Optional",
         weight: "", reps: "", rpe: "", completed: false
       };
       return { ...ex, sets: [...ex.sets, newSet] };
@@ -587,8 +589,8 @@ function WorkoutExecutionContent() {
             <span className="text-sm font-bold font-mono text-brand-sand tracking-widest">{formatTime(workoutDuration)}</span>
           </div>
         </div>
-        <h1 className="text-2xl font-bold mt-2">{workoutData?.name || "Buổi Tập"}</h1>
-        <p className="text-brand-sage text-sm mt-1">Tuần {workoutData?.week_number}</p>
+        <h1 className="text-2xl font-bold mt-2">{workoutData?.name || t('workout_title')}</h1>
+        <p className="text-brand-sage text-sm mt-1">{t('week')} {workoutData?.week_number}</p>
       </div>
 
       {workoutData?.coach_video_url && (
@@ -602,8 +604,8 @@ function WorkoutExecutionContent() {
             <PlayCircle size={24} className="ml-1" />
           </div>
           <div>
-            <h3 className="text-white font-black text-sm uppercase tracking-wide">Video Phân Tích</h3>
-            <p className="text-brand-paper/90 text-[13px] font-semibold leading-snug">Xem Coach nhận xét bài tập tuần trước trước khi bắt đầu.</p>
+            <h3 className="text-white font-black text-sm uppercase tracking-wide">{t('video_analysis')}</h3>
+            <p className="text-brand-paper/90 text-[13px] font-semibold leading-snug">{t('video_desc')}</p>
           </div>
         </a>
       )}
@@ -632,7 +634,7 @@ function WorkoutExecutionContent() {
                       <h2 className="text-xl font-bold text-brand-mossDeep leading-tight">{ex.name}</h2>
                       {isSuperset && (
                         <span className="text-[10px] font-bold text-brand-sand bg-brand-moss px-2 py-0.5 rounded-md mt-1 inline-flex items-center gap-1">
-                          <LinkIcon size={10}/> Superset
+                          <LinkIcon size={10}/> {t('superset')}
                         </span>
                       )}
                     </div>
@@ -652,7 +654,7 @@ function WorkoutExecutionContent() {
                     <div className="absolute left-0 top-0 w-1 h-full bg-amber-400"></div>
                     <span className="text-lg leading-none mt-0.5">💡</span>
                     <div className="text-sm font-semibold leading-relaxed">
-                      <span className="font-bold uppercase tracking-wider text-[10px] block text-amber-600 mb-0.5">Coach dặn:</span>
+                      <span className="font-bold uppercase tracking-wider text-[10px] block text-amber-600 mb-0.5">{t('coach_note')}</span>
                       {ex.coach_notes}
                     </div>
                   </div>
@@ -660,9 +662,9 @@ function WorkoutExecutionContent() {
 
                 <div className="p-3 bg-brand-paper/20">
                   <div className="flex items-center text-[10px] font-bold text-brand-moss/50 uppercase tracking-wider px-2 mb-2">
-                    <div className="flex-1 text-center">TẠ</div>
-                    <div className="flex-1 text-center">Rep</div>
-                    <div className="flex-1 text-center">RPE</div>
+                    <div className="flex-1 text-center">{t('weight_col')}</div>
+                    <div className="flex-1 text-center">{t('rep_col')}</div>
+                    <div className="flex-1 text-center">{t('rpe_col')}</div>
                     <div className="w-[45px]"></div>
                   </div>
 
@@ -676,7 +678,7 @@ function WorkoutExecutionContent() {
                           <div className="mb-3 px-1 flex flex-col gap-2 items-start">
                             <div>
                               <span className={`text-base font-black ${set.completed ? "text-orange-950" : "text-brand-moss"}`}>
-                                Set {set.set_number}:
+                                {t('set_num')} {set.set_number}:
                               </span>
                               <span className={`text-base font-bold ml-1.5 ${set.completed ? "text-orange-900" : "text-brand-moss/70"}`}>
                                 {set.target}
@@ -685,7 +687,7 @@ function WorkoutExecutionContent() {
                             {set.prev_log && (
                                <div className="text-[15px] font-bold text-brand-moss/80 flex items-center gap-1.5 mt-0.5 pl-0.5">
                                  <span className="text-brand-moss/60 text-lg leading-none transform -translate-y-[2px]">↳</span> 
-                                 <span>Tuần trước:</span> 
+                                 <span>{t('last_week')}</span> 
                                  <span className="text-brand-mossDeep font-black">
                                    {set.prev_log.weight == 0 ? 'BW' : `${set.prev_log.weight}`} x {set.prev_log.reps}{set.prev_log.rpe ? ` @${set.prev_log.rpe}` : ''}
                                  </span>
@@ -710,16 +712,16 @@ function WorkoutExecutionContent() {
                   
                   {errorSetId && ex.sets.find((s:any) => s.id === errorSetId) && (
                     <div className="mt-3 text-center text-xs font-bold text-red-500 bg-red-50 py-2 rounded-lg border border-red-100">
-                      ⚠️ Cần nhập số Rep để hoàn thành Set!
+                      {t('rep_required')}
                     </div>
                   )}
 
                   <div className="flex justify-between mt-4 pt-4 border-t border-brand-line border-dashed">
                      <button onClick={() => removeSet(ex.w_ex_id)} className="text-xs font-bold text-brand-moss/40 hover:text-red-500 flex items-center gap-1 transition-colors">
-                      <Trash2 size={14} /> Xóa set cuối
+                      <Trash2 size={14} /> {t('remove_last_set')}
                     </button>
                     <button onClick={() => addSet(ex.w_ex_id)} className="text-xs font-bold text-brand-sand hover:text-brand-moss flex items-center gap-1 transition-colors bg-brand-sand/10 px-4 py-2 rounded-lg">
-                      <Plus size={14} /> Thêm Set
+                      <Plus size={14} /> {t('add_set')}
                     </button>
                   </div>
                 </div>
@@ -755,7 +757,7 @@ function WorkoutExecutionContent() {
           className="w-full max-w-md mx-auto bg-brand-moss text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-brand-moss/30 hover:bg-brand-mossDeep transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
         >
            {saving ? <Loader2 className="animate-spin" size={24} /> : <Check size={24} />} 
-           {saving ? "Đang lưu..." : "Hoàn Thành Buổi Tập"}
+           {saving ? t('saving') : t('complete_workout')}
         </button>
       </div>
 
@@ -766,16 +768,16 @@ function WorkoutExecutionContent() {
           <div className="absolute inset-0 w-full px-6 pt-6 pb-[120px] flex flex-col gap-6 overflow-y-auto" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)' }}>
             {/* Header */}
             <div className="text-center">
-              <h2 className="text-2xl font-black text-brand-mossDeep mb-1 leading-tight text-balance">Chúc mừng bạn đã hoàn thành buổi tập! 🎉</h2>
-              <p className="text-brand-moss/70 font-semibold text-sm">Bạn đã tập được {getCompletedSetsCount().completed}/{getCompletedSetsCount().total} Set hôm nay.</p>
+              <h2 className="text-2xl font-black text-brand-mossDeep mb-1 leading-tight text-balance">{t('congrats')}</h2>
+              <p className="text-brand-moss/70 font-semibold text-sm">{t('you_completed')} {getCompletedSetsCount().completed}/{getCompletedSetsCount().total} {t('sets_today')}</p>
             </div>
             
             <div className="bg-white p-4 rounded-xl shadow-sm border border-brand-line text-center flex flex-col gap-1.5">
               <h3 className="text-lg font-extrabold text-brand-mossDeep leading-snug">
-                Bạn cảm thấy buổi tập hôm nay thế nào?
+                {t('how_feel')}
               </h3>
               <p className="text-[13px] font-semibold text-brand-moss/60 leading-relaxed px-1">
-                Việc đánh giá sẽ giúp Coach theo dõi khả năng phục hồi và đưa ra chiến thuật tăng tiến phù hợp cho tuần tới.
+                {t('feedback_desc')}
               </p>
             </div>
 
@@ -785,7 +787,7 @@ function WorkoutExecutionContent() {
                 <span className="text-2xl font-black transition-colors duration-200" style={{ 
                   color: rpeScore <= 6 ? '#6b7280' : rpeScore <= 8 ? '#22c55e' : rpeScore === 9 ? '#eab308' : '#ef4444' 
                 }}>
-                  {rpeScore} - {rpeScore <= 6 ? 'Nhẹ nhàng' : rpeScore <= 8 ? 'Vừa sức' : rpeScore === 9 ? 'Nỗ lực cao' : 'Hết sức luôn'}
+                  {rpeScore} - {rpeScore <= 6 ? t('effort_light') : rpeScore <= 8 ? t('effort_moderate') : rpeScore === 9 ? t('effort_hard') : t('effort_max')}
                 </span>
               </div>
               <div className="relative px-2">
@@ -815,19 +817,19 @@ function WorkoutExecutionContent() {
             {/* Khớp & Ghi chú */}
             <div className="space-y-4 pt-4 border-t border-brand-line border-dashed">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">MỨC ĐỘ ĐAU/KHÓ CHỊU KHỚP (NẾU CÓ)</label>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">{t('joint_pain_label')}</label>
                 <input 
                   type="text" 
                   value={jointPain} onChange={(e) => setJointPain(e.target.value)}
-                  placeholder="Ví dụ: Đau nhẹ đầu gối phải" 
+                  placeholder={t('joint_pain_placeholder')} 
                   className="w-full p-4 bg-white border border-brand-line rounded-xl font-medium text-brand-moss focus:ring-2 focus:ring-brand-sand outline-none"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">Ghi chú bổ sung (nếu có)</label>
+                <label className="text-xs font-bold text-brand-moss/60 uppercase tracking-wider ml-1">{t('notes_label')}</label>
                 <textarea 
                   value={workoutNotes} onChange={(e) => setWorkoutNotes(e.target.value)}
-                  placeholder="Ví dụ: Cảm nhận trọng tâm trong bài squat tốt hơn, chưa tự tin về kĩ thuật trong bài Deadlift" 
+                  placeholder={t('notes_placeholder')} 
                   rows={3}
                   className="w-full p-4 bg-white border border-brand-line rounded-xl font-medium text-brand-moss focus:ring-2 focus:ring-brand-sand outline-none resize-none"
                 ></textarea>
@@ -840,7 +842,7 @@ function WorkoutExecutionContent() {
           <div className="absolute bottom-0 left-0 right-0 px-6 pt-8 pb-[max(env(safe-area-inset-bottom),32px)] bg-gradient-to-t from-brand-paper via-brand-paper/95 to-transparent pointer-events-none">
             <div className="flex gap-3 pointer-events-auto">
                <button onClick={() => setShowFeedback(false)} className="px-6 py-4 rounded-xl font-bold text-brand-moss bg-brand-line/50 hover:bg-brand-line transition-colors">
-                 Quay lại
+                 {t('back')}
                </button>
                <button 
                 onClick={submitFinalWorkout}
@@ -848,7 +850,7 @@ function WorkoutExecutionContent() {
                 className="flex-1 bg-brand-moss text-white font-bold text-lg py-4 rounded-xl shadow-lg hover:bg-brand-mossDeep transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                >
                  {saving ? <Loader2 className="animate-spin" size={24} /> : <Check size={24} />} 
-                 {saving ? "Đang gửi..." : "Gửi cho Coach"}
+                 {saving ? t('submitting') : t('submit_to_coach')}
                </button>
             </div>
           </div>
@@ -860,7 +862,7 @@ function WorkoutExecutionContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="w-full max-w-md bg-brand-mossDeep rounded-2xl overflow-hidden shadow-2xl border border-white/10">
             <div className="flex justify-between items-center p-4 border-b border-white/10">
-              <h3 className="text-white font-bold">Hướng dẫn Kỹ thuật</h3>
+              <h3 className="text-white font-bold">{t('technique_guide')}</h3>
               <button onClick={() => setShowVideo(null)} className="text-brand-sage hover:text-white bg-white/10 rounded-full p-1 transition-colors">
                 <X size={20} />
               </button>

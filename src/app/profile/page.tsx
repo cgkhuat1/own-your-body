@@ -5,10 +5,12 @@ import useSWR from 'swr';
 import dayjs from 'dayjs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from "@/lib/supabase";
-import { Loader2, UserCircle, Activity, LogOut, Lock } from "lucide-react";
+import { Loader2, UserCircle, Activity, LogOut, Lock, Globe } from "lucide-react";
 import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function ProfilePage() {
+  const { language, setLanguage, t } = useLanguage();
   const fetcher = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -141,42 +143,80 @@ export default function ProfilePage() {
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
+            <h1 className="text-[28px] font-black text-white tracking-tight">
+              {language === 'vi' 
+                ? `Chào ${user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!` 
+                : `Hello ${user?.full_name ? user.full_name.split(' ')[0] : 'there'}!`}
+            </h1>
             <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
-              Hồ Sơ Thể Chất
+              {t('profile_title')}
             </p>
           </div>
         </div>
       </div>
 
       <div className="p-5 space-y-6">
+        {/* Language Selection Card */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+          <div className="flex items-center justify-between border-b pb-2">
+            <h2 className="font-bold flex items-center gap-2 text-gray-800">
+              <Globe className="w-5 h-5 text-brand-sage" /> {t('language')}
+            </h2>
+            <span className="text-xs text-brand-moss/60 uppercase font-bold">
+              {language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={() => setLanguage('vi')}
+              className={`py-2.5 px-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                language === 'vi'
+                  ? 'border-brand-moss bg-brand-moss/10 text-brand-moss ring-1 ring-brand-moss shadow-sm'
+                  : 'border-brand-line bg-brand-paper text-brand-moss/60 hover:border-brand-moss/40'
+              }`}
+            >
+              <span>🇻🇳</span> {t('language_vn')}
+            </button>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`py-2.5 px-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                language === 'en'
+                  ? 'border-brand-moss bg-brand-moss/10 text-brand-moss ring-1 ring-brand-moss shadow-sm'
+                  : 'border-brand-line bg-brand-paper text-brand-moss/60 hover:border-brand-moss/40'
+              }`}
+            >
+              <span>🇬🇧</span> {t('language_en')}
+            </button>
+          </div>
+        </div>
+
         {/* Hồ sơ thể chất */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-            <UserCircle className="w-5 h-5 text-brand-sage" /> Hồ sơ thể chất
+            <UserCircle className="w-5 h-5 text-brand-sage" /> {t('personal_info')}
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hiện tại</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{language === 'vi' ? 'Hiện tại' : 'Current'}</p>
               <p className="text-lg font-black text-brand-moss">{profile?.current_weight || '--'}</p>
             </div>
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mục tiêu</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('target')}</p>
               <p className="text-lg font-black text-brand-moss">{profile?.target_weight || '--'}</p>
             </div>
           </div>
           
           {(profile?.injury_history || profile?.notes) && (
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
-              <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2"><Activity size={16}/> Lưu ý từ Coach</h3>
-              {profile?.injury_history && <p className="text-xs text-amber-700 font-medium"><strong>Chấn thương:</strong> {profile.injury_history}</p>}
-              {profile?.notes && <p className="text-xs text-amber-700 font-medium"><strong>Ghi chú:</strong> {profile.notes}</p>}
+              <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2"><Activity size={16}/> {language === 'vi' ? 'Lưu ý từ Coach' : "Coach's Notes"}</h3>
+              {profile?.injury_history && <p className="text-xs text-amber-700 font-medium"><strong>{language === 'vi' ? 'Chấn thương:' : 'Injuries:'}</strong> {profile.injury_history}</p>}
+              {profile?.notes && <p className="text-xs text-amber-700 font-medium"><strong>{language === 'vi' ? 'Ghi chú:' : 'Notes:'}</strong> {profile.notes}</p>}
             </div>
           )}
 
           {profile?.action_plan && (
             <div className="bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)] p-4 rounded-xl space-y-2">
-              <h3 className="text-sm font-bold text-orange-950 flex items-center gap-2">🎯 Phương án xử lý</h3>
+              <h3 className="text-sm font-bold text-orange-950 flex items-center gap-2">🎯 {language === 'vi' ? 'Phương án xử lý' : 'Action Plan'}</h3>
               <p className="text-xs text-orange-950/90 font-medium whitespace-pre-line">{profile.action_plan}</p>
             </div>
           )}
@@ -186,7 +226,7 @@ export default function ProfilePage() {
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="text-brand-moss" size={20} />
-            <h3 className="font-bold text-brand-moss text-lg">Cân nặng Trung bình tuần</h3>
+            <h3 className="font-bold text-brand-moss text-lg">{t('avg_weight')}</h3>
           </div>
           {chartData.length > 0 ? (
             <div className="h-[250px] w-full -ml-4">
@@ -198,7 +238,7 @@ export default function ProfilePage() {
                   <Tooltip 
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontWeight: 'bold', color: '#1C2E20' }}
                     itemStyle={{ color: '#1C2E20' }}
-                    formatter={(value: any) => [`${value}`, 'Trung bình']}
+                    formatter={(value: any) => [`${value}`, language === 'vi' ? 'Trung bình' : 'Average']}
                   />
                   <Line 
                     type="monotone" 
@@ -213,7 +253,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="p-8 text-center text-brand-moss/50 bg-brand-paper/50 rounded-xl font-semibold border border-dashed border-gray-200">
-              Chưa có đủ dữ liệu cân nặng để vẽ biểu đồ.
+              {language === 'vi' ? 'Chưa có đủ dữ liệu cân nặng để vẽ biểu đồ.' : 'Not enough weight data to display chart.'}
             </div>
           )}
         </div>
@@ -233,7 +273,7 @@ export default function ProfilePage() {
         {/* Tài khoản */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold flex items-center gap-2 text-gray-800 border-b pb-2">
-            <Lock className="w-5 h-5 text-brand-sage" /> Tài khoản
+            <Lock className="w-5 h-5 text-brand-sage" /> {language === 'vi' ? 'Tài khoản' : 'Account'}
           </h2>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-2">
@@ -241,8 +281,8 @@ export default function ProfilePage() {
               <span className="text-gray-800 font-medium">{user?.email || '--'}</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2 mt-4">
-            <LogOut size={18} /> Đăng xuất
+          <button onClick={handleLogout} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2 mt-4 hover:bg-red-100 transition-colors">
+            <LogOut size={18} /> {t('logout')}
           </button>
         </div>
       </div>

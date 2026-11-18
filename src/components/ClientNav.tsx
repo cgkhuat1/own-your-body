@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Dumbbell, CalendarDays, UserCircle } from 'lucide-react';
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function ClientNav() {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const navItems = [
-    { name: 'Nhật Ký', href: '/', icon: CalendarDays },
-    { name: 'Tập Luyện', href: '/program', icon: Dumbbell },
-    { name: 'Hồ Sơ', href: '/profile', icon: UserCircle },
+    { name: t('nav_log'), href: '/', icon: CalendarDays },
+    { name: t('nav_workout'), href: '/program', icon: Dumbbell },
+    { name: t('nav_profile'), href: '/profile', icon: UserCircle },
   ];
 
   return (

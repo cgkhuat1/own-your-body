@@ -10,12 +10,14 @@ import isoWeek from "dayjs/plugin/isoWeek";
 import updateLocale from "dayjs/plugin/updateLocale";
 import { checkNeedsMeasurement } from "@/lib/measurements";
 import BodyMeasurementsTable from "@/components/BodyMeasurementsTable";
+import { useLanguage } from "@/lib/LanguageContext";
 
 dayjs.extend(isoWeek);
 dayjs.extend(updateLocale);
 dayjs.updateLocale('en', { weekStart: 1 }); // Monday is the first day of the week
 
 export default function ClientDashboard({ initialData }: { initialData?: any }) {
+  const { language, t } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   
@@ -291,9 +293,9 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {user?.full_name ? user.full_name.split(' ').pop() : 'Bạn'}!</h1>
+            <h1 className="text-[28px] font-black text-white tracking-tight">{t('hello')} {user?.full_name ? user.full_name.split(' ').pop() : ''}!</h1>
             <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
-              Nhật Ký Tracking
+              {t('check_in')}
             </p>
           </div>
         </div>
@@ -301,13 +303,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
         {/* Gamification Level Badges */}
         <div className="flex gap-2 mt-6 relative z-10">
           <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 1 ? 'bg-brand-sand text-brand-mossDeep' : 'bg-white/5 text-white/40 border border-white/10'}`}>
-            {level >= 1 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Cân nặng
+            {level >= 1 ? <CheckCircle2 size={13} /> : <Lock size={11} />} {t('weight')}
           </div>
           <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 2 ? 'bg-brand-sand text-brand-mossDeep' : 'bg-white/5 text-white/40 border border-white/10'}`}>
-            {level >= 2 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Steps
+            {level >= 2 ? <CheckCircle2 size={13} /> : <Lock size={11} />} {t('steps')}
           </div>
           <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${level >= 3 ? 'bg-brand-sand text-brand-mossDeep' : 'bg-white/5 text-white/40 border border-white/10'}`}>
-            {level >= 3 ? <CheckCircle2 size={13} /> : <Lock size={11} />} Dinh dưỡng
+            {level >= 3 ? <CheckCircle2 size={13} /> : <Lock size={11} />} {language === 'vi' ? 'Dinh dưỡng' : 'Nutrition'}
           </div>
         </div>
       </div>
@@ -323,10 +325,10 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-amber-900 leading-tight">
-                    Cập nhật số đo Tuần {measurementCheck.targetWeek}!
+                    {language === 'vi' ? `Cập nhật số đo Tuần ${measurementCheck.targetWeek}!` : `Update Measurements Week ${measurementCheck.targetWeek}!`}
                   </h4>
                   <p className="text-[11px] text-amber-700 font-medium mt-0.5">
-                    Đã đến lịch đo 6 vòng để đánh giá tiến độ cơ thể.
+                    {language === 'vi' ? 'Đã đến lịch đo 6 vòng để đánh giá tiến độ cơ thể.' : 'Time to update your 6-point body measurements.'}
                   </p>
                 </div>
               </div>
@@ -335,7 +337,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                 onClick={() => setShowMeasurementModal(true)}
                 className="px-3.5 py-2 bg-brand-moss text-white text-xs font-bold rounded-xl shadow hover:bg-brand-mossDeep transition-colors shrink-0"
               >
-                Đo ngay
+                {language === 'vi' ? 'Đo ngay' : 'Measure Now'}
               </button>
             </div>
           )}
@@ -347,9 +349,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                 <Flame size={16} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-orange-800 mb-1">Thời gian linh hoạt (Grace Period)</h4>
+                <h4 className="text-sm font-bold text-orange-800 mb-1">
+                  {language === 'vi' ? 'Thời gian linh hoạt (Grace Period)' : 'Grace Period'}
+                </h4>
                 <p className="text-[12px] text-orange-700 leading-relaxed font-medium">
-                  Bạn đã bước qua tuần thứ {durationWeeks}. App đang kích hoạt thời gian hỗ trợ thêm để bạn hoàn thành nốt mục tiêu. Thời hạn đóng app: <strong>{weeksLeftInGrace === 0 ? "Cuối tuần này" : `Còn ${weeksLeftInGrace} tuần nữa`}</strong>. Cố lên nhé!
+                  {language === 'vi' 
+                    ? `Bạn đã bước qua tuần thứ ${durationWeeks}. App đang kích hoạt thời gian hỗ trợ thêm để bạn hoàn thành nốt mục tiêu. Thời hạn đóng app: ${weeksLeftInGrace === 0 ? "Cuối tuần này" : `Còn ${weeksLeftInGrace} tuần nữa`}. Cố lên nhé!`
+                    : `You have completed ${durationWeeks} weeks. Grace period is currently active. App access ends: ${weeksLeftInGrace === 0 ? "This weekend" : `${weeksLeftInGrace} weeks left`}. Keep it up!`}
                 </p>
               </div>
             </div>
@@ -373,13 +379,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
               {profile?.coaching_start_date && viewingWeekIdx ? (
                 <>
                    <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
-                     {viewingWeekIdx === clientRealWeek ? "🔥 Đang ở " : ""} Tuần {viewingWeekIdx} / {profile.coaching_duration_weeks || 12}
+                     {viewingWeekIdx === clientRealWeek ? "🔥 " : ""}{t('week')} {viewingWeekIdx} / {profile.coaching_duration_weeks || 12}
                    </span>
                    <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.add(6, 'day').format('DD/MM')}</span>
                 </>
               ) : (
                 <>
-                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Tuần này</span>
+                   <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest">{t('current_week')}</span>
                    <span className="font-bold text-brand-moss">{currentWeekStart.format('DD/MM')} - {currentWeekStart.endOf('isoWeek').format('DD/MM')}</span>
                 </>
               )}
@@ -403,7 +409,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
           {canTrackSteps && profile?.target_steps && (
              <div className="bg-white p-5 rounded-2xl shadow-sm border border-brand-line/50">
                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                 <Footprints size={14} className="text-orange-500"/> Tổng kết Bước chân Tuần
+                 <Footprints size={14} className="text-orange-500"/> {language === 'vi' ? 'Tổng kết Bước chân Tuần' : 'Weekly Steps Summary'}
                </h3>
                <div className="flex justify-between items-end mb-2">
                  <div>
@@ -411,7 +417,9 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                    <span className="text-gray-400 font-bold ml-1">/ {totalStepsTarget.toLocaleString()}</span>
                  </div>
                  <div className="text-right">
-                   <span className="block text-[10px] uppercase font-bold text-orange-500">Còn lại</span>
+                   <span className="block text-[10px] uppercase font-bold text-orange-500">
+                     {language === 'vi' ? 'Còn lại' : 'Remaining'}
+                   </span>
                    <span className="font-bold text-gray-700">{remainingSteps.toLocaleString()}</span>
                  </div>
                </div>
@@ -424,13 +432,15 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                  <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl flex gap-3 items-start">
                    <span className="text-xl">💡</span>
                    <p className="text-orange-800 text-[12px] font-semibold leading-snug">
-                     Còn lại {daysLeft} ngày chưa nhập số liệu. Để đạt target tuần, mỗi ngày bạn cần đi trung bình <strong className="text-orange-600 text-sm">{avgStepsNeeded.toLocaleString()}</strong> bước. Cố lên nhé!
+                     {language === 'vi' 
+                       ? `Còn lại ${daysLeft} ngày chưa nhập số liệu. Để đạt target tuần, mỗi ngày bạn cần đi trung bình ${avgStepsNeeded.toLocaleString()} bước. Cố lên nhé!`
+                       : `${daysLeft} days remaining. To hit your weekly target, aim for an average of ${avgStepsNeeded.toLocaleString()} steps/day. Keep going!`}
                    </p>
                  </div>
                )}
                {remainingSteps === 0 && (
                  <div className="bg-orange-100 border-[2px] border-orange-300 shadow-[0_0_15px_rgba(253,186,116,0.5)] p-3 rounded-xl flex gap-3 items-start text-brand-mossDeep text-sm font-bold">
-                   🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!
+                   {language === 'vi' ? '🎉 Tuyệt vời! Bạn đã hoàn thành mục tiêu bước chân của cả tuần!' : '🎉 Awesome! You hit your weekly step goal!'}
                  </div>
                )}
              </div>
@@ -460,13 +470,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                       </span>
                       <div>
                         <span className="block text-xs font-bold text-gray-400 uppercase">{day.format('dddd')}</span>
-                        {isToday && <span className="text-[10px] font-black text-brand-moss bg-brand-moss/10 px-2 py-0.5 rounded-md uppercase tracking-wider">Hôm nay</span>}
+                        {isToday && <span className="text-[10px] font-black text-brand-moss bg-brand-moss/10 px-2 py-0.5 rounded-md uppercase tracking-wider">{t('today')}</span>}
                       </div>
                     </div>
                     {row ? (
                       <CheckCircle2 className="text-orange-300 w-5 h-5" />
                     ) : (
-                      <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">+ Nhập</span>
+                      <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">{language === 'vi' ? '+ Nhập' : '+ Log'}</span>
                     )}
                   </div>
                   
@@ -474,13 +484,13 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                   <div className="flex flex-wrap gap-2">
                     {/* Weight (Always Level 1) */}
                     <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
-                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cân nặng</span>
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t('weight')}</span>
                       <span className="font-black text-brand-moss">{row?.weight ? `${row.weight}` : '--'}</span>
                     </div>
 
                     {/* Steps (Level 2+) */}
                     <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center relative overflow-hidden">
-                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Bước chân</span>
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t('steps')}</span>
                       {canTrackSteps ? (
                         <span className="font-black text-brand-moss">{row?.steps ? row.steps.toLocaleString() : '--'}</span>
                       ) : (
@@ -492,7 +502,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
 
                     {/* Calories (Level 3+) */}
                     <div className="flex-1 min-w-[30%] bg-gray-50 border border-gray-100 rounded-lg p-2 text-center relative overflow-hidden">
-                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Calo In</span>
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{t('calories')}</span>
                       {canTrackDiet ? (
                         <span className="font-black text-brand-moss">{row?.calories ? row.calories.toLocaleString() : '--'}</span>
                       ) : (
@@ -515,39 +525,45 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 max-h-[90vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),24px)]">
             <h3 className="text-xl font-black text-brand-moss mb-1">
-              Nhật ký ngày {dayjs(editingDay).format('DD/MM')}
+              {language === 'vi' ? 'Nhật ký ngày' : 'Daily log for'} {dayjs(editingDay).format('DD/MM')}
             </h3>
-            <p className="text-sm text-gray-500 font-medium mb-6">Điền số liệu để Coach theo dõi tiến độ của bạn</p>
+            <p className="text-sm text-gray-500 font-medium mb-6">
+              {language === 'vi' ? 'Điền số liệu để Coach theo dõi tiến độ của bạn' : 'Enter your metrics for your coach to track your progress'}
+            </p>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Cân nặng sáng (kg/lbs)</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
+                  {language === 'vi' ? 'Cân nặng sáng (kg/lbs)' : 'Morning Weight (kg/lbs)'}
+                </label>
                 <input type="number" step="0.1" value={metricsInput.weight} onChange={e => setMetricsInput({...metricsInput, weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900" placeholder="VD: 65.5" />
               </div>
 
               <div className="relative">
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Số bước chân</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('steps')}</label>
                 <input type="number" disabled={!canTrackSteps} value={metricsInput.steps} onChange={e => setMetricsInput({...metricsInput, steps: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 10000" />
                 {!canTrackSteps && <div className="absolute right-4 top-10 flex items-center gap-1 text-xs font-bold text-orange-500"><Lock size={12}/> Level 2</div>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Calo In</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('calories')}</label>
                   <input type="number" disabled={!canTrackDiet} value={metricsInput.calories} onChange={e => setMetricsInput({...metricsInput, calories: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 2000" />
                   {!canTrackDiet && <div className="absolute right-3 top-10 flex items-center text-orange-500"><Lock size={12}/></div>}
                 </div>
                 <div className="relative">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Protein (g)</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">{t('protein')} (g)</label>
                   <input type="number" disabled={!canTrackDiet} value={metricsInput.protein} onChange={e => setMetricsInput({...metricsInput, protein: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 outline-none focus:border-brand-sage font-black text-xl text-gray-900 disabled:opacity-50" placeholder="VD: 150" />
                 </div>
               </div>
             </div>
 
             <div className="mt-8 flex gap-3">
-              <button onClick={() => setEditingDay(null)} className="flex-1 py-3.5 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200">Hủy</button>
+              <button onClick={() => setEditingDay(null)} className="flex-1 py-3.5 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200">
+                {t('back')}
+              </button>
               <button onClick={handleSaveMetric} disabled={saving} className="flex-1 py-3.5 rounded-xl font-bold text-white bg-brand-moss hover:bg-brand-mossDeep shadow-md flex items-center justify-center gap-2">
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lưu Nhật Ký'}
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : t('save')}
               </button>
             </div>
           </div>
@@ -564,8 +580,12 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                   <Ruler size={18} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-brand-moss">Cập nhật số đo 6 vòng</h3>
-                  <p className="text-xs text-brand-moss/60">Theo dõi sự biến chuyển vóc dáng</p>
+                  <h3 className="font-bold text-base text-brand-moss">
+                    {language === 'vi' ? 'Cập nhật số đo 6 vòng' : 'Body Measurements'}
+                  </h3>
+                  <p className="text-xs text-brand-moss/60">
+                    {language === 'vi' ? 'Theo dõi sự biến chuyển vóc dáng' : 'Track your 6-point measurements'}
+                  </p>
                 </div>
               </div>
               <button

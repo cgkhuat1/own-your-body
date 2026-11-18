@@ -23,6 +23,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { LanguageProvider } from "@/lib/LanguageContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="font-sans antialiased text-brand-moss bg-brand-mossDeep">
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

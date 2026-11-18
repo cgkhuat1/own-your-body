@@ -36,6 +36,8 @@ export default function ClientProfileDetail() {
   });
   
   const [savedMessage, setSavedMessage] = useState('');
+  const [clientLanguage, setClientLanguage] = useState<'vi' | 'en'>('vi');
+  const [updatingLang, setUpdatingLang] = useState(false);
   
   const [currentMonth, setCurrentMonth] = useState(dayjs().startOf('month'));
   const [dailyMetrics, setDailyMetrics] = useState<any[]>([]);
@@ -51,6 +53,19 @@ export default function ClientProfileDetail() {
     // Fetch user basic info
     const { data: userData } = await supabase.from('users').select('*').eq('id', clientId).single();
     if (userData) setUser(userData);
+
+    // Fetch client language from admin API
+    try {
+      const res = await fetch(`/api/admin/users?id=${clientId}`);
+      if (res.ok) {
+        const langData = await res.json();
+        if (langData?.language) {
+          setClientLanguage(langData.language);
+        }
+      }
+    } catch (e) {
+      console.error("Lỗi lấy ngôn ngữ học viên:", e);
+    }
 
     // Fetch profile
     const { data: profileData } = await supabase.from('client_profiles').select('*').eq('id', clientId).single();
@@ -85,6 +100,35 @@ export default function ClientProfileDetail() {
     }
 
     setLoading(false);
+  };
+
+  const handleUpdateLanguage = async (newLang: 'vi' | 'en') => {
+    if (newLang === clientLanguage) return;
+    const oldLang = clientLanguage;
+    setUpdatingLang(true);
+    setClientLanguage(newLang);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: clientId,
+          language: newLang,
+          country: newLang === 'en' ? 'International' : 'VN'
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Lỗi cập nhật');
+      }
+      setSavedMessage(newLang === 'en' ? 'Đã đổi sang English cho học viên!' : 'Đã đổi sang Tiếng Việt cho học viên!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    } catch (err: any) {
+      alert("Lỗi khi cập nhật ngôn ngữ: " + err.message);
+      setClientLanguage(oldLang);
+    } finally {
+      setUpdatingLang(false);
+    }
   };
 
   const handleSave = async () => {
@@ -264,6 +308,45 @@ export default function ClientProfileDetail() {
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Mục tiêu</label>
             <input type="text" value={profile.target_weight} onChange={e => setProfile({...profile, target_weight: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none focus:border-brand-sage" />
+          </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+              Ngôn ngữ hiển thị của Học viên
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleUpdateLanguage('vi')}
+                disabled={updatingLang}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  clientLanguage === 'vi'
+                    ? 'border-brand-moss bg-brand-moss/10 text-brand-moss ring-1 ring-brand-moss shadow-sm'
+                    : 'border-brand-line bg-brand-paper text-brand-moss/60 hover:border-brand-moss/40'
+                }`}
+              >
+                <span>🇻🇳</span> Tiếng Việt
+              </button>
+              <button
+                type="button"
+                onClick={() => handleUpdateLanguage('en')}
+                disabled={updatingLang}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  clientLanguage === 'en'
+                    ? 'border-brand-moss bg-brand-moss/10 text-brand-moss ring-1 ring-brand-moss shadow-sm'
+                    : 'border-brand-line bg-brand-paper text-brand-moss/60 hover:border-brand-moss/40'
+                }`}
+              >
+                <span>🇬🇧</span> English
+              </button>
+            </div>
+            <p className="text-[11px] text-brand-moss/60 mt-1.5">
+              {updatingLang
+                ? 'Đang cập nhật ngôn ngữ...'
+                : clientLanguage === 'vi'
+                  ? 'App của học viên đang hiển thị Tiếng Việt.'
+                  : 'App của học viên đang hiển thị English.'}
+            </p>
           </div>
         </div>
 

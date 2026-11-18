@@ -8,9 +8,11 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dayjs from "dayjs";
+import { useLanguage } from '@/lib/LanguageContext';
 
 export default function ClientDashboard({ initialData }: { initialData?: any }) {
   const router = useRouter();
+  const { language, t } = useLanguage();
   const [activeWeek, setActiveWeek] = useState(1);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
@@ -260,7 +262,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
       block.workouts.forEach((wo: any) => {
         const wn = wo.week_number || 1;
         if (!weeksMap.has(wn)) {
-          weeksMap.set(wn, { id: wn, name: `Tuần ${wn}`, workouts: [] });
+          weeksMap.set(wn, { id: wn, name: `${t('week')} ${wn}`, workouts: [] });
         }
         weeksMap.get(wn).workouts.push({
           id: wo.id,
@@ -291,7 +293,7 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-brand-paper shadow-2xl relative pb-24">
-                  {/* Header */}
+      {/* Header */}
       <div className="bg-brand-mossDeep px-5 pb-6 pt-[max(env(safe-area-inset-top),20px)] rounded-b-[2rem] shadow-lg relative overflow-hidden">
         <div className="flex justify-between items-center mb-5 relative z-10">
           <div className="inline-flex items-center px-3 py-1.5 border border-brand-sand/40 rounded-lg bg-white/5">
@@ -306,9 +308,9 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
             </span>
           </div>
           <div>
-            <h1 className="text-[28px] font-black text-white tracking-tight">Chào {userName ? userName.split(' ').pop() : 'Bạn'}!</h1>
+            <h1 className="text-[28px] font-black text-white tracking-tight">{t('hello')} {userName ? userName.split(' ').pop() : ''}!</h1>
             <p className="text-brand-sand text-[10px] font-black uppercase tracking-widest mt-0.5 opacity-90">
-              Chương Trình Tập Luyện
+              {t('program_title')}
             </p>
           </div>
         </div>
@@ -322,9 +324,11 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
             <div>
               <div className="flex items-center space-x-2 text-brand-sand mb-1">
                 <Flame size={16} />
-                <span className="font-bold text-xs uppercase tracking-wider">Chuỗi tập luyện</span>
+                <span className="font-bold text-xs uppercase tracking-wider">
+                  {language === 'vi' ? 'Chuỗi tập luyện' : 'Consistency'}
+                </span>
               </div>
-              <p className="text-white text-sm">Tuân thủ: <span className="font-bold">{compliance}%</span> <span className="text-white/60 text-xs">(Tuần này)</span></p>
+              <p className="text-white text-sm">{t('compliance')}: <span className="font-bold">{compliance}%</span> <span className="text-white/60 text-xs">({language === 'vi' ? 'Tuần này' : 'This week'})</span></p>
             </div>
             <div className="w-10 h-10 bg-brand-sand rounded-full flex items-center justify-center shadow-inner">
               <span className="text-brand-mossDeep font-black text-lg">{completedThisWeek}</span>
@@ -420,16 +424,18 @@ export default function ClientDashboard({ initialData }: { initialData?: any }) 
                   <div className="w-12 h-12 bg-brand-paper rounded-full flex items-center justify-center mb-3">
                     <CalendarDays className="text-brand-moss/30" size={24} />
                   </div>
-                  <h3 className="font-bold text-brand-moss mb-1">Chưa có giáo án</h3>
-                  <p className="text-sm text-brand-moss/50">Tuần này của bạn trống. Chờ HLV lên lịch nhé!</p>
+                  <h3 className="font-bold text-brand-moss mb-1">{t('no_program')}</h3>
+                  <p className="text-sm text-brand-moss/50">
+                    {language === 'vi' ? 'Tuần này của bạn trống. Chờ HLV lên lịch nhé!' : 'This week is empty. Waiting for coach to schedule workouts!'}
+                  </p>
                 </div>
               )}
             </div>
           </>
         ) : (
           <div className="text-center py-10">
-            <h3 className="font-bold text-brand-moss mb-1">Chưa có giáo án</h3>
-            <p className="text-sm text-brand-moss/50">HLV chưa khởi tạo giáo án cho bạn.</p>
+            <h3 className="font-bold text-brand-moss mb-1">{t('no_program')}</h3>
+            <p className="text-sm text-brand-moss/50">{t('contact_coach')}</p>
           </div>
         )}
       </div>

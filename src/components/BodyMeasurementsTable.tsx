@@ -11,6 +11,16 @@ import {
 } from "@/lib/measurements";
 import { Ruler, Plus, Pencil, Check, X, Loader2, Calendar, ChevronRight, TrendingUp, BarChart2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/lib/LanguageContext";
+
+const FIELD_LABELS: Record<string, { vi: string, en: string }> = {
+  chest: { vi: 'Ngực', en: 'Chest' },
+  waist: { vi: 'Eo', en: 'Waist' },
+  belly: { vi: 'Bụng', en: 'Belly' },
+  hips: { vi: 'Mông', en: 'Hips' },
+  thigh: { vi: 'Đùi', en: 'Thigh' },
+  arm: { vi: 'Bắp tay', en: 'Arm' },
+};
 
 interface BodyMeasurementsTableProps {
   clientId: string;
@@ -29,6 +39,7 @@ export default function BodyMeasurementsTable({
   isCoachView = false,
   onMeasurementsUpdated
 }: BodyMeasurementsTableProps) {
+  const { language } = useLanguage();
   const [measurements, setMeasurements] = useState<WeeklyMeasurements>(() => 
     normalizeMeasurements(initialMeasurements)
   );
@@ -124,9 +135,11 @@ export default function BodyMeasurementsTable({
           </div>
           <div>
             <h3 className="font-bold text-brand-moss text-lg flex items-center gap-2">
-              Số đo các vòng (cm)
+              {language === 'vi' ? 'Số đo các vòng (cm)' : 'Body Measurements (cm)'}
             </h3>
-            <p className="text-xs text-brand-moss/60 font-medium">Chu kỳ đo mỗi 2 tuần (Tuần 1, 3, 5, 7...)</p>
+            <p className="text-xs text-brand-moss/60 font-medium">
+              {language === 'vi' ? 'Chu kỳ đo mỗi 2 tuần (Tuần 1, 3, 5, 7...)' : 'Measured bi-weekly (Week 1, 3, 5, 7...)'}
+            </p>
           </div>
         </div>
 
@@ -138,14 +151,14 @@ export default function BodyMeasurementsTable({
                 onClick={() => setViewMode('summary')}
                 className={`px-3 py-1 rounded-lg transition-all ${viewMode === 'summary' ? 'bg-white text-brand-moss shadow-sm' : 'text-brand-moss/60 hover:text-brand-moss'}`}
               >
-                Tóm tắt
+                {language === 'vi' ? 'Tóm tắt' : 'Summary'}
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('all_weeks')}
                 className={`px-3 py-1 rounded-lg transition-all ${viewMode === 'all_weeks' ? 'bg-white text-brand-moss shadow-sm' : 'text-brand-moss/60 hover:text-brand-moss'}`}
               >
-                Tất cả tuần
+                {language === 'vi' ? 'Tất cả tuần' : 'All Weeks'}
               </button>
             </div>
           )}
@@ -155,7 +168,7 @@ export default function BodyMeasurementsTable({
             onClick={() => openFormForWeek(initialTargetWeek || 1)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-moss text-white rounded-xl text-xs font-bold hover:bg-brand-mossDeep shadow-sm transition-colors"
           >
-            <Plus size={14} /> Nhập số đo
+            <Plus size={14} /> {language === 'vi' ? 'Nhập số đo' : 'Log'}
           </button>
         </div>
       </div>
@@ -165,7 +178,9 @@ export default function BodyMeasurementsTable({
         <div className="bg-brand-paper/60 p-4 rounded-2xl border border-brand-line/80 space-y-4 animate-in fade-in">
           <div className="flex items-center justify-between border-b border-brand-line/60 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-brand-moss/70">Mốc đo:</span>
+              <span className="text-xs font-black uppercase tracking-wider text-brand-moss/70">
+                {language === 'vi' ? 'Mốc đo:' : 'Week:'}
+              </span>
               <select
                 value={selectedWeek}
                 onChange={(e) => {
@@ -185,7 +200,7 @@ export default function BodyMeasurementsTable({
               >
                 {availableWeeks.map(w => (
                   <option key={w} value={w}>
-                    {w === 1 ? 'Tuần 1 (Đầu vào / Baseline)' : `Tuần ${w}`}
+                    {w === 1 ? (language === 'vi' ? 'Tuần 1 (Đầu vào / Baseline)' : 'Week 1 (Baseline)') : (language === 'vi' ? `Tuần ${w}` : `Week ${w}`)}
                   </option>
                 ))}
               </select>
@@ -204,7 +219,7 @@ export default function BodyMeasurementsTable({
             {MEASUREMENT_FIELDS.map(f => (
               <div key={f.key} className="bg-white p-2.5 rounded-xl border border-brand-line/50">
                 <label className="block text-[11px] font-bold text-brand-moss/70 mb-1">
-                  {f.label}
+                  {FIELD_LABELS[f.key]?.[language] || f.label}
                 </label>
                 <div className="relative">
                   <input
@@ -229,7 +244,7 @@ export default function BodyMeasurementsTable({
               onClick={() => setShowInputForm(false)}
               className="px-4 py-2 rounded-xl text-xs font-bold text-brand-moss/70 hover:bg-brand-paper transition-colors"
             >
-              Hủy
+              {language === 'vi' ? 'Hủy' : 'Cancel'}
             </button>
             <button
               type="button"
@@ -237,7 +252,7 @@ export default function BodyMeasurementsTable({
               onClick={handleSave}
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-brand-moss text-white hover:bg-brand-mossDeep transition-colors shadow-sm disabled:opacity-50"
             >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Lưu số đo
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {language === 'vi' ? 'Lưu số đo' : 'Save'}
             </button>
           </div>
         </div>
@@ -246,8 +261,12 @@ export default function BodyMeasurementsTable({
       {/* Main Table Display */}
       {!hasData && !showInputForm ? (
         <div className="p-8 text-center bg-brand-paper/40 rounded-2xl border border-dashed border-brand-line space-y-2">
-          <p className="text-sm font-bold text-brand-moss/60">Chưa có dữ liệu số đo nào</p>
-          <p className="text-xs text-brand-moss/40">Hãy bấm "Nhập số đo" để cập nhật số đo Tuần 1 (Đầu vào).</p>
+          <p className="text-sm font-bold text-brand-moss/60">
+            {language === 'vi' ? 'Chưa có dữ liệu số đo nào' : 'No measurements recorded yet'}
+          </p>
+          <p className="text-xs text-brand-moss/40">
+            {language === 'vi' ? 'Hãy bấm "Nhập số đo" để cập nhật số đo Tuần 1 (Đầu vào).' : 'Click "Log" to record Week 1 (Baseline).'}
+          </p>
         </div>
       ) : viewMode === 'summary' ? (
         /* Summary Mode: 4 focused columns with high-contrast typography, fully fitting mobile screens */
@@ -256,30 +275,30 @@ export default function BodyMeasurementsTable({
             <thead>
               <tr className="bg-brand-mossDeep text-brand-sage text-[11px] uppercase tracking-wider font-bold">
                 <th className="py-3 px-2 sticky left-0 z-10 bg-brand-mossDeep w-[58px] shadow-[1px_0_0_0_rgba(255,255,255,0.1)]">
-                  Vòng
+                  {language === 'vi' ? 'Vòng' : 'Part'}
                 </th>
                 <th className="py-3 px-2 text-center">
-                  <div>Tiến độ</div>
+                  <div>{language === 'vi' ? 'Tiến độ' : 'Progress'}</div>
                   {summary.baselineWeek && summary.latestWeek && summary.baselineWeek !== summary.latestWeek ? (
                     <div className="text-[10px] font-medium text-brand-sage/75 normal-case tracking-normal">
-                      T{summary.baselineWeek} ➔ T{summary.latestWeek}
+                      {language === 'vi' ? 'T' : 'W'}{summary.baselineWeek} ➔ {language === 'vi' ? 'T' : 'W'}{summary.latestWeek}
                     </div>
                   ) : summary.latestWeek ? (
                     <div className="text-[10px] font-medium text-brand-sage/75 normal-case tracking-normal">
-                      Tuần {summary.latestWeek}
+                      {language === 'vi' ? `Tuần ${summary.latestWeek}` : `Week ${summary.latestWeek}`}
                     </div>
                   ) : null}
                 </th>
                 <th className="py-3 px-1.5 text-center w-[85px]">
                   <div className="inline-flex items-center justify-center gap-1">
                     <TrendingUp size={13} className="text-brand-sand shrink-0" />
-                    <span>Lần trước</span>
+                    <span>{language === 'vi' ? 'Lần trước' : 'vs Last'}</span>
                   </div>
                 </th>
                 <th className="py-3 px-1.5 text-center w-[85px]">
                   <div className="inline-flex items-center justify-center gap-1">
                     <BarChart2 size={13} className="text-brand-sand shrink-0" />
-                    <span>Tổng đổi</span>
+                    <span>{language === 'vi' ? 'Tổng đổi' : 'Total Diff'}</span>
                   </div>
                 </th>
               </tr>
@@ -300,13 +319,17 @@ export default function BodyMeasurementsTable({
                     {/* Sticky Vòng Name */}
                     <td className="py-2.5 px-2 font-bold text-sm text-brand-moss sticky left-0 z-10 bg-white shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                       {row.field.key === 'arm' ? (
-                        <div className="leading-tight">
-                          <span>Bắp</span>
-                          <br />
-                          <span>tay</span>
-                        </div>
+                        language === 'vi' ? (
+                          <div className="leading-tight">
+                            <span>Bắp</span>
+                            <br />
+                            <span>tay</span>
+                          </div>
+                        ) : (
+                          <span>Arm</span>
+                        )
                       ) : (
-                        <span>{row.field.label}</span>
+                        <span>{FIELD_LABELS[row.field.key]?.[language] || row.field.label}</span>
                       )}
                     </td>
 
@@ -355,16 +378,16 @@ export default function BodyMeasurementsTable({
             <thead>
               <tr className="bg-brand-mossDeep text-brand-sage text-[11px] uppercase tracking-wider font-bold">
                 <th className="py-3 px-2 sticky left-0 z-10 bg-brand-mossDeep min-w-[58px] shadow-[1px_0_0_0_rgba(255,255,255,0.1)]">
-                  Vòng
+                  {language === 'vi' ? 'Vòng' : 'Part'}
                 </th>
                 {availableWeeks.map(w => (
                   <th key={w} className="py-3 px-3 text-center min-w-[70px]">
                     <div className="flex items-center justify-center gap-1">
-                      <span>T{w}</span>
+                      <span>{language === 'vi' ? 'T' : 'W'}{w}</span>
                       <button
                         type="button"
                         onClick={() => openFormForWeek(w)}
-                        title={`Sửa số đo Tuần ${w}`}
+                        title={language === 'vi' ? `Sửa số đo Tuần ${w}` : `Edit Week ${w}`}
                         className="text-brand-sage/60 hover:text-white"
                       >
                         <Pencil size={11} />
@@ -375,7 +398,7 @@ export default function BodyMeasurementsTable({
                 <th className="py-3 px-3 text-center min-w-[95px] bg-white/5">
                   <div className="inline-flex items-center justify-center gap-1">
                     <BarChart2 size={13} className="text-brand-sand shrink-0" />
-                    <span>Tổng đổi</span>
+                    <span>{language === 'vi' ? 'Tổng đổi' : 'Total Diff'}</span>
                   </div>
                 </th>
               </tr>
@@ -391,13 +414,17 @@ export default function BodyMeasurementsTable({
                   <tr key={row.field.key} className="hover:bg-brand-paper/30 transition-colors">
                     <td className="py-2.5 px-2 font-bold text-sm text-brand-moss sticky left-0 z-10 bg-white shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                       {row.field.key === 'arm' ? (
-                        <div className="leading-tight">
-                          <span>Bắp</span>
-                          <br />
-                          <span>tay</span>
-                        </div>
+                        language === 'vi' ? (
+                          <div className="leading-tight">
+                            <span>Bắp</span>
+                            <br />
+                            <span>tay</span>
+                          </div>
+                        ) : (
+                          <span>Arm</span>
+                        )
                       ) : (
-                        <span>{row.field.label}</span>
+                        <span>{FIELD_LABELS[row.field.key]?.[language] || row.field.label}</span>
                       )}
                     </td>
 
